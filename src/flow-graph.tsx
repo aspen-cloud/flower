@@ -1,4 +1,4 @@
-const { nanoid } = require("nanoid");
+import { nanoid } from "nanoid";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import XLSX from "xlsx";
 
@@ -8,7 +8,7 @@ import ReactFlow, {
   Controls,
   Background
 } from "react-flow-renderer";
-import * as GraphNodes from "./graph-nodes/index";
+import * as AllNodes from "./graph-nodes/index";
 
 import testData from "./test-data";
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
@@ -20,6 +20,14 @@ const initBgColor = "#343434";
 
 const connectionLineStyle = { stroke: "#fff" };
 const snapGrid = [20, 20];
+
+function flattenNodes(nodes) {
+  return Object.entries(nodes).flatMap(([key, val]) =>
+    val.Component ? [[key, val]] : flattenNodes(val)
+  );
+}
+
+const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
 
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => [key, val.Component])
