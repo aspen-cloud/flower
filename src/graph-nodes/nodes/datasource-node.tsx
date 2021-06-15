@@ -34,7 +34,6 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
     const [label, setLabel] = useState("");
     useEffect(() => {
       sources.label.observe((value) => {
-        console.log(value);
         setLabel(value);
       });
     }, []);
