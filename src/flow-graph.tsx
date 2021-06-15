@@ -50,12 +50,12 @@ function createReactFlowNode({
   position: { x: number; y: number };
 }) {
   // TODO remove... just for testing
-  if (type === "DataSource") {
-    data = {
-      rows: testData,
-      columns
-    };
-  }
+  // if (type === "DataSource") {
+  //   data = {
+  //     rows: testData,
+  //     columns
+  //   };
+  // }
   return {
     id: nanoid(),
     type,
