@@ -78,8 +78,11 @@ const nodes = [
   createReactFlowNode({
     type: "DataSource",
     data: {
-      rows: testData,
-      columns
+      data: {
+        rows: testData,
+        columns
+      },
+      label: "TestData"
     },
     position: { x: 100, y: -200 }
   }),
@@ -168,7 +171,7 @@ const FlowGraph = () => {
     reader.readAsArrayBuffer(file);
   }
 
-  function addDataNode(data, position) {
+  function addDataNode(data, label, position) {
     const cols = Object.keys(data.length ? data[0] : {}).map((col) => ({
       Header: col,
       accessor: col
@@ -177,8 +180,11 @@ const FlowGraph = () => {
     const newEl = createReactFlowNode({
       type: "DataSource",
       data: {
-        rows: data,
-        columns: cols
+        data: {
+          rows: data,
+          columns: cols
+        },
+        label
       },
       position
     });
@@ -203,7 +209,7 @@ const FlowGraph = () => {
     });
     const file = event.dataTransfer.files[0];
     parseFileData(file, (json_data) => {
-      addDataNode(json_data, position);
+      addDataNode(json_data, file.name, position);
     });
   };
 
