@@ -160,7 +160,8 @@ const FlowGraph = () => {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const json_data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[Object.keys(workbook.Sheets)[0]] // todo: Possibly load all "Sheets" as separate data sources?
+        workbook.Sheets[Object.keys(workbook.Sheets)[0]], // todo: Possibly load all "Sheets" as separate data sources?
+        { raw: false }
       );
       callback(json_data);
     };
