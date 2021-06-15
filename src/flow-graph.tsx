@@ -3,7 +3,7 @@ import XLSX from "xlsx";
 import { nanoid } from "nanoid";
 
 import ReactFlow, {
-  removeElements, , 
+  removeElements,
   addEdge,
   Controls,
   Background
@@ -12,7 +12,7 @@ import * as AllNodes from "./graph-nodes/index";
 
 import testData from "./test-data";
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
-import { HotkeysTarget2, MenuItem, ContextMenu, Menu } from "@blueprintjs/core";
+import { HotkeysTarget2, MenuItem } from "@blueprintjs/core";
 
 const onElementClick = (event, element) => {};
 
@@ -35,6 +35,14 @@ const nodeTypes = Object.fromEntries(
 );
 
 const columns = [
+  {
+    Header: "Address",
+    accessor: "address"
+  },
+  {
+    Header: "Price",
+    accessor: "price"
+  },
   {
     Header: "Size (SqrFt)",
     accessor: "sqrft"
@@ -74,84 +82,24 @@ const nodes = [
       columns
     },
     position: { x: 100, y: -200 }
-    }
-      setElements((els) => removeElements(elementsToRemove, els)),
-   Hea
-  der: "Address",
-    accessor: "address"
-  },
-  {
-    Header: "Price",
-    accessor: "price"
-  },
-  {
-    Header: "Size (SqrFt)",true
-    accessor: "sqrft"
-  }
-];
-
-function createReactFlowNode({
-  type,
-  data,
-  position
-}: {
-  type: string;
-  data?: any;
-  position: { x: number; y: number };
-}) {
-  // TODO remove... just for testing
-  // if (type === "DataSource") {
-  //   data = {
-  //     rows: testData,
-  //     columns
-  //   };
-  // }
-  return {
-    id: nanoid(),
-    type,
-    data: GraphNodes[type].initializeStreams({ initialData: data }),
-    position,
-    style: { padding: "10px", border: "1px solid white", borderRadius: "10px" }
-  };
-}
-
-const nodes = [
->>>>>>> GitHub
-  createReactFlowNode({
-      pe
-    position: { x: 100, y: -100 }
-  }),
-  createReactFlowNode({
-    type: "ColumnGenerator",
-    position: { x: 0, y: 0 }
-=======
-    type: "DataSource",
-    data: {
-      rows: testData,
-      columns
-    },
-    position: { x: 100, y: -200 }
->>>>>>> GitHub
   }),
   createReactFlowNode({
     type: "Table",
-<<<<<<< CodeSandbox
-    position: { x: 0, y: 300 }
-=======
     position: { x: 100, y: -100 }
->>>>>>> GitHub
   }),
   createReactFlowNode({
-<<<<<<< CodeSandbox
-    type: "AvgColumn",
-    position: { x: 110, y: -150 }
-=======
     type: "ColumnGenerator",
     position: { x: 0, y: 0 }
->>>>>>> GitHub
   }),
   createReactFlowNode({
-<<<<<<< CodeSandbox
+    type: "Table",
+    position: { x: 0, y: 300 }
+  }),
+  createReactFlowNode({
+    type: "AvgColumn",
+    position: { x: 110, y: -150 }
+  }),
+  createReactFlowNode({
     type: "SingleCell",
     position: { x: 130, y: -130 }
   })
@@ -168,51 +116,6 @@ const FlowGraph = () => {
     }
   }, [reactflowInstance, elements.length]);
 
-  const onElementsRemove = useCallback((elementsToRemove) => {
-    console.log(elementsToRemove);
-    setElements((els) => removeElements(elementsToRemove, els));
-  }, []);
-  const onConnect = useCallback(
-    (params) => {
-      //console.log("on connect", params);
-      const sourceNode = elements.find(({ id }) => id === params.source);
-      const targetNode = elements.find(({ id }) => id === params.target);
-
-      setElements((els) =>
-        addEdge({ ...params, animated: false, style: { stroke: "#fff" } }, els)
-      );
-
-      const targetBus = targetNode!.data.sources[params.targetHandle];
-      const sourceOutput = sourceNode!.data.sinks[params.sourceHandle];
-      console.log(targetBus, sourceOutput);
-      targetBus.plug(sourceOutput);
-    },
-    [elements]
-  );
-=======
-    type: "Table",
-    position: { x: 0, y: 300 }
-  }),
-  createReactFlowNode({
-    type: "AvgColumn",
-    position: { x: 110, y: -150 }
-  }),
-  createReactFlowNode({
-    type: "SingleCell",
-    position: { x: 130, y: -130 }
-  })
-];
-
-const FlowGraph = () => {
-  const [reactflowInstance, setReactflowInstance] = useState(null);
-  const [elements, setElements] = useState(nodes);
-  const [bgColor, setBgColor] = useState(initBgColor);
-
-  useEffect(() => {
-    if (reactflowInstance && elements.lengt();
-    }
-  }, [reactflowInstance, elements.length]);
-
   const onElementsRemove = useCallback(
     (elementsToRemove) =>
       setElements((els) => removeElements(elementsToRemove, els)),
@@ -222,7 +125,26 @@ const FlowGraph = () => {
     (params) => {
       //console.log("on connect", params);
       const sourceNode = elements.find(({ id }) => id === params.source);
-      const targetNode = elemen
+      const targetNode = elements.find(({ id }) => id === params.target);
+
+      setElements((els) =>
+        addEdge({ ...params, animated: true, style: { stroke: "#fff" } }, els)
+      );
+
+      const targetBus = targetNode!.data.sources[params.targetHandle];
+      const sourceOutput = sourceNode!.data.sinks[params.sourceHandle];
+      console.log(targetBus, sourceOutput);
+      targetBus.plug(sourceOutput);
+    },
+    [elements]
+  );
+
+  const addNode = useCallback(({ type, position }) => {
+    const newNode = createReactFlowNode({ type, position });
+    setElements((prevElems) => prevElems.concat(newNode));
+  }, []);
+
+  const onLoad = useCallback(
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
@@ -243,28 +165,8 @@ const FlowGraph = () => {
       callback(json_data);
     };
     reader.readAsArrayBuffer(file);
->>>>>>> GitHub
   }
 
-<<<<<<< CodeSandbox
-    const newEl = createReactFlowNode({
-      type: "DataSource",
-      data: {
-        rows: data,
-        columns: cols
-      },
-      position
-    });
-
-    setElements((els) => [...els, newEl]);
-  }
-
-  const reactFlowWrapper = useRef(null);
-  const onDragOver = (event) => {
-    console.log(event);
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-=======
   function addDataNode(data, position) {
     const cols = Object.keys(data.length ? data[0] : {}).map((col) => ({
       Header: col,
@@ -282,132 +184,7 @@ const FlowGraph = () => {
 
     setElements((els) => [...els, newEl]);
   }
->>>>>>> GitHub
-  };
 
-<<<<<<< CodeSandbox
-  const onDrop = (event) => {
-    event.preventDefault();
-    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-    // const type = event.dataTransfer.getData("application/reactflow");
-    const position = reactflowInstance.project({
-      x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top
-    });
-    const file = event.dataTransfer.files[0];
-    parseFileData(file, (json_data) => {
-      addDataNode(json_data, position);
-    });
-  };
-
-  const NodeOmnibar = Omnibar.ofType();
-
-  const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
-
-  const renderNodeType: ItemRenderer<[string, any]> = (
-    [key, component],
-    { handleClick, modifiers, query }
-  ) => {
-    if (!modifiers.matchesPredicate) {
-      return null;
-    }
-    return (
-      <MenuItem
-        active={modifiers.active}
-        disabled={modifiers.disabled}
-        label={key}
-        key={key}
-        onClick={handleClick}
-        text={key}
-      />
-    );
-  };
-
-  const filterNodeTypes: ItemPredicate<[string, any]> = (
-    query,
-    [key, component],
-    _index,
-    exactMatch
-  ) => {
-    const normalizedTitle = key.toLowerCase();
-    const normalizedQuery = query.toLowerCase();
-    if (!query || query.length === 0) return true;
-    if (exactMatch) {
-      return normalizedTitle === normalizedQuery;
-    } else {
-      return normalizedTitle.indexOf(normalizedQuery) >= 0;
-    }
-  };
-
-  return (
-    <div ref={reactFlowWrapper} style={{ width: "100%", height: "100%" }}>
-      <ReactFlow
-        elements={elements}
-        panOnScroll={true}
-        panOnScrollMode="free"
-        onElementClick={onElementClick}
-        onElementsRemove={onElementsRemove}
-        elementsSelectable={true}
-        onConnect={onConnect}
-        style={{ background: bgColor }}
-        onDoubleClick={() => {
-          console.log("double clicked...");
-        }}
-        onLoad={onLoad}
-        nodeTypes={nodeTypes}
-        connectionLineStyle={connectionLineStyle}
-        snapToGrid={true}
-        snapGrid={snapGrid}
-        defaultZoom={1}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onNodeContextMenu={(event, node) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove([node]),
-              text: "Delete node"
-            })
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onEdgeContextMenu={(event, edge) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove([edge]),
-              text: "Delete edge"
-            })
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onSelectionContextMenu={(event, nodes) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove(nodes),
-              text: "Delete nodes"
-            })
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onPaneContextMenu={(event) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {}, // empty props
-            React.createElement(MenuItem, {
-              onClick: () => reactflowInstance.fitView(),
-              text: "Zoom to fit"
-            })
-          );
-=======
   const reactFlowWrapper = useRef(null);
   const onDragOver = (event) => {
     console.log(event);
@@ -529,42 +306,3 @@ const FlowGraph = () => {
 };
 
 export default FlowGraph;
->>>>>>> GitHub
-
-      >
-        <Background variant="dots" gap={12} size={1} />
-        <Controls />
-      </ReactFlow>
-      <HotkeysTarget2
-        hotkeys={[
-          {
-            combo: "n",
-            global: true,
-            label: "Show Omnibar",
-            onKeyDown: () => {
-              console.log("hot key pressed");
-              setShowNodeOmniBar(true);
-            },
-            // prevent typing "O" in omnibar input
-            preventDefault: true
-          }
-        ]}
-      >
-        <NodeOmnibar
-          noResults={<MenuItem disabled={true} text="No results." />}
-          items={Object.entries(nodeTypes)}
-          itemRenderer={renderNodeType}
-          itemPredicate={filterNodeTypes}
-          onItemSelect={([type]) => {
-            addNode({ type, position: { x: 0, y: 0 } });
-            setShowNodeOmniBar(false);
-          }}
-          onClose={() => {
-            setShowNodeOmniBar(false);
-          }}
-          isOpen={showNodeOmniBar}
-          resetOnSelect={true}
-        />
-      </HotkeysTarget2>
-    </div>
-  );
