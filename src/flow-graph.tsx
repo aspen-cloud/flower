@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+const { nanoid } = require("nanoid");
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import XLSX from "xlsx";
 

@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "dependencies": {
     "@blueprintjs/core": "3.45.0",
+    "@blueprintjs/popover2": "0.10.1",
     "@blueprintjs/select": "3.16.4",
     "@types/kefir": "3.8.5",
     "kefir": "3.8.8",
