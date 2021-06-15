@@ -1,6 +1,6 @@
-import { nanoid } from "nanoid";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import XLSX from "xlsx";
+import { nanoid } from "nanoid";
 
 import ReactFlow, {
   removeElements,
@@ -28,6 +28,7 @@ function flattenNodes(nodes) {
 }
 
 const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
+console.log(AllNodes, GraphNodes);
 
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => [key, val.Component])

@@ -3,7 +3,10 @@ import KefirBus from "../../../utils/kefir-bus";
 import BaseNode from "../../../base-node";
 
 import * as NumberFuncs from "./number";
+import * as StringFuncs from "./string";
+console.log("StringFuncs", StringFuncs, funcsToNodes(StringFuncs));
 
+export const String = funcsToNodes(StringFuncs);
 export const Number = funcsToNodes(NumberFuncs);
 
 function createPrimitiveNodeData(inputs, outputs) {
@@ -37,7 +40,7 @@ function funcsToNodes(
   funcs: Record<string, { inputs: any; outputs: Record<string, Function> }>
 ) {
   return Object.fromEntries(
-    Object.entries(NumberFuncs).map(([op, { inputs, outputs, label }]) => [
+    Object.entries(funcs).map(([op, { inputs, outputs, label }]) => [
       op,
       {
         initializeStreams: ({ initialData }) => {
