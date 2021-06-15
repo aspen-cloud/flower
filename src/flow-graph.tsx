@@ -12,7 +12,7 @@ import * as AllNodes from "./graph-nodes/index";
 
 import testData from "./test-data";
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
-import { HotkeysTarget2, MenuItem } from "@blueprintjs/core";
+import { HotkeysTarget2, MenuItem, ContextMenu, Menu } from "@blueprintjs/core";
 
 const onElementClick = (event, element) => {};
 
@@ -266,6 +266,54 @@ const FlowGraph = () => {
         defaultZoom={1}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onNodeContextMenu={(event, node) => {
+          event.preventDefault();
+          const menu = React.createElement(
+            Menu,
+            {},
+            React.createElement(MenuItem, {
+              onClick: () => onElementsRemove([node]),
+              text: "Delete node"
+            })
+          );
+          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+        }}
+        onEdgeContextMenu={(event, edge) => {
+          event.preventDefault();
+          const menu = React.createElement(
+            Menu,
+            {},
+            React.createElement(MenuItem, {
+              onClick: () => onElementsRemove([edge]),
+              text: "Delete edge"
+            })
+          );
+          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+        }}
+        onSelectionContextMenu={(event, nodes) => {
+          event.preventDefault();
+          const menu = React.createElement(
+            Menu,
+            {},
+            React.createElement(MenuItem, {
+              onClick: () => onElementsRemove(nodes),
+              text: "Delete nodes"
+            })
+          );
+          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+        }}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          const menu = React.createElement(
+            Menu,
+            {},
+            React.createElement(MenuItem, {
+              onClick: () => reactflowInstance.fitView(),
+              text: "Zoom to fit"
+            })
+          );
+          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+        }}
       >
         <Background variant="dots" gap={12} size={1} />
         <Controls />
