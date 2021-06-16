@@ -4,7 +4,6 @@ import BaseNode from "../../../base-node";
 
 import * as NumberFuncs from "./number";
 import * as StringFuncs from "./string";
-
 console.log("StringFuncs", StringFuncs, funcsToNodes(StringFuncs));
 
 export const String = funcsToNodes(StringFuncs);
