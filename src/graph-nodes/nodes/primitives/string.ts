@@ -41,3 +41,15 @@ export const Extract = {
     match: ({ text, pattern }) => text.match(RegExp(pattern))[1]
   }
 };
+
+export const AsDate = {
+  label: "AsDate",
+  inputs: {
+    text: {
+      type: string()
+    }
+  },
+  outputs: {
+    date: ({ text }) => new Date(Date.parse(text)) //TODO: parse with format
+  }
+};

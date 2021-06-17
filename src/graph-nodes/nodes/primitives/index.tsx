@@ -6,12 +6,14 @@ import * as NumberFuncs from "./number";
 import * as StringFuncs from "./string";
 import * as FormulaFuncs from "./formula";
 import * as TableFuncs from "./table";
+import * as DateFuncs from "./date";
 import React from "react";
 
 export const String = funcsToNodes(StringFuncs);
 export const Number = funcsToNodes(NumberFuncs);
 export const Formula = funcsToNodes(FormulaFuncs);
 export const TableOps = funcsToNodes(TableFuncs);
+export const Date = funcsToNodes(DateFuncs);
 
 function createPrimitiveNodeData(inputs, outputs) {
   const sources: Record<string, KefirBus<any, void>> = {},
