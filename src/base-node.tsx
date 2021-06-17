@@ -7,6 +7,7 @@ export default memo(({ sources, sinks, children }) => {
     <Tooltip2
       content={sourceName}
       placement="top"
+      portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{
@@ -33,6 +34,7 @@ export default memo(({ sources, sinks, children }) => {
     <Tooltip2
       content={sinkName}
       placement="bottom"
+      portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{

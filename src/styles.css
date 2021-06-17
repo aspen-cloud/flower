@@ -38,3 +38,23 @@ body {
   height: 100vh;
   width: 100vw;
 }
+
+.react-flow__handle:after {
+  content: "";
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border-radius: 100%;
+  position: absolute;
+  z-index: -100;
+  top: -16px;
+  left: -16px;
+}
+
+.react-flow__handle:hover:after {
+  background: rgba(208, 208, 208, 0.2);
+}
+
+.handle-tooltip .bp3-overlay-content {
+  pointer-events: none;
+}
