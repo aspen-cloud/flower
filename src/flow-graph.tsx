@@ -84,11 +84,11 @@ const nodes = [
       },
       label: "TestData"
     },
-    position: { x: 100, y: 100 } //{ x: 100, y: -200 }
+    position: { x: 100, y: -200 }
   }),
   createReactFlowNode({
     type: "Table",
-    position: { x: 300, y: 300 } // { x: 100, y: -100 }
+    position: { x: 100, y: -100 }
   }),
   createReactFlowNode({
     type: "ColumnGenerator",
