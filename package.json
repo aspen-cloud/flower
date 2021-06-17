@@ -9,6 +9,7 @@
     "@blueprintjs/popover2": "0.10.1",
     "@blueprintjs/select": "3.16.4",
     "@types/kefir": "3.8.5",
+    "hot-formula-parser": "4.0.0",
     "kefir": "3.8.8",
     "nanoid": "3.1.23",
     "react": "17.0.2",
