@@ -7,6 +7,7 @@ import * as StringFuncs from "./string";
 import * as FormulaFuncs from "./formula";
 import * as TableFuncs from "./table";
 import * as DateFuncs from "./date";
+import * as CodeFuncs from "./code";
 import React from "react";
 
 export const String = funcsToNodes(StringFuncs);
@@ -14,6 +15,7 @@ export const Number = funcsToNodes(NumberFuncs);
 export const Formula = funcsToNodes(FormulaFuncs);
 export const TableOps = funcsToNodes(TableFuncs);
 export const Date = funcsToNodes(DateFuncs);
+export const Code = funcsToNodes(CodeFuncs);
 
 function createPrimitiveNodeData(inputs, outputs) {
   const sources: Record<string, KefirBus<any, void>> = {},
@@ -36,6 +38,7 @@ function createPrimitiveNodeData(inputs, outputs) {
         try {
           return Kefir.constant(outputs[key](sourceVals));
         } catch (e) {
+          console.log("Error throw in primitive", e);
           return Kefir.constantError(e);
         }
       })
