@@ -38,7 +38,7 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
     }, []);
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>
-        <h2 style={{ backgroundColor: "white" }}>{value}</h2>
+        <h2 style={{ backgroundColor: "white" }}>{JSON.stringify(value)}</h2>
       </BaseNode>
     );
   }

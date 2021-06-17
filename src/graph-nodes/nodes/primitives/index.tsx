@@ -4,10 +4,14 @@ import BaseNode from "../../../base-node";
 
 import * as NumberFuncs from "./number";
 import * as StringFuncs from "./string";
-console.log("StringFuncs", StringFuncs, funcsToNodes(StringFuncs));
+import * as FormulaFuncs from "./formula";
+import * as TableFuncs from "./table";
+import React from "react";
 
 export const String = funcsToNodes(StringFuncs);
 export const Number = funcsToNodes(NumberFuncs);
+export const Formula = funcsToNodes(FormulaFuncs);
+export const TableOps = funcsToNodes(TableFuncs);
 
 function createPrimitiveNodeData(inputs, outputs) {
   const sources: Record<string, KefirBus<any, void>> = {},
@@ -26,7 +30,13 @@ function createPrimitiveNodeData(inputs, outputs) {
 
   for (const key in outputs) {
     sinks[key] = combinedSources
-      .map((sourceVals) => outputs[key](sourceVals))
+      .flatMap((sourceVals) => {
+        try {
+          return Kefir.constant(outputs[key](sourceVals));
+        } catch (e) {
+          return Kefir.constantError(e);
+        }
+      })
       .toProperty();
   }
 
@@ -49,7 +59,11 @@ function funcsToNodes(
         Component({ data: { sources, sinks } }) {
           return (
             <BaseNode sources={sources} sinks={sinks}>
-              <div style={{ backgroundColor: "white" }}>{label}</div>
+              <p
+                style={{ backgroundColor: "white", padding: "10px", margin: 0 }}
+              >
+                {label}
+              </p>
             </BaseNode>
           );
         }
