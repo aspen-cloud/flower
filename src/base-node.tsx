@@ -5,8 +5,9 @@ import { Handle } from "react-flow-renderer";
 export default memo(({ sources, sinks, children }) => {
   const targetHandles = Object.keys(sources).map((sourceName, i, keys) => (
     <Tooltip2
-      content={sourceName}
+      content={<div style={{ pointerEvents: "none" }}>{sourceName}</div>}
       placement="top"
+      portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{
@@ -33,6 +34,7 @@ export default memo(({ sources, sinks, children }) => {
     <Tooltip2
       content={sinkName}
       placement="bottom"
+      portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{
