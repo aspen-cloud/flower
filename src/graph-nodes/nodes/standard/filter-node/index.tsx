@@ -59,7 +59,7 @@ export default {
               compareValue
             );
             const filter = filters[columnFilter] || (() => true);
-
+            table = table || { rows: [], columns: [] };
             const newRows = table.rows.filter((row) =>
               filter(row[columnName], compareValue)
             );

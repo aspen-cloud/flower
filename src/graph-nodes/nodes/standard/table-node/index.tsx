@@ -32,7 +32,11 @@ const TableNode: GraphNode<TableNodeIO> = {
       const subscription = sinks.output.observe({
         value: (newTable) => {
           console.log("new table", newTable);
-          setTable({ rows: newTable.rows, columns: newTable.columns });
+
+          setTable({
+            rows: newTable?.rows || [],
+            columns: newTable?.columns || []
+          });
         },
         end: (...val) => {
           console.log("completed", val);
@@ -41,7 +45,7 @@ const TableNode: GraphNode<TableNodeIO> = {
       return subscription.unsubscribe;
       // plainly pipe input to output
       // sinks.output.remember(sources.table);
-    }, [sources.table]);
+    }, [sinks.output]);
     return (
       <BaseNode sources={sources} sinks={sinks}>
         <DataTable data={table.rows} columns={table.columns} />
