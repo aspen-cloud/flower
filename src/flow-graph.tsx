@@ -184,7 +184,7 @@ const FlowGraph = () => {
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
-        console.log("flow loaded:", rfi);
+        newFunction()("flow loaded:", rfi);
       }
     },
     [reactflowInstance]
@@ -370,10 +370,7 @@ const FlowGraph = () => {
               borderRadius: "100%",
               zIndex: 1000
             }}
-            onClick={() => {
-              console.log("opening");
-              setSideMenuOpen(true);
-            }}
+            onClick={() => setSideMenuOpen(true)}
           >
             <Icon icon="double-chevron-left" iconSize={20} />
           </div>
@@ -442,3 +439,6 @@ const FlowGraph = () => {
 };
 
 export default FlowGraph;
+function newFunction() {
+  return console.log;
+}
