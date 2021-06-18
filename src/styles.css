@@ -58,3 +58,20 @@ body {
 .handle-tooltip .bp3-overlay-content {
   pointer-events: none;
 }
+
+.react-flow__edge {
+  pointer-events: bounding-box;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 0.5em;
+}
+
+.react-flow__node.selected {
+  border-width: 2px !important;
+}
+
+.info-sidebar .bp3-overlay {
+  left: unset;
+  width: 360px;
+}

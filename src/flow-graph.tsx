@@ -12,7 +12,18 @@ import * as AllNodes from "./graph-nodes/index";
 
 import testData from "./test-data";
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
-import { HotkeysTarget2, MenuItem, ContextMenu, Menu } from "@blueprintjs/core";
+import {
+  HotkeysTarget2,
+  MenuItem,
+  ContextMenu,
+  Menu,
+  Icon,
+  Drawer,
+  DrawerSize,
+  Classes,
+  Collapse,
+  Card
+} from "@blueprintjs/core";
 
 const onElementClick = (event, element) => {};
 
@@ -108,10 +119,32 @@ const nodes = [
   })
 ];
 
+const ElementInfoMenuItem = ({ element }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <>
+      <div onClick={() => setIsOpen((wasOpen) => !wasOpen)}>
+        <b>
+          <Icon icon={isOpen ? "caret-down" : "caret-right"} /> {element.id}
+        </b>
+      </div>
+      <Collapse isOpen={isOpen}>
+        <Card>
+          <div>
+            <b>Type:</b> {element.type}
+          </div>
+        </Card>
+      </Collapse>
+    </>
+  );
+};
+
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] = useState(null);
   const [elements, setElements] = useState(nodes);
   const [bgColor, setBgColor] = useState(initBgColor);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [selectedElements, setSelectedElements] = useState([]);
 
   useEffect(() => {
     if (reactflowInstance && elements.length > 0) {
@@ -151,7 +184,7 @@ const FlowGraph = () => {
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
-        console.log("flow loaded:", rfi);
+        newFunction()("flow loaded:", rfi);
       }
     },
     [reactflowInstance]
@@ -273,6 +306,9 @@ const FlowGraph = () => {
         defaultZoom={1}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onSelectionChange={(elements) => {
+          setSelectedElements(elements || []);
+        }}
         onNodeContextMenu={(event, node) => {
           event.preventDefault();
           const menu = React.createElement(
@@ -324,6 +360,48 @@ const FlowGraph = () => {
       >
         <Background variant="dots" gap={12} size={1} />
         <Controls />
+        {!sideMenuOpen ? (
+          <div
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              background: "white",
+              borderRadius: "100%",
+              zIndex: 1000
+            }}
+            onClick={() => setSideMenuOpen(true)}
+          >
+            <Icon icon="double-chevron-left" iconSize={20} />
+          </div>
+        ) : (
+          ""
+        )}
+
+        <Drawer
+          icon="multi-select"
+          onClose={() => setSideMenuOpen(false)}
+          title="Selected Elements"
+          isOpen={sideMenuOpen}
+          size={DrawerSize.SMALL}
+          hasBackdrop={false}
+          canOutsideClickClose={false}
+          canEscapeKeyClose={false}
+          enforceFocus={false}
+          portalClassName="info-sidebar"
+        >
+          <div className={Classes.DRAWER_BODY}>
+            <div className={Classes.DIALOG_BODY}>
+              {selectedElements.length ? (
+                selectedElements.map((el, i) => (
+                  <ElementInfoMenuItem key={i} element={el} />
+                ))
+              ) : (
+                <div>No elements selected.</div>
+              )}
+            </div>
+          </div>
+        </Drawer>
       </ReactFlow>
       <HotkeysTarget2
         hotkeys={[
@@ -361,3 +439,6 @@ const FlowGraph = () => {
 };
 
 export default FlowGraph;
+function newFunction() {
+  return console.log;
+}
