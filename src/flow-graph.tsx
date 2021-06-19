@@ -5,8 +5,11 @@ import { nanoid } from "nanoid";
 import ReactFlow, {
   removeElements,
   addEdge,
+  updateEdge,
+  getConnectedEdges,
   Controls,
-  Background
+  Background,
+  isEdge
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
@@ -146,38 +149,93 @@ const FlowGraph = () => {
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState([]);
 
-  useEffect(() => {
-    if (reactflowInstance && elements.length > 0) {
-      //reactflowInstance.fitView();
+  // useEffect(() => {
+  //   if (reactflowInstance && elements.length > 0) {
+  //     //reactflowInstance.fitView();
+  //   }
+  // }, [reactflowInstance, elements.length]);
+
+  const validateConnection = (connection, els) => {
+    /**
+     * There are hooks on initial connection to a handle to check if the connection is valid
+     * - https://reactflow.dev/docs/api/handle/
+     * Unfortunately, this is not available on an edge update
+     * - https://github.com/wbkd/react-flow/issues/1034
+     *
+     * Manually enforcing that on connections/updates that no other incoming edges exist for that handle
+     * That may not always be the case, but for now that seems correct
+     */
+
+    const target = els.find(({ id }) => id === connection.target);
+    const edges = els.filter((el) => isEdge(el));
+    const handleEdges = getConnectedEdges([target], edges).filter(
+      (edge) =>
+        edge.target === target.id &&
+        edge.targetHandle === connection.targetHandle
+    );
+
+    if (handleEdges.length >= 1) {
+      console.log("INVALID: ALREADY AN EDGE ON THIS HANDLE");
+      return false;
     }
-  }, [reactflowInstance, elements.length]);
 
-  const onElementsRemove = useCallback(
-    (elementsToRemove) =>
-      setElements((els) => removeElements(elementsToRemove, els)),
-    []
-  );
-  const onConnect = useCallback(
-    (params) => {
-      //console.log("on connect", params);
-      const sourceNode = elements.find(({ id }) => id === params.source);
-      const targetNode = elements.find(({ id }) => id === params.target);
+    return true;
+  };
 
-      setElements((els) =>
-        addEdge({ ...params, animated: true, style: { stroke: "#fff" } }, els)
+  const getEdgeStreams = (edge, els) => {
+    const sourceNode = els.find(({ id }) => id === edge.source);
+    const targetNode = els.find(({ id }) => id === edge.target);
+    const sourceOutput = sourceNode!.data.sinks[edge.sourceHandle];
+    const targetInput = targetNode!.data.sources[edge.targetHandle];
+
+    return [sourceOutput, targetInput];
+  };
+
+  const onEdgeConnect = (edge, els) => {
+    const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
+    targetInput.plug(sourceOutput);
+  };
+
+  const onEdgeDisconnect = (edge, els) => {
+    const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
+    targetInput.emit(null);
+    targetInput.unplug(sourceOutput);
+  };
+
+  const onConnect = (connection) => {
+    setElements((els) => {
+      if (!validateConnection(connection, els)) return els;
+      onEdgeConnect(connection, els);
+      return addEdge(
+        { ...connection, animated: true, style: { stroke: "#fff" } },
+        els
       );
+    });
+  };
 
-      const targetBus = targetNode!.data.sources[params.targetHandle];
-      const sourceOutput = sourceNode!.data.sinks[params.sourceHandle];
-      console.log(targetBus, sourceOutput);
-      targetBus.plug(sourceOutput);
-    },
-    [elements]
-  );
+  const onElementsRemove = (elementsToRemove) => {
+    setElements((els) => {
+      for (const el of elementsToRemove) {
+        if (isEdge(el)) {
+          onEdgeDisconnect(el, els);
+        }
+      }
+      return removeElements(elementsToRemove, els);
+    });
+  };
+
+  const onEdgeUpdate = (oldEdge, newConnection) => {
+    setElements((els) => {
+      if (!validateConnection(newConnection, els)) return els;
+      onEdgeDisconnect(oldEdge, els);
+      onEdgeConnect(newConnection, els);
+      return updateEdge(oldEdge, newConnection, els);
+    });
+  };
 
   const addNode = useCallback(({ type, position }) => {
     const newNode = createReactFlowNode({ type, position });
-    setElements((prevElems) => prevElems.concat(newNode));
+    setElements((prevElems) => [...prevElems, newNode]);
   }, []);
 
   const onLoad = useCallback(
@@ -227,7 +285,6 @@ const FlowGraph = () => {
 
   const reactFlowWrapper = useRef(null);
   const onDragOver = (event) => {
-    console.log(event);
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   };
@@ -306,6 +363,7 @@ const FlowGraph = () => {
         defaultZoom={1}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        onEdgeUpdate={onEdgeUpdate}
         onSelectionChange={(elements) => {
           setSelectedElements(elements || []);
         }}
@@ -357,6 +415,7 @@ const FlowGraph = () => {
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
+        edgeUpdaterRadius={35}
       >
         <Background variant="dots" gap={12} size={1} />
         <Controls />
