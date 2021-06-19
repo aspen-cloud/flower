@@ -27,15 +27,11 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
   },
 
   Component: function ({ data }: { data: SingleCellNodeIO }) {
-    const DEFAULT = "Single Value";
-    const [value, setValue] = useState(DEFAULT);
+    const [value, setValue] = useState("Single Value");
     useEffect(() => {
       const { unsubscribe } = data.sources.value.stream.observe({
         value(val) {
           setValue(val);
-        },
-        end() {
-          setValue(DEFAULT);
         }
       });
       return unsubscribe;

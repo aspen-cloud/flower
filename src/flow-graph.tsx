@@ -415,7 +415,7 @@ const FlowGraph = () => {
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
-        edgeUpdaterRadius={50}
+        edgeUpdaterRadius={35}
       >
         <Background variant="dots" gap={12} size={1} />
         <Controls />
