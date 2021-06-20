@@ -1,8 +1,13 @@
 import { Tooltip2 } from "@blueprintjs/popover2";
 import React, { memo } from "react";
-import { Handle } from "react-flow-renderer";
+import { Handle, Position } from "react-flow-renderer";
+import { NodeIO } from "./types";
 
-export default memo(({ sources, sinks, children }) => {
+interface BaseNodeProps extends NodeIO {
+  children: JSX.Element | JSX.Element[];
+}
+
+function BaseNode({ sources, sinks, children }: BaseNodeProps) {
   const targetHandles = Object.keys(sources).map((sourceName, i, keys) => (
     <Tooltip2
       content={sourceName}
@@ -13,16 +18,16 @@ export default memo(({ sources, sinks, children }) => {
           style={{
             position: "absolute",
             top: 0,
-            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`
+            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
           }}
           {...tooltipProps}
         >
           <Handle
             style={{
-              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`
+              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
             }}
             type="target"
-            position="top"
+            position={Position.Top}
             id={sourceName}
             key={sourceName}
           />
@@ -40,16 +45,16 @@ export default memo(({ sources, sinks, children }) => {
           style={{
             position: "absolute",
             bottom: 0,
-            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`
+            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
           }}
           {...tooltipProps}
         >
           <Handle
             style={{
-              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`
+              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
             }}
             type="source"
-            position="bottom"
+            position={Position.Bottom}
             id={sinkName}
             key={sinkName}
           />
@@ -67,4 +72,6 @@ export default memo(({ sources, sinks, children }) => {
       {sourceHandles}
     </>
   );
-});
+}
+
+export default memo(BaseNode);

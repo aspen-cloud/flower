@@ -5,41 +5,6 @@ const TableType = object({
   columns: object({ property: string(), name: string() })
 });
 
-/**
- * WIP
- */
-// export const Map = {
-//   label: "map",
-//   inputs: {
-//     table: {
-//       type: TableType
-//     },
-//     newRow: {
-//       type: object()
-//     }
-//   },
-//   outputs: {
-//     row: {
-//       producer: (emitter, { table }) => {
-//         for (const row of table.rows) {
-//           emitter.emit(row);
-//         }
-//         emitter.end();
-//       }
-//     },
-//     newTable: {
-//       stream: ({ newRow, table }) => {
-//         return Kefir.merge([newRow.bufferWhile(() => true), table]).map(
-//           ([newRows, oldTable]) => ({
-//             rows: newRows,
-//             columns: oldTable.columns //TODO compute new columns
-//           })
-//         );
-//       }
-//     }
-//   }
-// };
-
 export const First = {
   label: "First",
   inputs: {

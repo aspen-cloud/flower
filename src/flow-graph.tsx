@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  DragEventHandler,
+} from "react";
 import XLSX from "xlsx";
 import { nanoid } from "nanoid";
 
@@ -9,7 +15,19 @@ import ReactFlow, {
   getConnectedEdges,
   Controls,
   Background,
-  isEdge
+  isEdge,
+  Elements,
+  FlowElement,
+  OnEdgeUpdateFunc,
+  Connection,
+  Node,
+  Edge,
+  BackgroundVariant,
+  PanOnScrollMode,
+  Position,
+  XYPosition,
+  OnLoadFunc,
+  OnLoadParams,
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
@@ -25,19 +43,19 @@ import {
   DrawerSize,
   Classes,
   Collapse,
-  Card
+  Card,
 } from "@blueprintjs/core";
 
-const onElementClick = (event, element) => {};
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
 const initBgColor = "#343434";
 
 const connectionLineStyle = { stroke: "#fff" };
-const snapGrid = [20, 20];
+const snapGrid: [number, number] = [20, 20];
 
-function flattenNodes(nodes) {
+function flattenNodes(nodes: Record<string, any>): [string, any][] {
   return Object.entries(nodes).flatMap(([key, val]) =>
-    val.Component ? [[key, val]] : flattenNodes(val)
+    val.Component ? [[key, val]] : flattenNodes(val),
   );
 }
 
@@ -45,46 +63,39 @@ const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
 console.log(AllNodes, GraphNodes);
 
 const nodeTypes = Object.fromEntries(
-  Object.entries(GraphNodes).map(([key, val]) => [key, val.Component])
+  Object.entries(GraphNodes).map(([key, val]) => [key, val.Component]),
 );
 
 const columns = [
   {
     Header: "Address",
-    accessor: "address"
+    accessor: "address",
   },
   {
     Header: "Price",
-    accessor: "price"
+    accessor: "price",
   },
   {
     Header: "Size (SqrFt)",
-    accessor: "sqrft"
-  }
+    accessor: "sqrft",
+  },
 ];
 
 function createReactFlowNode({
   type,
   data,
-  position
+  position,
 }: {
   type: string;
   data?: any;
   position: { x: number; y: number };
 }) {
-  // TODO remove... just for testing
-  // if (type === "DataSource") {
-  //   data = {
-  //     rows: testData,
-  //     columns
-  //   };
-  // }
   return {
     id: nanoid(),
     type,
     data: GraphNodes[type].initializeStreams({ initialData: data }),
     position,
-    style: { padding: "10px", border: "1px solid white", borderRadius: "10px" }
+    style: { padding: "10px", border: "1px solid white", borderRadius: "10px" },
   };
 }
 
@@ -94,35 +105,35 @@ const nodes = [
     data: {
       data: {
         rows: testData,
-        columns
+        columns,
       },
-      label: "TestData"
+      label: "TestData",
     },
-    position: { x: 100, y: -200 }
+    position: { x: 100, y: -200 },
   }),
   createReactFlowNode({
     type: "Table",
-    position: { x: 100, y: -100 }
+    position: { x: 100, y: -100 },
   }),
   createReactFlowNode({
     type: "ColumnGenerator",
-    position: { x: 0, y: 0 }
+    position: { x: 0, y: 0 },
   }),
   createReactFlowNode({
     type: "Table",
-    position: { x: 0, y: 300 }
+    position: { x: 0, y: 300 },
   }),
   createReactFlowNode({
     type: "AvgColumn",
-    position: { x: 110, y: -150 }
+    position: { x: 110, y: -150 },
   }),
   createReactFlowNode({
     type: "SingleCell",
-    position: { x: 130, y: -130 }
-  })
+    position: { x: 130, y: -130 },
+  }),
 ];
 
-const ElementInfoMenuItem = ({ element }) => {
+const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
@@ -143,11 +154,12 @@ const ElementInfoMenuItem = ({ element }) => {
 };
 
 const FlowGraph = () => {
-  const [reactflowInstance, setReactflowInstance] = useState(null);
-  const [elements, setElements] = useState(nodes);
+  const [reactflowInstance, setReactflowInstance] =
+    useState<OnLoadParams | null>(null);
+  const [elements, setElements] = useState<Elements>(nodes);
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
-  const [selectedElements, setSelectedElements] = useState([]);
+  const [selectedElements, setSelectedElements] = useState<Elements>([]);
 
   // useEffect(() => {
   //   if (reactflowInstance && elements.length > 0) {
@@ -155,7 +167,10 @@ const FlowGraph = () => {
   //   }
   // }, [reactflowInstance, elements.length]);
 
-  const validateConnection = (connection, els) => {
+  const validateConnection = (
+    connection: Connection | Edge<any>,
+    els: Elements,
+  ) => {
     /**
      * There are hooks on initial connection to a handle to check if the connection is valid
      * - https://reactflow.dev/docs/api/handle/
@@ -166,12 +181,13 @@ const FlowGraph = () => {
      * That may not always be the case, but for now that seems correct
      */
 
-    const target = els.find(({ id }) => id === connection.target);
-    const edges = els.filter((el) => isEdge(el));
+    const target = els.find(({ id }) => id === connection.target) as Node<any>;
+    if (!target) return false;
+    const edges = els.filter((el) => isEdge(el)) as Edge<any>[];
     const handleEdges = getConnectedEdges([target], edges).filter(
       (edge) =>
         edge.target === target.id &&
-        edge.targetHandle === connection.targetHandle
+        edge.targetHandle === connection.targetHandle,
     );
 
     if (handleEdges.length >= 1) {
@@ -182,38 +198,39 @@ const FlowGraph = () => {
     return true;
   };
 
-  const getEdgeStreams = (edge, els) => {
+  const getEdgeStreams = (edge: Connection | Edge<any>, els: Elements) => {
     const sourceNode = els.find(({ id }) => id === edge.source);
     const targetNode = els.find(({ id }) => id === edge.target);
-    const sourceOutput = sourceNode!.data.sinks[edge.sourceHandle];
-    const targetInput = targetNode!.data.sources[edge.targetHandle];
+    const sourceOutput = sourceNode!.data.sinks[edge.sourceHandle!];
+    const targetInput = targetNode!.data.sources[edge.targetHandle!];
 
     return [sourceOutput, targetInput];
   };
 
-  const onEdgeConnect = (edge, els) => {
+  const onEdgeConnect = (edge: Connection | Edge<any>, els: Elements) => {
     const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
-    targetInput.plug(sourceOutput);
+    sourceOutput.subscribe((latestVal: any) => {
+      targetInput.next(latestVal);
+    });
   };
 
-  const onEdgeDisconnect = (edge, els) => {
+  const onEdgeDisconnect = (edge: Connection | Edge<any>, els: Elements) => {
     const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
-    targetInput.emit(null);
-    targetInput.unplug(sourceOutput);
+    // TODO fix for RXJS
   };
 
-  const onConnect = (connection) => {
+  const onConnect = (connection: Connection | Edge<any>) => {
     setElements((els) => {
       if (!validateConnection(connection, els)) return els;
       onEdgeConnect(connection, els);
       return addEdge(
         { ...connection, animated: true, style: { stroke: "#fff" } },
-        els
+        els,
       );
     });
   };
 
-  const onElementsRemove = (elementsToRemove) => {
+  const onElementsRemove = (elementsToRemove: Elements) => {
     setElements((els) => {
       for (const el of elementsToRemove) {
         if (isEdge(el)) {
@@ -224,7 +241,7 @@ const FlowGraph = () => {
     });
   };
 
-  const onEdgeUpdate = (oldEdge, newConnection) => {
+  const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
     setElements((els) => {
       if (!validateConnection(newConnection, els)) return els;
       onEdgeDisconnect(oldEdge, els);
@@ -238,34 +255,34 @@ const FlowGraph = () => {
     setElements((prevElems) => [...prevElems, newNode]);
   }, []);
 
-  const onLoad = useCallback(
+  const onLoad: OnLoadFunc<any> = useCallback(
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
         newFunction()("flow loaded:", rfi);
       }
     },
-    [reactflowInstance]
+    [reactflowInstance],
   );
 
-  function parseFileData(file, callback) {
+  function parseFileData(file: File, callback: (data: any) => void) {
     const reader = new FileReader();
     reader.onload = function (e) {
-      const data = new Uint8Array(e.target.result);
+      const data = new Uint8Array(e.target!.result as ArrayBuffer);
       const workbook = XLSX.read(data, { type: "array" });
       const json_data = XLSX.utils.sheet_to_json(
         workbook.Sheets[Object.keys(workbook.Sheets)[0]], // todo: Possibly load all "Sheets" as separate data sources?
-        { raw: false }
+        { raw: false },
       );
       callback(json_data);
     };
     reader.readAsArrayBuffer(file);
   }
 
-  function addDataNode(data, label, position) {
+  function addDataNode(data: any[], label: string, position: XYPosition) {
     const cols = Object.keys(data.length ? data[0] : {}).map((col) => ({
       Header: col,
-      accessor: col
+      accessor: col,
     }));
 
     const newEl = createReactFlowNode({
@@ -273,29 +290,31 @@ const FlowGraph = () => {
       data: {
         data: {
           rows: data,
-          columns: cols
+          columns: cols,
         },
-        label
+        label,
       },
-      position
+      position,
     });
 
     setElements((els) => [...els, newEl]);
   }
 
-  const reactFlowWrapper = useRef(null);
-  const onDragOver = (event) => {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  const onDragOver: DragEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer!.dropEffect = "move";
   };
 
-  const onDrop = (event) => {
+  const onDrop: React.DragEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
+    if (reactFlowWrapper.current == null || reactflowInstance == null) return;
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
     // const type = event.dataTransfer.getData("application/reactflow");
     const position = reactflowInstance.project({
       x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top
+      y: event.clientY - reactFlowBounds.top,
     });
     const file = event.dataTransfer.files[0];
     parseFileData(file, (json_data) => {
@@ -303,13 +322,13 @@ const FlowGraph = () => {
     });
   };
 
-  const NodeOmnibar = Omnibar.ofType();
+  const NodeOmnibar = Omnibar.ofType<[string, string]>();
 
   const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
 
   const renderNodeType: ItemRenderer<[string, any]> = (
     [key, component],
-    { handleClick, modifiers, query }
+    { handleClick, modifiers, query },
   ) => {
     if (!modifiers.matchesPredicate) {
       return null;
@@ -330,7 +349,7 @@ const FlowGraph = () => {
     query,
     [key, component],
     _index,
-    exactMatch
+    exactMatch,
   ) => {
     const normalizedTitle = key.toLowerCase();
     const normalizedQuery = query.toLowerCase();
@@ -347,7 +366,7 @@ const FlowGraph = () => {
       <ReactFlow
         elements={elements}
         panOnScroll={true}
-        panOnScrollMode="free"
+        panOnScrollMode={PanOnScrollMode.Free}
         onElementClick={onElementClick}
         onElementsRemove={onElementsRemove}
         onConnect={onConnect}
@@ -374,8 +393,8 @@ const FlowGraph = () => {
             {},
             React.createElement(MenuItem, {
               onClick: () => onElementsRemove([node]),
-              text: "Delete node"
-            })
+              text: "Delete node",
+            }),
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
@@ -386,8 +405,8 @@ const FlowGraph = () => {
             {},
             React.createElement(MenuItem, {
               onClick: () => onElementsRemove([edge]),
-              text: "Delete edge"
-            })
+              text: "Delete edge",
+            }),
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
@@ -398,8 +417,8 @@ const FlowGraph = () => {
             {},
             React.createElement(MenuItem, {
               onClick: () => onElementsRemove(nodes),
-              text: "Delete nodes"
-            })
+              text: "Delete nodes",
+            }),
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
@@ -409,15 +428,15 @@ const FlowGraph = () => {
             Menu,
             {},
             React.createElement(MenuItem, {
-              onClick: () => reactflowInstance.fitView(),
-              text: "Zoom to fit"
-            })
+              onClick: () => reactflowInstance?.fitView(),
+              text: "Zoom to fit",
+            }),
           );
           ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
         }}
         edgeUpdaterRadius={35}
       >
-        <Background variant="dots" gap={12} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         <Controls />
         {!sideMenuOpen ? (
           <div
@@ -427,7 +446,7 @@ const FlowGraph = () => {
               right: "10px",
               background: "white",
               borderRadius: "100%",
-              zIndex: 1000
+              zIndex: 1000,
             }}
             onClick={() => setSideMenuOpen(true)}
           >
@@ -473,13 +492,13 @@ const FlowGraph = () => {
               setShowNodeOmniBar(true);
             },
             // prevent typing "O" in omnibar input
-            preventDefault: true
-          }
+            preventDefault: true,
+          },
         ]}
       >
         <NodeOmnibar
           noResults={<MenuItem disabled={true} text="No results." />}
-          items={Object.entries(nodeTypes)}
+          items={Object.entries(nodeTypes) as [string, string][]}
           itemRenderer={renderNodeType}
           itemPredicate={filterNodeTypes}
           onItemSelect={([type]) => {

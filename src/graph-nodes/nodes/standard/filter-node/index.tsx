@@ -1,11 +1,10 @@
-import { Property } from "kefir";
 import React from "react";
-import { Handle } from "react-flow-renderer";
-import * as Kefir from "kefir";
-import KefirBus from "../../../../utils/kefir-bus";
-import { GraphNode, Table } from "../../../types";
+
+import { GraphNode, Table } from "../../../../types";
 import BaseNode from "../../../../base-node";
 import filters from "./filters";
+import { BehaviorSubject, combineLatest } from "rxjs";
+import { map } from "rxjs/operators";
 import FilterForm from "./filter-form";
 
 /**
@@ -22,55 +21,47 @@ import FilterForm from "./filter-form";
 
 interface FilterIO {
   sources: {
-    table: KefirBus<Table, void>;
-    columnName: KefirBus<string, void>;
-    columnFilter: KefirBus<string, void>;
-    compareValue: KefirBus<string, void>;
+    table: BehaviorSubject<Table<any>>;
+    columnName: BehaviorSubject<string>;
+    columnFilter: BehaviorSubject<string>;
+    compareValue: BehaviorSubject<string>;
   };
   sinks: {
-    output: Property<Table, void>;
+    output: BehaviorSubject<Table<any>>;
   };
 }
 
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new KefirBus("table"),
-      columnName: new KefirBus("columnName"),
-      columnFilter: new KefirBus("columnFilter"),
-      compareValue: new KefirBus("compareValue")
+      table: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
+      columnName: new BehaviorSubject(""),
+      columnFilter: new BehaviorSubject(""),
+      compareValue: new BehaviorSubject(""),
     };
     return {
       sources,
       sinks: {
-        output: Kefir.combine<Table, [Table, string, string, string], void>([
-          sources.table.stream.toProperty(),
-          sources.columnName.stream.toProperty(),
-          sources.columnFilter.stream.toProperty(),
-          sources.compareValue.stream.toProperty()
-        ])
-          .toProperty()
-          .map(([table, columnName, columnFilter, compareValue]) => {
-            console.log(
-              "mapping combined streams",
-              table,
-              columnName,
-              columnFilter,
-              compareValue
-            );
+        output: combineLatest([
+          sources.table,
+          sources.columnName,
+          sources.columnFilter,
+          sources.compareValue,
+        ]).pipe(
+          map(([table, columnName, columnFilter, compareValue]) => {
             const filter = filters[columnFilter] || (() => true);
-            table = table || { rows: [], columns: [] };
+
             const newRows = table.rows.filter((row) =>
-              filter(row[columnName], compareValue)
+              filter(row[columnName], compareValue),
             );
 
             return {
               rows: newRows,
-              columns: table.columns
+              columns: table.columns,
             };
-          })
-          .toProperty()
-      }
+          }),
+        ) as BehaviorSubject<Table<any>>,
+      },
     };
   },
   Component: function ({ data }) {
@@ -81,12 +72,12 @@ export default {
           colFilter=""
           compareVal=""
           onChange={({ colName, colFilter, compareVal }) => {
-            data.sources.columnName.emit(colName);
-            data.sources.columnFilter.emit(colFilter);
-            data.sources.compareValue.emit(compareVal);
+            data.sources.columnName.next(colName);
+            data.sources.columnFilter.next(colFilter);
+            data.sources.compareValue.next(compareVal);
           }}
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<FilterIO>;

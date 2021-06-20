@@ -1,5 +1,5 @@
 {
-  "name": "flowsheets-main",
+  "name": "aspen-flowsheets",
   "version": "1.0.0",
   "description": "",
   "keywords": [],
@@ -8,21 +8,24 @@
     "@blueprintjs/core": "3.45.0",
     "@blueprintjs/popover2": "0.10.1",
     "@blueprintjs/select": "3.16.4",
-    "@types/kefir": "3.8.5",
     "hot-formula-parser": "4.0.0",
-    "kefir": "3.8.8",
     "nanoid": "3.1.23",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-flow-renderer": "9.6.0",
-    "react-scripts": "4.0.0",
+    "react-scripts": "4.0.1",
     "react-table": "7.7.0",
+    "rxjs": "7.1.0",
     "superstruct": "0.15.2",
     "xlsx": "0.17.0"
   },
   "devDependencies": {
     "@babel/runtime": "7.13.8",
-    "typescript": "4.1.3"
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.12.4",
+    "@types/react": "^17.0.11",
+    "@types/react-dom": "^17.0.8",
+    "typescript": "^4.3.4"
   },
   "scripts": {
     "start": "react-scripts start",

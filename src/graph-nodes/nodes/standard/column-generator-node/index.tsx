@@ -1,63 +1,55 @@
-import { Property } from "kefir";
 import React from "react";
-import { Handle } from "react-flow-renderer";
-import * as Kefir from "kefir";
-import KefirBus from "../../../../utils/kefir-bus";
+
 import { GraphNode, Table } from "../../../../types";
 import ColumnGeneratorForm from "./column-generator-form";
 import BaseNode from "../../../../base-node";
+import { nanoid } from "nanoid";
+import { combineLatest, BehaviorSubject } from "rxjs";
+import { map } from "rxjs/operators";
 
 interface ColumnGeneratorIO {
   sources: {
-    table: KefirBus<Table, void>;
-    columnName: KefirBus<string, void>;
-    columnFormula: KefirBus<string, void>;
+    table: BehaviorSubject<Table<any>>;
+    columnName: BehaviorSubject<string>;
+    columnFormula: BehaviorSubject<string>;
   };
   sinks: {
-    output: Property<Table, void>;
+    output: BehaviorSubject<Table<any>>;
   };
 }
 
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new KefirBus("table"),
-      columnName: new KefirBus("columnName"),
-      columnFormula: new KefirBus("table")
+      table: new BehaviorSubject({ rows: [], columns: [] } as Table<any>),
+      columnName: new BehaviorSubject(nanoid()),
+      columnFormula: new BehaviorSubject(""),
     };
     return {
       sources,
       sinks: {
-        output: Kefir.combine<Table, [Table, string, string], void>([
-          sources.table.stream.toProperty(),
-          sources.columnName.stream.toProperty(),
-          sources.columnFormula.stream.toProperty()
-        ])
-          .toProperty()
-          .map(([table, columnName, columnFormula]) => {
-            console.log(
-              "mapping combined streams",
-              table,
-              columnName,
-              columnFormula
-            );
-            const nextCol = `Col-${table.columns.length + 1}`;
+        output: combineLatest(
+          sources.table,
+          sources.columnName,
+          sources.columnFormula,
+        ).pipe(
+          map(([table, columnName, columnFormula]) => {
             const newColumns = [
               ...table.columns,
-              { Header: columnName || nextCol, accessor: columnName || nextCol }
+              { Header: columnName, accessor: columnName },
             ];
             const newRows = table.rows.map((row) => ({
               ...row,
-              [columnName]: applyExpr(row, columnFormula) || "null"
+              [columnName]: applyExpr(row, columnFormula) || "null",
             }));
 
             return {
               rows: newRows,
-              columns: newColumns
+              columns: newColumns,
             };
-          })
-          .toProperty()
-      }
+          }),
+        ) as BehaviorSubject<Table<any>>,
+      },
     };
   },
   Component: function ({ data }) {
@@ -67,13 +59,13 @@ export default {
           colName="asdfasdf"
           colFormula=""
           onChange={({ colName, colFormula }) => {
-            data.sources.columnName.emit(colName);
-            data.sources.columnFormula.emit(colFormula);
+            data.sources.columnName.next(colName);
+            data.sources.columnFormula.next(colFormula);
           }}
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<ColumnGeneratorIO>;
 
 function applyExpr(row, colExpr) {
