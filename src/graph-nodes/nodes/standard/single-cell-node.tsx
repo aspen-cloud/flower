@@ -1,6 +1,7 @@
 import { Property } from "kefir";
 import KefirBus from "../../../utils/kefir-bus";
 import React, { useEffect, useState } from "react";
+// @ts-ignore
 import { GraphNode, Table } from "../../types";
 import BaseNode from "../../../base-node";
 
@@ -18,11 +19,11 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
     const value = new KefirBus<string | number, void>("value");
     return {
       sources: {
-        value
+        value,
       },
       sinks: {
-        output: value.stream.toProperty()
-      }
+        output: value.stream.toProperty(),
+      },
     };
   },
 
@@ -31,8 +32,9 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
     useEffect(() => {
       const { unsubscribe } = data.sources.value.stream.observe({
         value(val) {
+          // @ts-ignore
           setValue(val);
-        }
+        },
       });
       return unsubscribe;
     }, []);
@@ -41,7 +43,7 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
         <h2 style={{ backgroundColor: "white" }}>{JSON.stringify(value)}</h2>
       </BaseNode>
     );
-  }
+  },
 };
 
 export default SingleCellNode;

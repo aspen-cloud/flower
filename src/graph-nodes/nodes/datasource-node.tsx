@@ -1,6 +1,6 @@
 import { constant, Property } from "kefir";
 import React, { useEffect, useState } from "react";
-import { Handle } from "react-flow-renderer";
+import { Handle, Position } from "react-flow-renderer";
 import BaseNode from "../../base-node";
 import { GraphNode, Table } from "../../types";
 
@@ -13,21 +13,22 @@ interface DatasourceNodeIO {
   };
 }
 
+// @ts-ignore
 const DataSourceNode: GraphNode<DatasourceNodeIO> = {
   initializeStreams: function ({ initialData }): DatasourceNodeIO {
     console.log("initializing datasource with", initialData);
     return {
       sources: {
-        label: constant(initialData.label)
+        label: constant(initialData.label),
       },
       sinks: {
-        output: constant(initialData.data)
-      }
+        output: constant(initialData.data),
+      },
     };
   },
 
   Component: function ({
-    data: { sources, sinks }
+    data: { sources, sinks },
   }: {
     data: DatasourceNodeIO;
   }) {
@@ -42,9 +43,10 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
         <figure style={{ textAlign: "center" }}>
           <img
             style={{
+              // @ts-ignore
               userDrag: "none",
               userSelect: "none",
-              pointerEvents: "none"
+              pointerEvents: "none",
             }}
             width="50px"
             src="/database.svg"
@@ -53,10 +55,10 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
             {label}
           </figcaption>
         </figure>
-        <Handle position="bottom" type="source" />
+        <Handle position={Position.Bottom} type="source" />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default DataSourceNode;

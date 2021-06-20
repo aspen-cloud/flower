@@ -3,6 +3,7 @@ import React from "react";
 import { Handle } from "react-flow-renderer";
 import * as Kefir from "kefir";
 import KefirBus from "../../../../utils/kefir-bus";
+// @ts-ignore
 import { GraphNode, Table } from "../../../types";
 import BaseNode from "../../../../base-node";
 import filters from "./filters";
@@ -38,39 +39,41 @@ export default {
       table: new KefirBus("table"),
       columnName: new KefirBus("columnName"),
       columnFilter: new KefirBus("columnFilter"),
-      compareValue: new KefirBus("compareValue")
+      compareValue: new KefirBus("compareValue"),
     };
     return {
       sources,
       sinks: {
+        // @ts-ignore
         output: Kefir.combine<Table, [Table, string, string, string], void>([
           sources.table.stream.toProperty(),
           sources.columnName.stream.toProperty(),
           sources.columnFilter.stream.toProperty(),
-          sources.compareValue.stream.toProperty()
+          sources.compareValue.stream.toProperty(),
         ])
           .toProperty()
+          // @ts-ignore
           .map(([table, columnName, columnFilter, compareValue]) => {
             console.log(
               "mapping combined streams",
               table,
               columnName,
               columnFilter,
-              compareValue
+              compareValue,
             );
             const filter = filters[columnFilter] || (() => true);
             table = table || { rows: [], columns: [] };
             const newRows = table.rows.filter((row) =>
-              filter(row[columnName], compareValue)
+              filter(row[columnName], compareValue),
             );
 
             return {
               rows: newRows,
-              columns: table.columns
+              columns: table.columns,
             };
           })
-          .toProperty()
-      }
+          .toProperty(),
+      },
     };
   },
   Component: function ({ data }) {
@@ -88,5 +91,5 @@ export default {
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<FilterIO>;

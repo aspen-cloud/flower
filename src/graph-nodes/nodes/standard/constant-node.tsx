@@ -1,6 +1,7 @@
 import { Property } from "kefir";
 import KefirBus from "../../../utils/kefir-bus";
 import React, { useEffect, useState } from "react";
+// @ts-ignore
 import { GraphNode, Table } from "../../types";
 import BaseNode from "../../../base-node";
 
@@ -18,11 +19,11 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
     const value = new KefirBus<string | number, void>("value");
     return {
       sources: {
-        value
+        value,
       },
       sinks: {
-        output: value.stream.toProperty()
-      }
+        output: value.stream.toProperty(),
+      },
     };
   },
 
@@ -31,8 +32,9 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
     useEffect(() => {
       const { unsubscribe } = data.sources.value.stream.observe({
         value(val) {
+          // @ts-ignore
           setValue(val);
-        }
+        },
       });
       return unsubscribe;
     }, []);
@@ -44,7 +46,7 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
         />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default ConstantNode;

@@ -19,11 +19,11 @@ const TableNode: GraphNode<TableNodeIO> = {
     const tableStream = new KefirBus<Table<any>, void>("table");
     return {
       sources: {
-        table: tableStream
+        table: tableStream,
       },
       sinks: {
-        output: tableStream.stream.toProperty()
-      }
+        output: tableStream.stream.toProperty(),
+      },
     };
   },
   Component: ({ data: { sources, sinks } }) => {
@@ -34,13 +34,15 @@ const TableNode: GraphNode<TableNodeIO> = {
           console.log("new table", newTable);
 
           setTable({
+            // @ts-ignore
             rows: newTable?.rows || [],
-            columns: newTable?.columns || []
+            // @ts-ignore
+            columns: newTable?.columns || [],
           });
         },
         end: (...val) => {
           console.log("completed", val);
-        }
+        },
       });
       return subscription.unsubscribe;
       // plainly pipe input to output
@@ -51,7 +53,7 @@ const TableNode: GraphNode<TableNodeIO> = {
         <DataTable data={table.rows} columns={table.columns} />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default TableNode;

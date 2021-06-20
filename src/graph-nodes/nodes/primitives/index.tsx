@@ -29,7 +29,7 @@ function createPrimitiveNodeData(inputs, outputs) {
   const combinedSources = Kefir.combine(
     allSources.map(([name, bus]) => bus.stream.toProperty()),
     (...vals) =>
-      Object.fromEntries(allSources.map(([name], i) => [name, vals[i]]))
+      Object.fromEntries(allSources.map(([name], i) => [name, vals[i]])),
   ).toProperty();
 
   for (const key in outputs) {
@@ -47,14 +47,15 @@ function createPrimitiveNodeData(inputs, outputs) {
 
   return {
     sources,
-    sinks
+    sinks,
   };
 }
 
 function funcsToNodes(
-  funcs: Record<string, { inputs: any; outputs: Record<string, Function> }>
+  funcs: Record<string, { inputs: any; outputs: Record<string, Function> }>,
 ) {
   return Object.fromEntries(
+    // @ts-ignore
     Object.entries(funcs).map(([op, { inputs, outputs, label }]) => [
       op,
       {
@@ -71,8 +72,8 @@ function funcsToNodes(
               </p>
             </BaseNode>
           );
-        }
-      }
-    ])
+        },
+      },
+    ]),
   );
 }

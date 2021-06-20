@@ -9,55 +9,64 @@ import BaseNode from "../../../../base-node";
 
 interface ColumnGeneratorIO {
   sources: {
+    // @ts-ignore
+
     table: KefirBus<Table, void>;
     columnName: KefirBus<string, void>;
     columnFormula: KefirBus<string, void>;
   };
   sinks: {
+    // @ts-ignore
     output: Property<Table, void>;
   };
 }
 
+// @ts-ignore
 export default {
   initializeStreams: function () {
     const sources = {
       table: new KefirBus("table"),
       columnName: new KefirBus("columnName"),
-      columnFormula: new KefirBus("table")
+      columnFormula: new KefirBus("table"),
     };
     return {
       sources,
       sinks: {
+        // @ts-ignore
         output: Kefir.combine<Table, [Table, string, string], void>([
           sources.table.stream.toProperty(),
           sources.columnName.stream.toProperty(),
-          sources.columnFormula.stream.toProperty()
+          sources.columnFormula.stream.toProperty(),
         ])
           .toProperty()
+          // @ts-ignore
           .map(([table, columnName, columnFormula]) => {
             console.log(
               "mapping combined streams",
               table,
               columnName,
-              columnFormula
+              columnFormula,
             );
             const nextCol = `Col-${table.columns.length + 1}`;
             const newColumns = [
               ...table.columns,
-              { Header: columnName || nextCol, accessor: columnName || nextCol }
+              {
+                Header: columnName || nextCol,
+                accessor: columnName || nextCol,
+              },
             ];
             const newRows = table.rows.map((row) => ({
               ...row,
-              [columnName]: applyExpr(row, columnFormula) || "null"
+              [columnName]: applyExpr(row, columnFormula) || "null",
             }));
 
             return {
               rows: newRows,
-              columns: newColumns
+              columns: newColumns,
             };
           })
-          .toProperty()
-      }
+          .toProperty(),
+      },
     };
   },
   Component: function ({ data }) {
@@ -73,7 +82,7 @@ export default {
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<ColumnGeneratorIO>;
 
 function applyExpr(row, colExpr) {
