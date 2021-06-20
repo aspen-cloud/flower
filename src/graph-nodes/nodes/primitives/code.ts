@@ -8,6 +8,7 @@ export const JS = {
   },
   outputs: {
     result({ code, input }) {
+      console.log(code, input);
       const func = new Function("input", code);
       return func(input);
     }

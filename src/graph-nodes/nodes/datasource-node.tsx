@@ -1,15 +1,15 @@
-import { constant, Property } from "kefir";
 import React, { useEffect, useState } from "react";
 import { Handle } from "react-flow-renderer";
 import BaseNode from "../../base-node";
 import { GraphNode, Table } from "../../types";
+import { BehaviorSubject } from "rxjs";
 
 interface DatasourceNodeIO {
   sources: {
-    label: Property<string, void>;
+    label: BehaviorSubject<string>;
   };
   sinks: {
-    output: Property<Table<any>, void>;
+    output: BehaviorSubject<Table<any>>;
   };
 }
 
@@ -18,10 +18,10 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
     console.log("initializing datasource with", initialData);
     return {
       sources: {
-        label: constant(initialData.label)
+        label: new BehaviorSubject(initialData.label) // constant(initialData.label)
       },
       sinks: {
-        output: constant(initialData.data)
+        output: new BehaviorSubject(initialData.data) // constant(initialData.data)
       }
     };
   },
@@ -33,9 +33,8 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
   }) {
     const [label, setLabel] = useState("");
     useEffect(() => {
-      sources.label.observe((value) => {
-        setLabel(value);
-      });
+      const { unsubscribe } = sources.label.subscribe(setLabel);
+      return unsubscribe;
     }, []);
     return (
       <BaseNode sources={sources} sinks={sinks}>

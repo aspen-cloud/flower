@@ -1,51 +1,36 @@
-import { Property } from "kefir";
 import React, { useEffect, useState } from "react";
 import BaseNode from "../../../../base-node";
-import KefirBus from "../../../../utils/kefir-bus";
 import { GraphNode, Table } from "../../../../types";
 import DataTable from "./data-table";
+import { BehaviorSubject } from "rxjs";
 
 interface TableNodeIO {
   sources: {
-    table: KefirBus<Table<any>, void>;
+    table: BehaviorSubject<Table<any>>;
   };
   sinks: {
-    output: Property<Table<any>, void>;
+    output: BehaviorSubject<Table<any>>;
   };
 }
 
 const TableNode: GraphNode<TableNodeIO> = {
   initializeStreams: () => {
-    const tableStream = new KefirBus<Table<any>, void>("table");
+    const tableStream = new BehaviorSubject({ rows: [], columns: [] });
     return {
       sources: {
         table: tableStream
       },
       sinks: {
-        output: tableStream.stream.toProperty()
+        output: tableStream
       }
     };
   },
   Component: ({ data: { sources, sinks } }) => {
     const [table, setTable] = useState({ rows: [], columns: [] });
     useEffect(() => {
-      const subscription = sinks.output.observe({
-        value: (newTable) => {
-          console.log("new table", newTable);
-
-          setTable({
-            rows: newTable?.rows || [],
-            columns: newTable?.columns || []
-          });
-        },
-        end: (...val) => {
-          console.log("completed", val);
-        }
-      });
-      return subscription.unsubscribe;
-      // plainly pipe input to output
-      // sinks.output.remember(sources.table);
-    }, [sinks.output]);
+      const { unsubscribe } = sinks.output.subscribe(setTable);
+      return unsubscribe;
+    }, [sources.table]);
     return (
       <BaseNode sources={sources} sinks={sinks}>
         <DataTable data={table.rows} columns={table.columns} />

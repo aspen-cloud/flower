@@ -1,27 +1,26 @@
-import { Property } from "kefir";
-import KefirBus from "../../../utils/kefir-bus";
 import React, { useEffect, useState } from "react";
 import { GraphNode, Table } from "../../types";
 import BaseNode from "../../../base-node";
+import { BehaviorSubject } from "rxjs";
 
 interface ConstantNodeIO {
   sources: {
-    value: KefirBus<string | number, void>;
+    value: BehaviorSubject<any>;
   };
   sinks: {
-    output: Property<Table, void>;
+    output: BehaviorSubject<any>;
   };
 }
 
 const ConstantNode: GraphNode<ConstantNodeIO> = {
   initializeStreams: function ({ initialData }): ConstantNodeIO {
-    const value = new KefirBus<string | number, void>("value");
+    const value = new BehaviorSubject("");
     return {
       sources: {
         value
       },
       sinks: {
-        output: value.stream.toProperty()
+        output: value
       }
     };
   },
@@ -29,18 +28,14 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
   Component: function ({ data }: { data: ConstantNodeIO }) {
     const [value, setValue] = useState("Single Value");
     useEffect(() => {
-      const { unsubscribe } = data.sources.value.stream.observe({
-        value(val) {
-          setValue(val);
-        }
-      });
+      const { unsubscribe } = data.sources.value.subscribe(setValue);
       return unsubscribe;
     }, []);
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>
         <input
           value={value}
-          onChange={(e) => data.sources.value.emit(e.target.value)}
+          onChange={(e) => data.sources.value.next(e.target.value)}
         />
       </BaseNode>
     );

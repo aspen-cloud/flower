@@ -1,36 +1,31 @@
-import { Property } from "kefir";
 import React, { useEffect, useState } from "react";
-import * as Kefir from "kefir";
 import { Column, GraphNode, Table } from "../../../types";
-import KefirBus from "../../../utils/kefir-bus";
 import BaseNode from "../../../base-node";
+import { BehaviorSubject, combineLatest } from "rxjs";
+import { map } from "rxjs/operators";
 
 interface AvgColumnNodeIO {
   sources: {
-    table: KefirBus<Table<any>, void>;
-    selectedColumn: KefirBus<string, void>;
+    table: BehaviorSubject<Table<any>>;
+    selectedColumn: BehaviorSubject<string>;
   };
   sinks: {
-    output: Property<number, void>;
+    output: BehaviorSubject<number>;
   };
 }
 
 const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
   initializeStreams: function () {
-    const table = new KefirBus<Table<any>, void>("table");
-    const selectedColumn = new KefirBus<string, any>("selectedColumn");
+    const table = new BehaviorSubject({ columns: [], rows: [] });
+    const selectedColumn = new BehaviorSubject(null);
     return {
       sources: {
         table,
         selectedColumn
       },
       sinks: {
-        output: Kefir.combine([
-          table.stream.toProperty(),
-          selectedColumn.stream.toProperty()
-        ])
-          .toProperty()
-          .map(([table, selectedColumn]) => {
+        output: combineLatest(table, selectedColumn).pipe(
+          map(([table, selectedColumn]) => {
             console.log(table, selectedColumn);
             const sum: number = table.rows.reduce(
               (sum, row) => sum + row[selectedColumn],
@@ -40,7 +35,7 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
             console.log("avg", avg);
             return avg;
           })
-          .toProperty()
+        )
       }
     };
   },
@@ -48,12 +43,15 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
     const [columns, setColumns] = useState<Column[]>([]);
 
     useEffect(() => {
-      const subscription = data.sources.table.stream.observe({
-        value(table: Table<any>) {
-          setColumns(table.columns);
-        }
-      });
-      return subscription.unsubscribe;
+      // const subscription = data.sources.table.stream.observe({
+      //   value(table: Table<any>) {
+      //     setColumns(table.columns);
+      //   }
+      // });
+      const { unsubscribe } = data.sources.table.subscribe(({ columns }) =>
+        setColumns(columns)
+      );
+      return unsubscribe;
     }, []);
 
     return (
@@ -62,7 +60,7 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
           <div>Average a column</div>
           <select
             onChange={(e) => {
-              data.sources.selectedColumn.emit(e.target.value);
+              data.sources.selectedColumn.next(e.target.value);
             }}
           >
             {columns.map((column) => (
