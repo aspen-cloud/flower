@@ -16,12 +16,12 @@ interface AvgColumnNodeIO {
 
 const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
   initializeStreams: function () {
-    const table = new BehaviorSubject({ columns: [], rows: [] });
-    const selectedColumn = new BehaviorSubject(null);
+    const table = new BehaviorSubject({ columns: [], rows: [] } as Table<any>);
+    const selectedColumn = new BehaviorSubject("");
     return {
       sources: {
         table,
-        selectedColumn
+        selectedColumn,
       },
       sinks: {
         output: combineLatest(table, selectedColumn).pipe(
@@ -29,27 +29,22 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
             console.log(table, selectedColumn);
             const sum: number = table.rows.reduce(
               (sum, row) => sum + row[selectedColumn],
-              0
+              0,
             );
             const avg = sum / table.rows.length;
-            console.log("avg", avg);
+
             return avg;
-          })
-        )
-      }
+          }),
+        ) as BehaviorSubject<number>,
+      },
     };
   },
   Component: function ({ data }) {
     const [columns, setColumns] = useState<Column[]>([]);
 
     useEffect(() => {
-      // const subscription = data.sources.table.stream.observe({
-      //   value(table: Table<any>) {
-      //     setColumns(table.columns);
-      //   }
-      // });
       const { unsubscribe } = data.sources.table.subscribe(({ columns }) =>
-        setColumns(columns)
+        setColumns(columns),
       );
       return unsubscribe;
     }, []);
@@ -72,7 +67,7 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
         </div>
       </BaseNode>
     );
-  }
+  },
 };
 
 export default AvgColumnNode;

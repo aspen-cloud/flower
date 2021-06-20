@@ -4,13 +4,12 @@ export const JS = {
   label: "Javascript",
   inputs: {
     code: string(),
-    input: any()
+    input: any(),
   },
   outputs: {
-    result({ code, input }) {
-      console.log(code, input);
+    result({ code, input }: { code: string; input: any }) {
       const func = new Function("input", code);
       return func(input);
-    }
-  }
+    },
+  },
 };

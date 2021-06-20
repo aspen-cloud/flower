@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Handle } from "react-flow-renderer";
+import { Handle, Position } from "react-flow-renderer";
 import BaseNode from "../../base-node";
 import { GraphNode, Table } from "../../types";
 import { BehaviorSubject } from "rxjs";
@@ -18,16 +18,16 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
     console.log("initializing datasource with", initialData);
     return {
       sources: {
-        label: new BehaviorSubject(initialData.label) // constant(initialData.label)
+        label: new BehaviorSubject(initialData.label), // constant(initialData.label)
       },
       sinks: {
-        output: new BehaviorSubject(initialData.data) // constant(initialData.data)
-      }
+        output: new BehaviorSubject(initialData.data), // constant(initialData.data)
+      },
     };
   },
 
   Component: function ({
-    data: { sources, sinks }
+    data: { sources, sinks },
   }: {
     data: DatasourceNodeIO;
   }) {
@@ -41,9 +41,8 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
         <figure style={{ textAlign: "center" }}>
           <img
             style={{
-              userDrag: "none",
               userSelect: "none",
-              pointerEvents: "none"
+              pointerEvents: "none",
             }}
             width="50px"
             src="/database.svg"
@@ -52,10 +51,10 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
             {label}
           </figcaption>
         </figure>
-        <Handle position="bottom" type="source" />
+        <Handle position={Position.Bottom} type="source" />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default DataSourceNode;

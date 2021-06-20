@@ -13,7 +13,7 @@ export interface Table<E extends Record<string, any>> {
 
 export interface NodeIO {
   sources: Record<string, BehaviorSubject<any>>;
-  sinks: Record<string, BehaviorSubject<any, void>>;
+  sinks: Record<string, BehaviorSubject<any>>;
 }
 
 export interface GraphNode<T extends NodeIO> {

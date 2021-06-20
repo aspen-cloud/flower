@@ -21,9 +21,9 @@ interface ColumnGeneratorIO {
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new BehaviorSubject({ rows: [], columns: [] }),
+      table: new BehaviorSubject({ rows: [], columns: [] } as Table<any>),
       columnName: new BehaviorSubject(nanoid()),
-      columnFormula: new BehaviorSubject("")
+      columnFormula: new BehaviorSubject(""),
     };
     return {
       sources,
@@ -31,25 +31,25 @@ export default {
         output: combineLatest(
           sources.table,
           sources.columnName,
-          sources.columnFormula
+          sources.columnFormula,
         ).pipe(
           map(([table, columnName, columnFormula]) => {
             const newColumns = [
               ...table.columns,
-              { Header: columnName, accessor: columnName }
+              { Header: columnName, accessor: columnName },
             ];
             const newRows = table.rows.map((row) => ({
               ...row,
-              [columnName]: applyExpr(row, columnFormula) || "null"
+              [columnName]: applyExpr(row, columnFormula) || "null",
             }));
 
             return {
               rows: newRows,
-              columns: newColumns
+              columns: newColumns,
             };
-          })
-        )
-      }
+          }),
+        ) as BehaviorSubject<Table<any>>,
+      },
     };
   },
   Component: function ({ data }) {
@@ -65,7 +65,7 @@ export default {
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<ColumnGeneratorIO>;
 
 function applyExpr(row, colExpr) {

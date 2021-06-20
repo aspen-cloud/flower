@@ -1,6 +1,6 @@
 import React from "react";
 
-import { GraphNode, Table } from "../../../types";
+import { GraphNode, Table } from "../../../../types";
 import BaseNode from "../../../../base-node";
 import filters from "./filters";
 import { BehaviorSubject, combineLatest } from "rxjs";
@@ -21,23 +21,23 @@ import FilterForm from "./filter-form";
 
 interface FilterIO {
   sources: {
-    table: BehaviorSubject<Table>;
+    table: BehaviorSubject<Table<any>>;
     columnName: BehaviorSubject<string>;
     columnFilter: BehaviorSubject<string>;
     compareValue: BehaviorSubject<string>;
   };
   sinks: {
-    output: BehaviorSubject<Table>;
+    output: BehaviorSubject<Table<any>>;
   };
 }
 
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new BehaviorSubject({ columns: [], rows: [] }),
+      table: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
       columnName: new BehaviorSubject(""),
       columnFilter: new BehaviorSubject(""),
-      compareValue: new BehaviorSubject("")
+      compareValue: new BehaviorSubject(""),
     };
     return {
       sources,
@@ -46,22 +46,22 @@ export default {
           sources.table,
           sources.columnName,
           sources.columnFilter,
-          sources.compareValue
+          sources.compareValue,
         ]).pipe(
           map(([table, columnName, columnFilter, compareValue]) => {
             const filter = filters[columnFilter] || (() => true);
 
             const newRows = table.rows.filter((row) =>
-              filter(row[columnName], compareValue)
+              filter(row[columnName], compareValue),
             );
 
             return {
               rows: newRows,
-              columns: table.columns
+              columns: table.columns,
             };
-          })
-        )
-      }
+          }),
+        ) as BehaviorSubject<Table<any>>,
+      },
     };
   },
   Component: function ({ data }) {
@@ -79,5 +79,5 @@ export default {
         />
       </BaseNode>
     );
-  }
+  },
 } as GraphNode<FilterIO>;

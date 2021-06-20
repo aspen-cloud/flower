@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { GraphNode, Table } from "../../types";
+import { GraphNode, Table } from "../../../types";
 import BaseNode from "../../../base-node";
 import { BehaviorSubject } from "rxjs";
 
@@ -17,11 +17,11 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
     const value = new BehaviorSubject("");
     return {
       sources: {
-        value
+        value,
       },
       sinks: {
-        output: value
-      }
+        output: value,
+      },
     };
   },
 
@@ -39,7 +39,7 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
         />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default ConstantNode;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { GraphNode, Table } from "../../types";
+import { GraphNode, Table } from "../../../types";
 import BaseNode from "../../../base-node";
 import { BehaviorSubject } from "rxjs";
 
@@ -8,7 +8,7 @@ interface SingleCellNodeIO {
     value: BehaviorSubject<string | number>;
   };
   sinks: {
-    output: BehaviorSubject<Table>;
+    output: BehaviorSubject<string>;
   };
 }
 
@@ -17,16 +17,16 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
     const value = new BehaviorSubject("");
     return {
       sources: {
-        value
+        value,
       },
       sinks: {
-        output: value
-      }
+        output: value,
+      },
     };
   },
 
   Component: function ({ data }: { data: SingleCellNodeIO }) {
-    const [value, setValue] = useState("Single Value");
+    const [value, setValue] = useState<any>("Single Value");
     useEffect(() => {
       const { unsubscribe } = data.sources.value.subscribe(setValue);
       return unsubscribe;
@@ -36,7 +36,7 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
         <h2 style={{ backgroundColor: "white" }}>{JSON.stringify(value)}</h2>
       </BaseNode>
     );
-  }
+  },
 };
 
 export default SingleCellNode;
