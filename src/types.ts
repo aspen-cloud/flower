@@ -1,6 +1,5 @@
-import { Property } from "kefir";
 import { FunctionComponent } from "react";
-import KefirBus from "./utils/kefir-bus";
+import { BehaviorSubject } from "rxjs";
 
 export interface Column {
   Header: string;
@@ -13,12 +12,11 @@ export interface Table<E extends Record<string, any>> {
 }
 
 export interface NodeIO {
-  sources: Record<string, KefirBus<any, void>>;
-  sinks: Record<string, Property<any, void>>;
+  sources: Record<string, BehaviorSubject<any>>;
+  sinks: Record<string, BehaviorSubject<any, void>>;
 }
 
 export interface GraphNode<T extends NodeIO> {
   initializeStreams({ initialData }: { initialData: any }): T;
-  //Component({ data }: { data: T }): Element;
   Component: FunctionComponent<{ data: T }>;
 }
