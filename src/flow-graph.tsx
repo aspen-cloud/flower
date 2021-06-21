@@ -46,6 +46,8 @@ import {
   Card,
 } from "@blueprintjs/core";
 import { OmnibarItem } from "./types";
+import { jsonToTable } from "./graph-nodes/utils/tables";
+import { csvToJson } from "./graph-nodes/utils/files";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -304,19 +306,30 @@ const FlowGraph = () => {
   }
 
   function addDataNode(data: any[], label: string, position: XYPosition) {
-    const cols = Object.keys(data.length ? data[0] : {}).map((col) => ({
-      Header: col,
-      accessor: col,
-    }));
+    const tableData = jsonToTable(data);
 
     const newEl = createReactFlowNode({
       type: "DataSource",
       data: {
-        data: {
-          rows: data,
-          columns: cols,
-        },
+        data: tableData,
         label,
+      },
+      position,
+    });
+
+    setElements((els) => [...els, newEl]);
+  }
+
+  async function addFileNode(entry, label: string, position: XYPosition) {
+    const file = await entry.getFile();
+    const jsonData = await csvToJson(file);
+    const tableData = jsonToTable(jsonData);
+    const newEl = createReactFlowNode({
+      type: "FileSource",
+      data: {
+        data: tableData,
+        entry,
+        lastRead: file,
       },
       position,
     });
@@ -331,7 +344,7 @@ const FlowGraph = () => {
     event.dataTransfer!.dropEffect = "move";
   };
 
-  const onDrop: React.DragEventHandler<HTMLDivElement> = (event) => {
+  const onDrop: React.DragEventHandler<HTMLDivElement> = async (event) => {
     event.preventDefault();
     if (reactFlowWrapper.current == null || reactflowInstance == null) return;
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
@@ -340,10 +353,24 @@ const FlowGraph = () => {
       x: event.clientX - reactFlowBounds.left,
       y: event.clientY - reactFlowBounds.top,
     });
-    const file = event.dataTransfer.files[0];
-    parseFileData(file, (json_data) => {
-      addDataNode(json_data, file.name, position);
-    });
+
+    //@ts-ignore
+    for (const item of event.dataTransfer.items) {
+      if (item.kind === "file") {
+        const entry = await item.getAsFileSystemHandle();
+        console.log("ENTRY", entry);
+        if (entry.kind === "file") {
+          await addFileNode(entry, entry.name, position);
+        } else if (entry.kind === "directory") {
+          // run code for is entry is a directory
+        }
+      }
+    }
+
+    // const file = event.dataTransfer.files[0];
+    // parseFileData(file, (json_data) => {
+    //   addDataNode(json_data, file.name, position);
+    // });
   };
 
   function getCanvasCenterPosition() {
