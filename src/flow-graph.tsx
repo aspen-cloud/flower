@@ -47,6 +47,7 @@ import Graph, { persistGraph } from "./graph";
 import { autorun } from "mobx";
 import { jsonToTable } from "./graph-nodes/utils/tables";
 import { csvToJson } from "./graph-nodes/utils/files";
+import { isWritableElement } from "./graph-nodes/utils/elements";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -337,7 +338,7 @@ const FlowGraph = () => {
     // });
   };
 
-  function getCanvasCenterPosition() {
+  const getCanvasCenterPosition = useCallback(() => {
     if (reactFlowWrapper.current == null || reactflowInstance == null)
       return { x: 0, y: 0 };
 
@@ -346,7 +347,29 @@ const FlowGraph = () => {
       x: window.innerWidth / 2 - reactFlowBounds.left,
       y: window.innerHeight / 2 - reactFlowBounds.top,
     });
-  }
+  }, [reactflowInstance]);
+
+  // Add listener for pasting into graph
+  useEffect(() => {
+    const handler = (event) => {
+      const isWritable = isWritableElement(event.target);
+      if (!isWritable) {
+        event.preventDefault();
+        const text = event.clipboardData.getData("text");
+        if (text) {
+          addNode({
+            type: "Constant",
+            data: {
+              value: text,
+            },
+            position: getCanvasCenterPosition(),
+          });
+        }
+      }
+    };
+    document.body.addEventListener("paste", handler);
+    return () => document.body.removeEventListener("paste", handler);
+  }, [getCanvasCenterPosition]);
 
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
