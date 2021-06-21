@@ -91,6 +91,31 @@ function createReactFlowNode({
   };
 }
 
+async function createReactFlowNodeAsync({
+  type,
+  data,
+  position,
+}: {
+  type: string;
+  data?: any;
+  position: { x: number; y: number };
+}) {
+  // TODO remove... just for testing
+  // if (type === "DataSource") {
+  //   data = {
+  //     rows: testData,
+  //     columns
+  //   };
+  // }
+  return {
+    id: nanoid(),
+    type,
+    data: await GraphNodes[type].initializeStreams({ initialData: data }),
+    position,
+    style: { padding: "10px", border: "1px solid white", borderRadius: "10px" },
+  };
+}
+
 const nodes = [
   createReactFlowNode({
     type: "DataSource",
@@ -145,12 +170,25 @@ const ElementInfoMenuItem = ({ element }) => {
   );
 };
 
+interface FilePollInfo {
+  fileHandle: any;
+  pollId: number;
+  lastUpdated: number;
+}
+
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] = useState(null);
   const [elements, setElements] = useState(nodes);
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState([]);
+  const filePollsRef = useRef<FilePollInfo[]>([]);
+  // const [filePolls, setFilePolls] = useState<FilePollInfo[]>([]);
+
+  // const dictionary: { [fileId: string]: string } = {
+  //   a: "foo",
+  //   b: "bar",
+  // };
 
   // useEffect(() => {
   //   if (reactflowInstance && elements.length > 0) {
@@ -290,13 +328,63 @@ const FlowGraph = () => {
     setElements((els) => [...els, newEl]);
   }
 
+  async function addFileNode(entry, position) {
+    const newEl = await createReactFlowNodeAsync({
+      type: "FileSource",
+      data: {
+        entry,
+        label: "foo",
+      },
+      position,
+    });
+
+    setElements((els) => [...els, newEl]);
+  }
+
   const reactFlowWrapper = useRef(null);
   const onDragOver = (event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   };
 
-  const onDrop = (event) => {
+  const getUpdatedPoll = (entry, filePolls) => {
+    return window.setInterval(async () => {
+      const existingFile = filePollsRef.current.find(
+        (x) => x.fileHandle === entry,
+      );
+      const latestRead = await entry.getFile();
+      if (existingFile && latestRead.lastModified > existingFile.lastUpdated) {
+        console.log("THERE WAS AN UPDATE!");
+        clearInterval(existingFile.pollId);
+        const newPoll = getUpdatedPoll(entry, filePollsRef.current);
+        const update = filePollsRef.current.find((x) => x.fileHandle === entry);
+        filePollsRef.current = [
+          ...filePollsRef.current.filter((x) => x !== update),
+          {
+            ...update,
+            pollId: newPoll,
+            lastUpdated: latestRead.lastModified as number,
+          } as FilePollInfo,
+        ];
+        // setFilePolls((prevFilePolls2) => {
+        //   const newPoll = getUpdatedPoll(entry, prevFilePolls2);
+        //   const update = prevFilePolls2.find((x) => x.fileHandle === entry);
+        //   return [
+        //     ...prevFilePolls2.filter((x) => x !== update),
+        //     {
+        //       ...update,
+        //       pollId: newPoll,
+        //       lastUpdated: latestRead.lastModified as number,
+        //     } as FilePollInfo,
+        //   ];
+        // });
+      } else {
+        console.log("NO UPDATE");
+      }
+    }, 1000);
+  };
+
+  const onDrop = async (event) => {
     event.preventDefault();
     // @ts-ignore
     const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
@@ -306,10 +394,45 @@ const FlowGraph = () => {
       x: event.clientX - reactFlowBounds.left,
       y: event.clientY - reactFlowBounds.top,
     });
-    const file = event.dataTransfer.files[0];
-    parseFileData(file, (json_data) => {
-      addDataNode(json_data, file.name, position);
-    });
+
+    // Process all of the items.
+    for (const item of event.dataTransfer.items) {
+      // kind will be 'file' for file/directory entries.
+      if (item.kind === "file") {
+        const entry = await item.getAsFileSystemHandle();
+        console.log("ENTRY", entry);
+        if (entry.kind === "file") {
+          // run code for if entry is a file
+          // const file = await entry.getFile();
+          // const newPoll = getUpdatedPoll(entry, filePollsRef.current);
+          // filePollsRef.current = [
+          //   ...filePollsRef.current,
+          //   {
+          //     fileHandle: entry,
+          //     pollId: newPoll,
+          //     lastUpdated: file.lastModified as number,
+          //   } as FilePollInfo,
+          // ];
+          // setFilePolls((prevFilePolls) => {
+          //   const newPoll = getUpdatedPoll(entry, prevFilePolls);
+          //   return [
+          //     ...prevFilePolls,
+          //     {
+          //       fileHandle: entry,
+          //       pollId: newPoll,
+          //       lastUpdated: file.lastModified as number,
+          //     } as FilePollInfo,
+          //   ];
+          // });
+          // parseFileData(file, (json_data) => {
+          //   addDataNode(json_data, file.name, position);
+          // });
+          await addFileNode(entry, position);
+        } else if (entry.kind === "directory") {
+          // run code for is entry is a directory
+        }
+      }
+    }
   };
 
   const NodeOmnibar = Omnibar.ofType();

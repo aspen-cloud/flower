@@ -1,4 +1,5 @@
 export { default as DataSource } from "./nodes/datasource-node";
+export { default as FileSource } from "./nodes/file-node";
 export { default as ColumnGenerator } from "./nodes/standard/column-generator-node";
 export { default as Table } from "./nodes/standard/table-node";
 export { default as AvgColumn } from "./nodes/standard/avg-column-node";

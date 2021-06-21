@@ -18,7 +18,7 @@ export interface NodeIO {
 }
 
 export interface GraphNode<T extends NodeIO> {
-  initializeStreams({ initialData }: { initialData: any }): T;
+  initializeStreams({ initialData }: { initialData: any }): T | Promise<T>;
   //Component({ data }: { data: T }): Element;
   Component: FunctionComponent<{ data: T }>;
 }
