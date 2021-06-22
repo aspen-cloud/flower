@@ -33,8 +33,8 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
   }) {
     const [label, setLabel] = useState("");
     useEffect(() => {
-      const { unsubscribe } = sources.label.subscribe(setLabel);
-      return unsubscribe;
+      const subscription = sources.label.subscribe(setLabel);
+      return () => subscription.unsubscribe();
     }, []);
     return (
       <BaseNode sources={sources} sinks={sinks}>

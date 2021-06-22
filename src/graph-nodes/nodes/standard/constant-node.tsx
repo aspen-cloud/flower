@@ -28,8 +28,8 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
   Component: function ({ data }: { data: ConstantNodeIO }) {
     const [value, setValue] = useState("Single Value");
     useEffect(() => {
-      const { unsubscribe } = data.sources.value.subscribe(setValue);
-      return unsubscribe;
+      const subscription = data.sources.value.subscribe(setValue);
+      return () => subscription.unsubscribe();
     }, []);
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>

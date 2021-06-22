@@ -18,25 +18,25 @@ const TableNode: GraphNode<TableNodeIO> = {
     const tableStream = new BehaviorSubject({ rows: [], columns: [] });
     return {
       sources: {
-        table: tableStream
+        table: tableStream,
       },
       sinks: {
-        output: tableStream
-      }
+        output: tableStream,
+      },
     };
   },
   Component: ({ data: { sources, sinks } }) => {
     const [table, setTable] = useState({ rows: [], columns: [] });
     useEffect(() => {
-      const { unsubscribe } = sinks.output.subscribe(setTable);
-      return unsubscribe;
+      const subscription = sinks.output.subscribe(setTable);
+      return () => subscription.unsubscribe();
     }, [sources.table]);
     return (
       <BaseNode sources={sources} sinks={sinks}>
         <DataTable data={table.rows} columns={table.columns} />
       </BaseNode>
     );
-  }
+  },
 };
 
 export default TableNode;

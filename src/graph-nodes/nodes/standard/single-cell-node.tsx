@@ -28,8 +28,8 @@ const SingleCellNode: GraphNode<SingleCellNodeIO> = {
   Component: function ({ data }: { data: SingleCellNodeIO }) {
     const [value, setValue] = useState<any>("Single Value");
     useEffect(() => {
-      const { unsubscribe } = data.sources.value.subscribe(setValue);
-      return unsubscribe;
+      const subscription = data.sources.value.subscribe(setValue);
+      return () => subscription.unsubscribe();
     }, []);
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>

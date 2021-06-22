@@ -43,10 +43,10 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
     const [columns, setColumns] = useState<Column[]>([]);
 
     useEffect(() => {
-      const { unsubscribe } = data.sources.table.subscribe(({ columns }) =>
+      const subscription = data.sources.table.subscribe(({ columns }) =>
         setColumns(columns),
       );
-      return unsubscribe;
+      return () => subscription.unsubscribe();
     }, []);
 
     return (
