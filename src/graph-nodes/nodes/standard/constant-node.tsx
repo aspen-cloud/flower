@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { GraphNode, Table } from "../../../types";
 import BaseNode from "../../../base-node";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
+import { shareReplay, tap } from "rxjs/operators";
 
 interface ConstantNodeIO {
   sources: {
@@ -13,7 +14,11 @@ interface ConstantNodeIO {
 }
 
 const ConstantNode: GraphNode<ConstantNodeIO> = {
-  initializeStreams: function ({ initialData }): ConstantNodeIO {
+  initializeStreams: function ({
+    initialData,
+  }: {
+    initialData: any;
+  }): ConstantNodeIO {
     const value = new BehaviorSubject(initialData?.value || "");
     return {
       sources: {
@@ -24,6 +29,8 @@ const ConstantNode: GraphNode<ConstantNodeIO> = {
       },
     };
   },
+
+  persist: true,
 
   Component: function ({ data }: { data: ConstantNodeIO }) {
     const [value, setValue] = useState("Single Value");

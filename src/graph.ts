@@ -7,11 +7,13 @@ import {
   BehaviorSubject,
   Subscription,
   Observable as RxObservable,
+  combineLatest,
 } from "rxjs";
 import { autorun, makeAutoObservable, observable } from "mobx";
 import * as AllNodes from "./graph-nodes/index";
 import { nanoid } from "nanoid";
 import { debounceTime, map } from "rxjs/operators";
+import { GraphNode, NodeIO } from "./types";
 
 // TODO move to some utils folder
 function flattenNodes(nodes: Record<string, any>): [string, any][] {
@@ -41,6 +43,7 @@ interface Node {
   inputs: Record<string, Bus>;
   outputs: Record<string, Bus>;
   position: NodePosition;
+  beforeRemoval: () => void;
 }
 
 interface Connection {
@@ -102,11 +105,21 @@ export default class Graph {
     id?: string;
     data?: any;
   }) {
-    const { sources, sinks } = GraphNodes[type].initializeStreams({
+    const SelectedNode: GraphNode<NodeIO> = GraphNodes[type];
+    if (id && SelectedNode.persist && !data) {
+      const storedData = localStorage.getItem(id);
+      if (storedData) {
+        data = JSON.parse(storedData);
+      }
+    }
+    const { sources, sinks } = SelectedNode.initializeStreams({
       initialData: data,
     });
+
+    const allSources = Object.entries(sources);
+
     const inputs = Object.fromEntries(
-      Object.entries(sources).map(([key, stream]) => [
+      allSources.map(([key, stream]) => [
         key,
         { key, stream: stream as BehaviorSubject<any>, label: "" },
       ]),
@@ -117,12 +130,40 @@ export default class Graph {
         { key, stream: stream as BehaviorSubject<any>, label: "" },
       ]),
     );
+
+    const nodeId = id || nanoid();
+
+    let persistSubscription;
+    if (SelectedNode.persist) {
+      const combinedSources = combineLatest(
+        ...allSources.map(([name, subj]) => subj),
+        (...latestValues: any[]) => {
+          return Object.fromEntries(
+            allSources.map(([name], i) => [name, latestValues[i]]),
+          );
+        },
+      );
+      // TODO add debouncing
+      persistSubscription = combinedSources.subscribe((inputVals: any) => {
+        const valueToSave = SelectedNode.beforeStore
+          ? SelectedNode.beforeStore(inputVals)
+          : inputVals;
+        localStorage.setItem(nodeId, JSON.stringify(valueToSave));
+      });
+    }
+
     const newNode: Node = {
-      id: id || nanoid(),
+      id: nodeId,
       type,
       position,
       inputs,
       outputs,
+      beforeRemoval: () => {
+        if (persistSubscription) {
+          persistSubscription.unsubscribe();
+        }
+        localStorage.removeItem(nodeId);
+      },
     };
 
     this.nodes.set(newNode.id, newNode);
@@ -165,15 +206,16 @@ export default class Graph {
     this.connections.set(connection.id, connection);
   }
 
-  removeNode(nodeId: NodeId) {
+  async removeNode(nodeId: NodeId) {
     const activeConnections = Array.from(this.connections.values()).filter(
       (conn) => conn.fromNode === nodeId || conn.toNode === nodeId,
     );
     for (const conn of activeConnections) {
       this.removeConnection(conn.id);
     }
+    const node = this.nodes.get(nodeId);
+    node.beforeRemoval();
     this.nodes.delete(nodeId);
-    // TODO Remove all connections then the node
   }
 
   removeConnection(connectionId: string) {

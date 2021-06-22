@@ -18,6 +18,8 @@ export interface NodeIO {
 
 export interface GraphNode<T extends NodeIO> {
   initializeStreams({ initialData }: { initialData: any }): T;
+  persist?: boolean;
+  beforeStore?: (inputs: any) => any;
   Component: FunctionComponent<{ data: T }>;
 }
 
