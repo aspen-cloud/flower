@@ -45,6 +45,7 @@ import {
   Collapse,
   Card,
 } from "@blueprintjs/core";
+import { OmnibarItem } from "./types";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -65,6 +66,11 @@ console.log(AllNodes, GraphNodes);
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => [key, val.Component]),
 );
+const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
+  type: t,
+  label: t,
+  data: {},
+}));
 
 const columns = [
   {
@@ -160,6 +166,24 @@ const FlowGraph = () => {
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState<Elements>([]);
+  const [omnibarQuery, setOmnibarQuery] = useState("");
+  const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
+    defaultOmnibarOptions,
+  );
+  useEffect(() => {
+    if (omnibarQuery) {
+      setNodeTypeList([
+        ...defaultOmnibarOptions,
+        {
+          type: "Constant",
+          label: `Constant: ${omnibarQuery}`,
+          data: { value: omnibarQuery },
+        },
+      ]);
+    } else {
+      setNodeTypeList([...defaultOmnibarOptions]);
+    }
+  }, [omnibarQuery]);
 
   // useEffect(() => {
   //   if (reactflowInstance && elements.length > 0) {
@@ -250,8 +274,8 @@ const FlowGraph = () => {
     });
   };
 
-  const addNode = useCallback(({ type, position }) => {
-    const newNode = createReactFlowNode({ type, position });
+  const addNode = useCallback(({ type, data, position }) => {
+    const newNode = createReactFlowNode({ type, data, position });
     setElements((prevElems) => [...prevElems, newNode]);
   }, []);
 
@@ -322,12 +346,12 @@ const FlowGraph = () => {
     });
   };
 
-  const NodeOmnibar = Omnibar.ofType<[string, string]>();
+  const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
   const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
 
-  const renderNodeType: ItemRenderer<[string, any]> = (
-    [key, component],
+  const renderNodeType: ItemRenderer<OmnibarItem> = (
+    item,
     { handleClick, modifiers, query },
   ) => {
     if (!modifiers.matchesPredicate) {
@@ -337,21 +361,21 @@ const FlowGraph = () => {
       <MenuItem
         active={modifiers.active}
         disabled={modifiers.disabled}
-        label={key}
-        key={key}
+        label={item.label}
+        key={item.label}
         onClick={handleClick}
-        text={key}
+        text={item.label}
       />
     );
   };
 
-  const filterNodeTypes: ItemPredicate<[string, any]> = (
+  const filterNodeTypes: ItemPredicate<OmnibarItem> = (
     query,
-    [key, component],
+    item,
     _index,
     exactMatch,
   ) => {
-    const normalizedTitle = key.toLowerCase();
+    const normalizedTitle = item.label.toLowerCase();
     const normalizedQuery = query.toLowerCase();
     if (!query || query.length === 0) return true;
     if (exactMatch) {
@@ -498,11 +522,18 @@ const FlowGraph = () => {
       >
         <NodeOmnibar
           noResults={<MenuItem disabled={true} text="No results." />}
-          items={Object.entries(nodeTypes) as [string, string][]}
+          items={nodeTypeList}
+          query={omnibarQuery}
+          onQueryChange={(q, _event) => setOmnibarQuery(q)}
           itemRenderer={renderNodeType}
           itemPredicate={filterNodeTypes}
-          onItemSelect={([type]) => {
-            addNode({ type, position: { x: 0, y: 0 } });
+          onItemSelect={(item) => {
+            const { type, data } = item;
+            addNode({
+              type,
+              data,
+              position: { x: 0, y: 0 },
+            });
             setShowNodeOmniBar(false);
           }}
           onClose={() => {

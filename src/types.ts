@@ -20,3 +20,9 @@ export interface GraphNode<T extends NodeIO> {
   initializeStreams({ initialData }: { initialData: any }): T;
   Component: FunctionComponent<{ data: T }>;
 }
+
+export interface OmnibarItem {
+  type: string;
+  label: string;
+  data: any;
+}

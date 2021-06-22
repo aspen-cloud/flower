@@ -14,7 +14,7 @@ interface ConstantNodeIO {
 
 const ConstantNode: GraphNode<ConstantNodeIO> = {
   initializeStreams: function ({ initialData }): ConstantNodeIO {
-    const value = new BehaviorSubject("");
+    const value = new BehaviorSubject(initialData?.value || "");
     return {
       sources: {
         value,
