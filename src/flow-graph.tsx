@@ -45,9 +45,10 @@ import {
 import { OmnibarItem } from "./types";
 import Graph, { persistGraph } from "./graph";
 import { autorun } from "mobx";
-import { jsonToTable } from "./utils/tables";
+import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
+import { parseClipboard } from "./utils/clipboard";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -351,16 +352,27 @@ const FlowGraph = () => {
 
   // Add listener for pasting into graph
   useEffect(() => {
-    const handler = (event) => {
+    const handler = (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
-      if (!isWritable) {
+      if (event.clipboardData && !isWritable) {
         event.preventDefault();
-        const text = event.clipboardData.getData("text");
-        if (text) {
+        const { type, data } = parseClipboard(event.clipboardData);
+        if (type === "text") {
           addNode({
             type: "Constant",
             data: {
-              value: text,
+              value: data,
+            },
+            position: getCanvasCenterPosition(),
+          });
+        }
+
+        if (type === "table") {
+          const tableData = matrixToTable(data);
+          addNode({
+            type: "DataSource",
+            data: {
+              data: tableData,
             },
             position: getCanvasCenterPosition(),
           });

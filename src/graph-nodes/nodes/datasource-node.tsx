@@ -18,10 +18,12 @@ const DataSourceNode: GraphNode<DatasourceNodeIO> = {
     console.log("initializing datasource with", initialData);
     return {
       sources: {
-        label: new BehaviorSubject(initialData.label), // constant(initialData.label)
+        label: new BehaviorSubject(initialData?.label || ""), // constant(initialData.label)
       },
       sinks: {
-        output: new BehaviorSubject(initialData.data), // constant(initialData.data)
+        output: new BehaviorSubject(
+          initialData?.data || { columns: [], rows: [] },
+        ), // constant(initialData.data)
       },
     };
   },
