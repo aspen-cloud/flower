@@ -11,7 +11,7 @@ import {
 import { autorun, makeAutoObservable, observable } from "mobx";
 import * as AllNodes from "./graph-nodes/index";
 import { nanoid } from "nanoid";
-import { debounceTime, map, tap } from "rxjs/operators";
+import { debounceTime, map } from "rxjs/operators";
 
 // TODO move to some utils folder
 function flattenNodes(nodes: Record<string, any>): [string, any][] {
@@ -229,7 +229,6 @@ export function persistGraph(graph: Graph) {
   });
 
   const serializedStream = observedGraph.pipe(
-    tap(console.log),
     debounceTime(300),
     map(({ nodes, connections }) => ({
       nodes: Array.from(nodes.entries()).map(([key, node]) => [
@@ -243,13 +242,13 @@ export function persistGraph(graph: Graph) {
     })),
   );
 
-  const { unsubscribe } = serializedStream.subscribe(({ nodes, edges }) => {
+  const subscription = serializedStream.subscribe(({ nodes, edges }) => {
     localStorage.setItem("nodes", JSON.stringify(nodes));
     localStorage.setItem("edges", JSON.stringify(edges));
   });
 
   return {
-    stop: unsubscribe,
+    stop: subscription.unsubscribe.bind(subscription),
   };
 }
 
