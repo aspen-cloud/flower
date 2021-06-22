@@ -199,8 +199,8 @@ const FlowGraph = () => {
 
   useEffect(() => {
     // Load nodes and edges from local storage
-    const storedNodes = JSON.parse(localStorage.getItem("nodes"));
-    const storedEdges = JSON.parse(localStorage.getItem("edges"));
+    const storedNodes = JSON.parse(localStorage.getItem("nodes") || "[]");
+    const storedEdges = JSON.parse(localStorage.getItem("edges") || "[]");
     const graph = new Graph({
       nodes: storedNodes,
       edges: storedEdges,
