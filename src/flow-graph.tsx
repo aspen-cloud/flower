@@ -24,14 +24,12 @@ import ReactFlow, {
   Edge,
   BackgroundVariant,
   PanOnScrollMode,
-  Position,
   XYPosition,
   OnLoadFunc,
   OnLoadParams,
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
-import testData from "./test-data";
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
 import {
   HotkeysTarget2,
@@ -45,7 +43,10 @@ import {
   Collapse,
   Card,
 } from "@blueprintjs/core";
+
 import { OmnibarItem } from "./types";
+import Graph, { persistGraph } from "./graph";
+import { autorun } from "mobx";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -106,37 +107,37 @@ function createReactFlowNode({
 }
 
 const nodes = [
-  createReactFlowNode({
-    type: "DataSource",
-    data: {
-      data: {
-        rows: testData,
-        columns,
-      },
-      label: "TestData",
-    },
-    position: { x: 100, y: -200 },
-  }),
-  createReactFlowNode({
-    type: "Table",
-    position: { x: 100, y: -100 },
-  }),
-  createReactFlowNode({
-    type: "ColumnGenerator",
-    position: { x: 0, y: 0 },
-  }),
-  createReactFlowNode({
-    type: "Table",
-    position: { x: 0, y: 300 },
-  }),
-  createReactFlowNode({
-    type: "AvgColumn",
-    position: { x: 110, y: -150 },
-  }),
-  createReactFlowNode({
-    type: "SingleCell",
-    position: { x: 130, y: -130 },
-  }),
+  // createReactFlowNode({
+  //   type: "DataSource",
+  //   data: {
+  //     data: {
+  //       rows: testData,
+  //       columns,
+  //     },
+  //     label: "TestData",
+  //   },
+  //   position: { x: 100, y: -200 },
+  // }),
+  // createReactFlowNode({
+  //   type: "Table",
+  //   position: { x: 100, y: -100 },
+  // }),
+  // createReactFlowNode({
+  //   type: "ColumnGenerator",
+  //   position: { x: 0, y: 0 },
+  // }),
+  // createReactFlowNode({
+  //   type: "Table",
+  //   position: { x: 0, y: 300 },
+  // }),
+  // createReactFlowNode({
+  //   type: "AvgColumn",
+  //   position: { x: 110, y: -150 },
+  // }),
+  // createReactFlowNode({
+  //   type: "SingleCell",
+  //   position: { x: 130, y: -130 },
+  // }),
 ];
 
 const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
@@ -170,6 +171,7 @@ const FlowGraph = () => {
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
     defaultOmnibarOptions,
   );
+
   useEffect(() => {
     if (omnibarQuery) {
       setNodeTypeList([
@@ -185,11 +187,35 @@ const FlowGraph = () => {
     }
   }, [omnibarQuery]);
 
+  const graphRef = useRef<Graph>();
+
   // useEffect(() => {
   //   if (reactflowInstance && elements.length > 0) {
   //     //reactflowInstance.fitView();
   //   }
   // }, [reactflowInstance, elements.length]);
+
+  useEffect(() => {
+    // Load nodes and edges from local storage
+    const storedNodes = JSON.parse(localStorage.getItem("nodes"));
+    const storedEdges = JSON.parse(localStorage.getItem("edges"));
+    const graph = new Graph({
+      nodes: storedNodes,
+      edges: storedEdges,
+    });
+    graphRef.current = graph;
+
+    const dispose = autorun(() => {
+      setElements(graph.reactFlowElements);
+    });
+
+    const { stop } = persistGraph(graph);
+
+    return () => {
+      dispose();
+      stop();
+    };
+  }, []);
 
   const validateConnection = (
     connection: Connection | Edge<any>,
@@ -244,25 +270,42 @@ const FlowGraph = () => {
   };
 
   const onConnect = (connection: Connection | Edge<any>) => {
-    setElements((els) => {
-      if (!validateConnection(connection, els)) return els;
-      onEdgeConnect(connection, els);
-      return addEdge(
-        { ...connection, animated: true, style: { stroke: "#fff" } },
-        els,
-      );
+    graphRef.current?.createConnection({
+      from: {
+        nodeId: connection.source,
+        busKey: connection.sourceHandle,
+      },
+      to: {
+        nodeId: connection.target,
+        busKey: connection.targetHandle,
+      },
     });
+    // setElements((els) => {
+    //   if (!validateConnection(connection, els)) return els;
+    //   onEdgeConnect(connection, els);
+    //   return addEdge(
+    //     { ...connection, animated: true, style: { stroke: "#fff" } },
+    //     els,
+    //   );
+    // });
   };
 
   const onElementsRemove = (elementsToRemove: Elements) => {
-    setElements((els) => {
-      for (const el of elementsToRemove) {
-        if (isEdge(el)) {
-          onEdgeDisconnect(el, els);
-        }
+    // setElements((els) => {
+    //   for (const el of elementsToRemove) {
+    //     if (isEdge(el)) {
+    //       onEdgeDisconnect(el, els);
+    //     }
+    //   }
+    //   return removeElements(elementsToRemove, els);
+    // });
+    for (const el of elementsToRemove) {
+      if (isEdge(el)) {
+        graphRef.current?.removeConnection(el.id);
+      } else {
+        graphRef.current?.removeNode(el.id);
       }
-      return removeElements(elementsToRemove, els);
-    });
+    }
   };
 
   const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
@@ -275,8 +318,7 @@ const FlowGraph = () => {
   };
 
   const addNode = useCallback(({ type, data, position }) => {
-    const newNode = createReactFlowNode({ type, data, position });
-    setElements((prevElems) => [...prevElems, newNode]);
+    graphRef.current?.createNode({ type, position, data });
   }, []);
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -416,6 +458,9 @@ const FlowGraph = () => {
         snapGrid={snapGrid}
         defaultZoom={1}
         onDrop={onDrop}
+        onNodeDragStop={(e, node) => {
+          graphRef.current.moveNode(node.id, node.position);
+        }}
         onDragOver={onDragOver}
         onEdgeUpdate={onEdgeUpdate}
         onSelectionChange={(elements) => {
