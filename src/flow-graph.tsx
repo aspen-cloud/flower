@@ -346,6 +346,17 @@ const FlowGraph = () => {
     });
   };
 
+  function getCanvasCenterPosition() {
+    if (reactFlowWrapper.current == null || reactflowInstance == null)
+      return { x: 0, y: 0 };
+
+    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+    return reactflowInstance.project({
+      x: window.innerWidth / 2 - reactFlowBounds.left,
+      y: window.innerHeight / 2 - reactFlowBounds.top,
+    });
+  }
+
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
   const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
@@ -532,7 +543,7 @@ const FlowGraph = () => {
             addNode({
               type,
               data,
-              position: { x: 0, y: 0 },
+              position: getCanvasCenterPosition(),
             });
             setShowNodeOmniBar(false);
           }}
