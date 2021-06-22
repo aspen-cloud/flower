@@ -45,9 +45,9 @@ import {
 import { OmnibarItem } from "./types";
 import Graph, { persistGraph } from "./graph";
 import { autorun } from "mobx";
-import { jsonToTable } from "./graph-nodes/utils/tables";
-import { csvToJson } from "./graph-nodes/utils/files";
-import { isWritableElement } from "./graph-nodes/utils/elements";
+import { jsonToTable } from "./utils/tables";
+import { csvToJson } from "./utils/files";
+import { isWritableElement } from "./utils/elements";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 

@@ -3,8 +3,8 @@ import { Handle, Position } from "react-flow-renderer";
 import BaseNode from "../../base-node";
 import { GraphNode, Table } from "../../types";
 import { BehaviorSubject } from "rxjs";
-import { csvToJson } from "../utils/files";
-import { jsonToTable } from "../utils/tables";
+import { csvToJson } from "../../utils/files";
+import { jsonToTable } from "../../utils/tables";
 
 interface FileSourceNodeIO {
   sources: {
