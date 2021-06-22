@@ -165,7 +165,7 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
-  const [elements, setElements] = useState<Elements>(nodes);
+  const [elements, setElements] = useState<Elements>();
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState<Elements>([]);
@@ -328,6 +328,14 @@ const FlowGraph = () => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
         newFunction()("flow loaded:", rfi);
+
+        // zoom to previous state if available
+        const canvasPosition = localStorage.getItem("flowgraph-state");
+        if (canvasPosition) {
+          rfi.setTransform(JSON.parse(canvasPosition));
+        } else {
+          rfi?.fitView();
+        }
       }
     },
     [reactflowInstance],
@@ -467,127 +475,135 @@ const FlowGraph = () => {
 
   return (
     <div ref={reactFlowWrapper} style={{ width: "100%", height: "100%" }}>
-      <ReactFlow
-        elements={elements}
-        panOnScroll={true}
-        panOnScrollMode={PanOnScrollMode.Free}
-        onElementClick={onElementClick}
-        onElementsRemove={onElementsRemove}
-        onConnect={onConnect}
-        style={{ background: bgColor }}
-        onDoubleClick={() => {
-          console.log("double clicked...");
-        }}
-        onLoad={onLoad}
-        nodeTypes={nodeTypes}
-        connectionLineStyle={connectionLineStyle}
-        snapToGrid={true}
-        snapGrid={snapGrid}
-        defaultZoom={1}
-        onDrop={onDrop}
-        onNodeDragStop={(e, node) => {
-          graphRef.current.moveNode(node.id, node.position);
-        }}
-        onDragOver={onDragOver}
-        onEdgeUpdate={onEdgeUpdate}
-        onSelectionChange={(elements) => {
-          setSelectedElements(elements || []);
-        }}
-        onNodeContextMenu={(event, node) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove([node]),
-              text: "Delete node",
-            }),
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onEdgeContextMenu={(event, edge) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove([edge]),
-              text: "Delete edge",
-            }),
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onSelectionContextMenu={(event, nodes) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => onElementsRemove(nodes),
-              text: "Delete nodes",
-            }),
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        onPaneContextMenu={(event) => {
-          event.preventDefault();
-          const menu = React.createElement(
-            Menu,
-            {},
-            React.createElement(MenuItem, {
-              onClick: () => reactflowInstance?.fitView(),
-              text: "Zoom to fit",
-            }),
-          );
-          ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-        }}
-        edgeUpdaterRadius={35}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-        <Controls />
-        {!sideMenuOpen ? (
-          <div
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              background: "white",
-              borderRadius: "100%",
-              zIndex: 1000,
-            }}
-            onClick={() => setSideMenuOpen(true)}
-          >
-            <Icon icon="double-chevron-left" iconSize={20} />
-          </div>
-        ) : (
-          ""
-        )}
-
-        <Drawer
-          icon="multi-select"
-          onClose={() => setSideMenuOpen(false)}
-          title="Selected Elements"
-          isOpen={sideMenuOpen}
-          size={DrawerSize.SMALL}
-          hasBackdrop={false}
-          canOutsideClickClose={false}
-          canEscapeKeyClose={false}
-          enforceFocus={false}
-          portalClassName="info-sidebar"
+      {elements && ( // Don't load react flow until elements are ready
+        <ReactFlow
+          elements={elements}
+          panOnScroll={true}
+          panOnScrollMode={PanOnScrollMode.Free}
+          onElementClick={onElementClick}
+          onElementsRemove={onElementsRemove}
+          onConnect={onConnect}
+          style={{ background: bgColor }}
+          onDoubleClick={() => {
+            console.log("double clicked...");
+          }}
+          onLoad={onLoad}
+          nodeTypes={nodeTypes}
+          connectionLineStyle={connectionLineStyle}
+          snapToGrid={true}
+          snapGrid={snapGrid}
+          defaultZoom={1}
+          onDrop={onDrop}
+          onNodeDragStop={(e, node) => {
+            graphRef.current.moveNode(node.id, node.position);
+          }}
+          onDragOver={onDragOver}
+          onEdgeUpdate={onEdgeUpdate}
+          onSelectionChange={(elements) => {
+            setSelectedElements(elements || []);
+          }}
+          onNodeContextMenu={(event, node) => {
+            event.preventDefault();
+            const menu = React.createElement(
+              Menu,
+              {},
+              React.createElement(MenuItem, {
+                onClick: () => onElementsRemove([node]),
+                text: "Delete node",
+              }),
+            );
+            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+          }}
+          onEdgeContextMenu={(event, edge) => {
+            event.preventDefault();
+            const menu = React.createElement(
+              Menu,
+              {},
+              React.createElement(MenuItem, {
+                onClick: () => onElementsRemove([edge]),
+                text: "Delete edge",
+              }),
+            );
+            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+          }}
+          onSelectionContextMenu={(event, nodes) => {
+            event.preventDefault();
+            const menu = React.createElement(
+              Menu,
+              {},
+              React.createElement(MenuItem, {
+                onClick: () => onElementsRemove(nodes),
+                text: "Delete nodes",
+              }),
+            );
+            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+          }}
+          onPaneContextMenu={(event) => {
+            event.preventDefault();
+            const menu = React.createElement(
+              Menu,
+              {},
+              React.createElement(MenuItem, {
+                onClick: () => reactflowInstance?.fitView(),
+                text: "Zoom to fit",
+              }),
+            );
+            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
+          }}
+          edgeUpdaterRadius={35}
+          onMoveEnd={(flowTransform) =>
+            localStorage.setItem(
+              "flowgraph-state",
+              JSON.stringify(flowTransform),
+            )
+          }
         >
-          <div className={Classes.DRAWER_BODY}>
-            <div className={Classes.DIALOG_BODY}>
-              {selectedElements.length ? (
-                selectedElements.map((el, i) => (
-                  <ElementInfoMenuItem key={i} element={el} />
-                ))
-              ) : (
-                <div>No elements selected.</div>
-              )}
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          <Controls />
+          {!sideMenuOpen ? (
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "white",
+                borderRadius: "100%",
+                zIndex: 1000,
+              }}
+              onClick={() => setSideMenuOpen(true)}
+            >
+              <Icon icon="double-chevron-left" iconSize={20} />
             </div>
-          </div>
-        </Drawer>
-      </ReactFlow>
+          ) : (
+            ""
+          )}
+
+          <Drawer
+            icon="multi-select"
+            onClose={() => setSideMenuOpen(false)}
+            title="Selected Elements"
+            isOpen={sideMenuOpen}
+            size={DrawerSize.SMALL}
+            hasBackdrop={false}
+            canOutsideClickClose={false}
+            canEscapeKeyClose={false}
+            enforceFocus={false}
+            portalClassName="info-sidebar"
+          >
+            <div className={Classes.DRAWER_BODY}>
+              <div className={Classes.DIALOG_BODY}>
+                {selectedElements.length ? (
+                  selectedElements.map((el, i) => (
+                    <ElementInfoMenuItem key={i} element={el} />
+                  ))
+                ) : (
+                  <div>No elements selected.</div>
+                )}
+              </div>
+            </div>
+          </Drawer>
+        </ReactFlow>
+      )}
       <HotkeysTarget2
         hotkeys={[
           {
