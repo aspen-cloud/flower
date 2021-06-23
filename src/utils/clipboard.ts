@@ -1,7 +1,12 @@
-interface ClipboardParseResult {
+export interface ClipboardParseResult {
   type: "text" | "table" | "nodes";
   data: any;
 }
+
+export const addElementsToClipboard = async (els) => {
+  const str = JSON.stringify(els);
+  await navigator.clipboard.writeText(str || "");
+};
 
 export const tryParseSpreadsheet = (text: string) => {
   const lines = text.trim().split("\n");
@@ -29,19 +34,24 @@ export const tryParseSpreadsheet = (text: string) => {
   return lines.map((line) => line.trim().split(matchingDelimiter));
 };
 
-export function parseClipboard(
-  clipboardData: DataTransfer,
-): ClipboardParseResult {
-  // Copying elements with json data type at the moment
-  const jsonData = clipboardData.getData("application/json");
+export async function parseClipboard(
+  event: ClipboardEvent | null,
+): Promise<ClipboardParseResult> {
+  const textData =
+    event?.clipboardData?.getData("text/plain") ??
+    (await navigator.clipboard.readText());
+
+  let jsonData = null;
+  try {
+    jsonData = JSON.parse(textData);
+  } catch {}
+
   if (jsonData) {
     return {
       type: "nodes",
-      data: JSON.parse(jsonData),
+      data: jsonData,
     };
   }
-
-  const textData = clipboardData.getData("text");
 
   const parsedSpreadsheet = tryParseSpreadsheet(textData);
   if (parsedSpreadsheet) {

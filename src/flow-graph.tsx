@@ -48,7 +48,11 @@ import { autorun } from "mobx";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
-import { parseClipboard } from "./utils/clipboard";
+import {
+  addElementsToClipboard,
+  ClipboardParseResult,
+  parseClipboard,
+} from "./utils/clipboard";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -350,77 +354,89 @@ const FlowGraph = () => {
     });
   }, [reactflowInstance]);
 
-  // Add listener for pasting into graph
+  // Add listeners for copy and pasting into graph
+  const copyNodes = async (els: Elements<any>) => {
+    const parsedEls = els.map((el) => ({
+      ...el,
+      data: Object.fromEntries(
+        Object.entries(el.data.sources).map(([key, val]) => [
+          key,
+          //@ts-ignore
+          val.value,
+        ]),
+      ),
+    }));
+    await addElementsToClipboard(parsedEls);
+  };
+
   useEffect(() => {
     const copyHandler = (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
       if (!isWritable) {
         event.preventDefault();
-        const els = selectedElements.map((el) => ({
-          ...el,
-          data: Object.fromEntries(
-            Object.entries(el.data.sources).map(([key, val]) => [
-              key,
-              //@ts-ignore
-              val.value,
-            ]),
-          ),
-        }));
-        const obj = JSON.stringify(els);
-        event.clipboardData.setData("application/json", obj);
-      }
-    };
-    const pasteHandler = (event: ClipboardEvent) => {
-      const isWritable = isWritableElement(event.target);
-      if (event.clipboardData && !isWritable) {
-        event.preventDefault();
-        const { type, data } = parseClipboard(event.clipboardData);
-        if (type === "text") {
-          addNode({
-            type: "Constant",
-            data: {
-              value: data,
-            },
-            position: getCanvasCenterPosition(),
-          });
-        }
-
-        if (type === "table") {
-          const tableData = matrixToTable(data);
-          addNode({
-            type: "DataSource",
-            data: {
-              data: tableData,
-            },
-            position: getCanvasCenterPosition(),
-          });
-        }
-
-        if (type === "nodes") {
-          const updatedNodeData = data.map((el) => ({
-            ...el,
-            position: {
-              x: el.position.x + 100,
-              y: el.position.y + 100,
-            },
-          }));
-          for (const el of updatedNodeData) {
-            addNode({
-              type: el.type,
-              data: el.data,
-              position: el.position,
-            });
-          }
-        }
+        copyNodes(selectedElements);
       }
     };
     document.body.addEventListener("copy", copyHandler);
-    document.body.addEventListener("paste", pasteHandler);
     return () => {
       document.body.removeEventListener("copy", copyHandler);
+    };
+  }, [selectedElements]);
+
+  const pasteData = (clipboardResult: ClipboardParseResult) => {
+    const { type, data } = clipboardResult;
+    if (type === "text") {
+      addNode({
+        type: "Constant",
+        data: {
+          value: data,
+        },
+        position: getCanvasCenterPosition(),
+      });
+    }
+
+    if (type === "table") {
+      const tableData = matrixToTable(data);
+      addNode({
+        type: "DataSource",
+        data: {
+          data: tableData,
+        },
+        position: getCanvasCenterPosition(),
+      });
+    }
+
+    if (type === "nodes") {
+      const updatedNodeData = data.map((el) => ({
+        ...el,
+        position: {
+          x: el.position.x + 100,
+          y: el.position.y + 100,
+        },
+      }));
+      for (const el of updatedNodeData) {
+        addNode({
+          type: el.type,
+          data: el.data,
+          position: el.position,
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const pasteHandler = async (event: ClipboardEvent) => {
+      const isWritable = isWritableElement(event.target);
+      if (event.clipboardData && !isWritable) {
+        event.preventDefault();
+        pasteData(await parseClipboard(event));
+      }
+    };
+    document.body.addEventListener("paste", pasteHandler);
+    return () => {
       document.body.removeEventListener("paste", pasteHandler);
     };
-  }, [getCanvasCenterPosition, selectedElements, reactflowInstance]);
+  }, [getCanvasCenterPosition]);
 
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
@@ -492,49 +508,55 @@ const FlowGraph = () => {
           }}
           onNodeContextMenu={(event, node) => {
             event.preventDefault();
-            const menu = React.createElement(
-              Menu,
-              {},
-              React.createElement(MenuItem, {
-                onClick: () => onElementsRemove([node]),
-                text: "Delete node",
-              }),
+            const menu = (
+              <Menu>
+                <MenuItem onClick={() => copyNodes([node])} text="Copy node" />
+                <MenuItem
+                  onClick={() => onElementsRemove([node])}
+                  text="Delete node"
+                />
+              </Menu>
             );
             ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
           }}
           onEdgeContextMenu={(event, edge) => {
             event.preventDefault();
-            const menu = React.createElement(
-              Menu,
-              {},
-              React.createElement(MenuItem, {
-                onClick: () => onElementsRemove([edge]),
-                text: "Delete edge",
-              }),
+            const menu = (
+              <Menu>
+                <MenuItem
+                  onClick={() => onElementsRemove([edge])}
+                  text="Delete edge"
+                />
+              </Menu>
             );
             ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
           }}
           onSelectionContextMenu={(event, nodes) => {
             event.preventDefault();
-            const menu = React.createElement(
-              Menu,
-              {},
-              React.createElement(MenuItem, {
-                onClick: () => onElementsRemove(nodes),
-                text: "Delete nodes",
-              }),
+            const menu = (
+              <Menu>
+                <MenuItem onClick={() => copyNodes(nodes)} text="Copy nodes" />
+                <MenuItem
+                  onClick={() => onElementsRemove(nodes)}
+                  text="Delete nodes"
+                />
+              </Menu>
             );
             ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
           }}
           onPaneContextMenu={(event) => {
             event.preventDefault();
-            const menu = React.createElement(
-              Menu,
-              {},
-              React.createElement(MenuItem, {
-                onClick: () => reactflowInstance?.fitView(),
-                text: "Zoom to fit",
-              }),
+            const menu = (
+              <Menu>
+                <MenuItem
+                  onClick={() => reactflowInstance?.fitView()}
+                  text="Zoom to fit"
+                />
+                <MenuItem
+                  onClick={async () => pasteData(await parseClipboard(null))}
+                  text="Paste"
+                />
+              </Menu>
             );
             ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
           }}
