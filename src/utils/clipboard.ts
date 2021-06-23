@@ -1,5 +1,5 @@
 interface ClipboardParseResult {
-  type: "text" | "table";
+  type: "text" | "table" | "nodes";
   data: any;
 }
 
@@ -32,6 +32,15 @@ export const tryParseSpreadsheet = (text: string) => {
 export function parseClipboard(
   clipboardData: DataTransfer,
 ): ClipboardParseResult {
+  // Copying elements with json data type at the moment
+  const jsonData = clipboardData.getData("application/json");
+  if (jsonData) {
+    return {
+      type: "nodes",
+      data: JSON.parse(jsonData),
+    };
+  }
+
   const textData = clipboardData.getData("text");
 
   const parsedSpreadsheet = tryParseSpreadsheet(textData);

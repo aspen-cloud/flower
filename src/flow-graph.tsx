@@ -352,7 +352,25 @@ const FlowGraph = () => {
 
   // Add listener for pasting into graph
   useEffect(() => {
-    const handler = (event: ClipboardEvent) => {
+    const copyHandler = (event: ClipboardEvent) => {
+      const isWritable = isWritableElement(event.target);
+      if (!isWritable) {
+        event.preventDefault();
+        const els = selectedElements.map((el) => ({
+          ...el,
+          data: Object.fromEntries(
+            Object.entries(el.data.sources).map(([key, val]) => [
+              key,
+              //@ts-ignore
+              val.value,
+            ]),
+          ),
+        }));
+        const obj = JSON.stringify(els);
+        event.clipboardData.setData("application/json", obj);
+      }
+    };
+    const pasteHandler = (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
       if (event.clipboardData && !isWritable) {
         event.preventDefault();
@@ -377,11 +395,32 @@ const FlowGraph = () => {
             position: getCanvasCenterPosition(),
           });
         }
+
+        if (type === "nodes") {
+          const updatedNodeData = data.map((el) => ({
+            ...el,
+            position: {
+              x: el.position.x + 100,
+              y: el.position.y + 100,
+            },
+          }));
+          for (const el of updatedNodeData) {
+            addNode({
+              type: el.type,
+              data: el.data,
+              position: el.position,
+            });
+          }
+        }
       }
     };
-    document.body.addEventListener("paste", handler);
-    return () => document.body.removeEventListener("paste", handler);
-  }, [getCanvasCenterPosition]);
+    document.body.addEventListener("copy", copyHandler);
+    document.body.addEventListener("paste", pasteHandler);
+    return () => {
+      document.body.removeEventListener("copy", copyHandler);
+      document.body.removeEventListener("paste", pasteHandler);
+    };
+  }, [getCanvasCenterPosition, selectedElements, reactflowInstance]);
 
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
