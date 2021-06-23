@@ -9,8 +9,6 @@ import XLSX from "xlsx";
 import { nanoid } from "nanoid";
 
 import ReactFlow, {
-  removeElements,
-  addEdge,
   updateEdge,
   getConnectedEdges,
   Controls,
@@ -64,7 +62,6 @@ function flattenNodes(nodes: Record<string, any>): [string, any][] {
 }
 
 const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
-console.log(AllNodes, GraphNodes);
 
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => [key, val.Component]),
@@ -74,73 +71,6 @@ const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
   label: t,
   data: {},
 }));
-
-const columns = [
-  {
-    Header: "Address",
-    accessor: "address",
-  },
-  {
-    Header: "Price",
-    accessor: "price",
-  },
-  {
-    Header: "Size (SqrFt)",
-    accessor: "sqrft",
-  },
-];
-
-function createReactFlowNode({
-  type,
-  data,
-  position,
-}: {
-  type: string;
-  data?: any;
-  position: { x: number; y: number };
-}) {
-  return {
-    id: nanoid(),
-    type,
-    data: GraphNodes[type].initializeStreams({ initialData: data }),
-    position,
-    style: { padding: "10px", border: "1px solid white", borderRadius: "10px" },
-  };
-}
-
-const nodes = [
-  // createReactFlowNode({
-  //   type: "DataSource",
-  //   data: {
-  //     data: {
-  //       rows: testData,
-  //       columns,
-  //     },
-  //     label: "TestData",
-  //   },
-  //   position: { x: 100, y: -200 },
-  // }),
-  // createReactFlowNode({
-  //   type: "Table",
-  //   position: { x: 100, y: -100 },
-  // }),
-  // createReactFlowNode({
-  //   type: "ColumnGenerator",
-  //   position: { x: 0, y: 0 },
-  // }),
-  // createReactFlowNode({
-  //   type: "Table",
-  //   position: { x: 0, y: 300 },
-  // }),
-  // createReactFlowNode({
-  //   type: "AvgColumn",
-  //   position: { x: 110, y: -150 },
-  // }),
-  // createReactFlowNode({
-  //   type: "SingleCell",
-  //   position: { x: 130, y: -130 },
-  // }),
-];
 
 const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -355,26 +285,12 @@ const FlowGraph = () => {
     reader.readAsArrayBuffer(file);
   }
 
-  function addDataNode(data: any[], label: string, position: XYPosition) {
-    const tableData = jsonToTable(data);
-
-    const newEl = createReactFlowNode({
-      type: "DataSource",
-      data: {
-        data: tableData,
-        label,
-      },
-      position,
-    });
-
-    setElements((els) => [...els, newEl]);
-  }
-
   async function addFileNode(entry, label: string, position: XYPosition) {
     const file = await entry.getFile();
     const jsonData = await csvToJson(file);
     const tableData = jsonToTable(jsonData);
-    const newEl = createReactFlowNode({
+
+    graphRef.current?.createNode({
       type: "FileSource",
       data: {
         data: tableData,
@@ -383,8 +299,6 @@ const FlowGraph = () => {
       },
       position,
     });
-
-    setElements((els) => [...els, newEl]);
   }
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -614,7 +528,6 @@ const FlowGraph = () => {
               console.log("hot key pressed");
               setShowNodeOmniBar(true);
             },
-            // prevent typing "O" in omnibar input
             preventDefault: true,
           },
         ]}
