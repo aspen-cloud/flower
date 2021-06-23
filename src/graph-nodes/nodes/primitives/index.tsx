@@ -1,6 +1,6 @@
 import BaseNode from "../../../base-node";
-import { BehaviorSubject, combineLatest } from "rxjs";
-import { map } from "rxjs/operators";
+import { BehaviorSubject, combineLatest, EMPTY, from } from "rxjs";
+import { catchError, map, retry, switchMap } from "rxjs/operators";
 
 import * as NumberFuncs from "./number";
 import * as StringFuncs from "./string";
@@ -37,7 +37,11 @@ function createPrimitiveNodeData(inputs, outputs) {
 
   for (const key in outputs) {
     sinks[key] = combinedSources.pipe(
-      map((latestVals) => outputs[key](latestVals)),
+      switchMap((latestVals) =>
+        from(evalOutput(outputs[key], latestVals)).pipe(
+          catchError((_) => EMPTY),
+        ),
+      ),
     );
   }
 
@@ -45,6 +49,16 @@ function createPrimitiveNodeData(inputs, outputs) {
     sources,
     sinks,
   };
+}
+
+async function evalOutput(func, val) {
+  return new Promise((resolve, reject) => {
+    try {
+      resolve(func(val));
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 function funcsToNodes(
