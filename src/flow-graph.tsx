@@ -498,8 +498,29 @@ const FlowGraph = () => {
           snapGrid={snapGrid}
           defaultZoom={1}
           onDrop={onDrop}
+          onNodeDragStart={(event, node) => {
+            if (event.altKey) {
+              // Using selected elements because multiselect is tied to onNode events
+              graphRef.current?.replaceElementGroup(
+                selectedElements.map((el) => el.id),
+              );
+            }
+          }}
+          onSelectionDragStart={async (event, nodes) => {
+            if (event.altKey) {
+              // Using selected elements because edges are not included
+              graphRef.current?.replaceElementGroup(
+                selectedElements.map((el) => el.id),
+              );
+            }
+          }}
           onNodeDragStop={(e, node) => {
             graphRef.current.moveNode(node.id, node.position);
+          }}
+          onSelectionDragStop={(e, nodes) => {
+            for (const node of nodes) {
+              graphRef.current.moveNode(node.id, node.position);
+            }
           }}
           onDragOver={onDragOver}
           onEdgeUpdate={onEdgeUpdate}

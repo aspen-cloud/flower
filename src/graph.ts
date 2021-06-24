@@ -167,6 +167,8 @@ export default class Graph {
     };
 
     this.nodes.set(newNode.id, newNode);
+
+    return newNode;
   }
 
   moveNode(nodeId: NodeId, newPosition: NodePosition) {
@@ -216,6 +218,68 @@ export default class Graph {
     const node = this.nodes.get(nodeId);
     node.beforeRemoval();
     this.nodes.delete(nodeId);
+  }
+
+  replaceElementGroup(elementIds: string[]) {
+    const selectedNodes = elementIds
+      .map((id) => this.nodes.get(id))
+      .filter((el) => el);
+    const selectedEdges = elementIds
+      .map((id) => this.connections.get(id))
+      .filter((el) => el);
+
+    const newNodes = Object.fromEntries(
+      selectedNodes.map((node) => [
+        node.id,
+        this.createNode({
+          type: node.type,
+          position: node.position,
+          data: {},
+        }),
+      ]),
+    );
+
+    for (const [originalNodeId, newNode] of Object.entries(newNodes)) {
+      const incomingConnections = Array.from(this.connections.values()).filter(
+        (conn) => conn.toNode === originalNodeId,
+      );
+      const outgoingConnections = Array.from(this.connections.values()).filter(
+        (conn) => conn.fromNode === originalNodeId,
+      );
+
+      for (const connection of incomingConnections) {
+        const { fromNode, fromBus, toBus } = connection;
+        if (!selectedEdges.includes(connection))
+          this.removeConnection(connection.id);
+
+        this.createConnection({
+          from: {
+            nodeId: newNodes[fromNode]?.id ?? fromNode,
+            busKey: fromBus,
+          },
+          to: {
+            nodeId: newNode.id,
+            busKey: toBus,
+          },
+        });
+      }
+      for (const connection of outgoingConnections) {
+        const { fromBus, toNode, toBus } = connection;
+        if (!selectedEdges.includes(connection))
+          this.removeConnection(connection.id);
+
+        this.createConnection({
+          from: {
+            nodeId: newNode.id,
+            busKey: fromBus,
+          },
+          to: {
+            nodeId: newNodes[toNode]?.id ?? toNode,
+            busKey: toBus,
+          },
+        });
+      }
+    }
   }
 
   removeConnection(connectionId: string) {
