@@ -39,6 +39,7 @@ body {
   width: 100vw;
 }
 
+/* handle bubble */
 .react-flow__handle:after {
   content: "";
   width: 36px;
@@ -55,22 +56,27 @@ body {
   background: rgba(208, 208, 208, 0.2);
 }
 
+/* tooltip interfering with bubble on handle */
 .handle-tooltip .bp3-overlay-content {
   pointer-events: none;
 }
 
+/* See https://github.com/wbkd/react-flow/issues/1114 for better edge select fix */
 .react-flow__edge {
   pointer-events: bounding-box;
 }
 
+/* edge selected styles */
 .react-flow__edge.selected .react-flow__edge-path {
   stroke-width: 0.5em;
 }
 
+/* node selected styles */
 .react-flow__node.selected {
   border-width: 2px !important;
 }
 
+/* handle issues with sidebar overlay stealing focus */
 .info-sidebar .bp3-overlay {
   left: unset;
   width: 360px;
