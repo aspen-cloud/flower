@@ -24,6 +24,7 @@ import ReactFlow, {
   XYPosition,
   OnLoadFunc,
   OnLoadParams,
+  isNode,
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
@@ -42,7 +43,7 @@ import {
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
-import Graph, { persistGraph } from "./graph";
+import Graph, { connectionToJson, nodeToJson, persistGraph } from "./graph";
 import { autorun } from "mobx";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
@@ -50,6 +51,7 @@ import { isWritableElement } from "./utils/elements";
 import {
   addElementsToClipboard,
   ClipboardParseResult,
+  ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
 
@@ -342,38 +344,37 @@ const FlowGraph = () => {
     // });
   };
 
-  const getCanvasCenterPosition = useCallback(() => {
-    if (reactFlowWrapper.current == null || reactflowInstance == null)
-      return { x: 0, y: 0 };
+  const getCanvasPosition = useCallback(
+    (position: XYPosition) => {
+      if (reactFlowWrapper.current == null || reactflowInstance == null)
+        return { x: 0, y: 0 };
 
-    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-    return reactflowInstance.project({
-      x: window.innerWidth / 2 - reactFlowBounds.left,
-      y: window.innerHeight / 2 - reactFlowBounds.top,
-    });
-  }, [reactflowInstance]);
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      return reactflowInstance.project({
+        x: position.x - reactFlowBounds.left,
+        y: position.y - reactFlowBounds.top,
+      });
+    },
+    [reactflowInstance],
+  );
 
   // Add listeners for copy and pasting into graph
-  const copyNodes = async (els: Elements<any>) => {
-    const parsedEls = els.map((el) => ({
-      ...el,
-      data: Object.fromEntries(
-        Object.entries(el.data.sources).map(([key, val]) => [
-          key,
-          //@ts-ignore
-          val.value,
-        ]),
-      ),
-    }));
-    await addElementsToClipboard(parsedEls);
+  const copyElements = async (els: Elements<any>) => {
+    const serializedNodes = els
+      .filter((el) => isNode(el))
+      .map((el) => graphRef.current.nodes.get(el.id));
+    const serializedEdges = els
+      .filter((el) => isEdge(el))
+      .map((el) => graphRef.current.connections.get(el.id));
+    await addElementsToClipboard(serializedNodes, serializedEdges);
   };
 
   useEffect(() => {
-    const copyHandler = (event: ClipboardEvent) => {
+    const copyHandler = async (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
       if (!isWritable) {
         event.preventDefault();
-        copyNodes(selectedElements);
+        await copyElements(selectedElements);
       }
     };
     document.body.addEventListener("copy", copyHandler);
@@ -382,7 +383,24 @@ const FlowGraph = () => {
     };
   }, [selectedElements]);
 
-  const pasteData = (clipboardResult: ClipboardParseResult) => {
+  const mousePosition = useRef({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+  });
+  useEffect(() => {
+    const mouseMoveHandler = (event: MouseEvent) => {
+      mousePosition.current = { x: event.clientX, y: event.clientY };
+    };
+    document.body.addEventListener("mousemove", mouseMoveHandler);
+    return () => {
+      document.body.removeEventListener("mousemove", mouseMoveHandler);
+    };
+  }, []);
+
+  const pasteData = (
+    clipboardResult: ClipboardParseResult,
+    position: XYPosition,
+  ) => {
     const { type, data } = clipboardResult;
     if (type === "text") {
       addNode({
@@ -390,7 +408,7 @@ const FlowGraph = () => {
         data: {
           value: data,
         },
-        position: getCanvasCenterPosition(),
+        position,
       });
     }
 
@@ -401,24 +419,49 @@ const FlowGraph = () => {
         data: {
           data: tableData,
         },
-        position: getCanvasCenterPosition(),
+        position,
       });
     }
 
+    // TODO: less logic in flowgraph
     if (type === "nodes") {
-      const updatedNodeData = data.map((el) => ({
-        ...el,
-        position: {
-          x: el.position.x + 100,
-          y: el.position.y + 100,
-        },
-      }));
-      for (const el of updatedNodeData) {
-        addNode({
-          type: el.type,
-          data: el.data,
-          position: el.position,
-        });
+      const clipboardElements = data as ElementClipboardContext[];
+      const clipboardNodes = clipboardElements.filter(
+        (clipboardElement) => clipboardElement.element.position,
+      );
+      const clipboardEdges = clipboardElements.filter(
+        (clipboardElement) => !clipboardElement.element.position,
+      );
+      const newNodesMap = Object.fromEntries(
+        clipboardNodes.map((clipboardNode) => [
+          clipboardNode.element.id,
+          graphRef.current?.createNode({
+            type: clipboardNode.element.type,
+            data: {},
+            position: {
+              x: position.x + clipboardNode.xOffset,
+              y: position.y + clipboardNode.yOffset,
+            },
+          }),
+        ]),
+      );
+
+      for (const edge of clipboardEdges) {
+        if (
+          newNodesMap[edge.element.to.nodeId] &&
+          newNodesMap[edge.element.from.nodeId]
+        ) {
+          graphRef.current.createConnection({
+            from: {
+              nodeId: newNodesMap[edge.element.from.nodeId].id,
+              busKey: edge.element.from.busKey,
+            },
+            to: {
+              nodeId: newNodesMap[edge.element.to.nodeId].id,
+              busKey: edge.element.to.busKey,
+            },
+          });
+        }
       }
     }
   };
@@ -428,14 +471,17 @@ const FlowGraph = () => {
       const isWritable = isWritableElement(event.target);
       if (event.clipboardData && !isWritable) {
         event.preventDefault();
-        pasteData(await parseClipboard(event));
+        pasteData(
+          await parseClipboard(event),
+          getCanvasPosition(mousePosition.current),
+        );
       }
     };
     document.body.addEventListener("paste", pasteHandler);
     return () => {
       document.body.removeEventListener("paste", pasteHandler);
     };
-  }, [getCanvasCenterPosition]);
+  }, [getCanvasPosition]);
 
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
@@ -530,7 +576,10 @@ const FlowGraph = () => {
             event.preventDefault();
             const menu = (
               <Menu>
-                <MenuItem onClick={() => copyNodes([node])} text="Copy node" />
+                <MenuItem
+                  onClick={async () => await copyElements([node])}
+                  text="Copy node"
+                />
                 <MenuItem
                   onClick={() => onElementsRemove([node])}
                   text="Delete node"
@@ -555,7 +604,10 @@ const FlowGraph = () => {
             event.preventDefault();
             const menu = (
               <Menu>
-                <MenuItem onClick={() => copyNodes(nodes)} text="Copy nodes" />
+                <MenuItem
+                  onClick={async () => await copyElements(nodes)}
+                  text="Copy nodes"
+                />
                 <MenuItem
                   onClick={() => onElementsRemove(nodes)}
                   text="Delete nodes"
@@ -573,7 +625,15 @@ const FlowGraph = () => {
                   text="Zoom to fit"
                 />
                 <MenuItem
-                  onClick={async () => pasteData(await parseClipboard(null))}
+                  onClick={async (e: React.MouseEvent) =>
+                    pasteData(
+                      await parseClipboard(null),
+                      getCanvasPosition({
+                        x: event.clientX,
+                        y: event.clientY,
+                      }),
+                    )
+                  }
                   text="Paste"
                 />
               </Menu>
@@ -660,7 +720,7 @@ const FlowGraph = () => {
             addNode({
               type,
               data,
-              position: getCanvasCenterPosition(),
+              position: getCanvasPosition(mousePosition.current),
             });
             setShowNodeOmniBar(false);
           }}

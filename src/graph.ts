@@ -37,7 +37,7 @@ interface Bus<T = any> {
   key: string;
 }
 
-interface Node {
+export interface Node {
   id: NodeId;
   type: string; // Maybe create ENUM?
   inputs: Record<string, Bus>;
@@ -46,7 +46,7 @@ interface Node {
   beforeRemoval: () => void;
 }
 
-interface Connection {
+export interface Connection {
   id: string;
 
   fromNode: NodeId;
@@ -371,12 +371,12 @@ function getComponentDataFromNode(node: Node) {
   };
 }
 
-function nodeToJson(node: Node) {
+export function nodeToJson(node: Node) {
   const { id, position, type } = node;
   return { id, position, type };
 }
 
-function connectionToJson(conn: Connection): {
+export function connectionToJson(conn: Connection): {
   from: ConnectionSide;
   to: ConnectionSide;
 } {
