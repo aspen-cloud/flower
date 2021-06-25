@@ -6,7 +6,6 @@ import React, {
   DragEventHandler,
 } from "react";
 import XLSX from "xlsx";
-import { nanoid } from "nanoid";
 
 import ReactFlow, {
   updateEdge,
@@ -396,7 +395,7 @@ const FlowGraph = () => {
     }
 
     if (type === "table") {
-      const tableData = matrixToTable(data);
+      const tableData = jsonToTable(data);
       addNode({
         type: "DataSource",
         data: {

@@ -1,3 +1,5 @@
+import XLSX from "xlsx";
+
 export interface ClipboardParseResult {
   type: "text" | "table" | "nodes";
   data: any;
@@ -9,29 +11,12 @@ export const addElementsToClipboard = async (els) => {
 };
 
 export const tryParseSpreadsheet = (text: string) => {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return null; // assume single line as text
-
-  const DELIMITERS = ["\t", ","];
-  let matchingDelimiter = DELIMITERS[0];
-  for (const delimiter of DELIMITERS) {
-    // Spreadsheet if each row has matching delimiter count
-    const splitLines = lines.map((line) => line.trim().split(delimiter));
-    const expectedColumnCount = splitLines[0].length;
-
-    // if no delimter (1 column) try others
-    if (expectedColumnCount < 2) continue;
-
-    const isSpreadsheet = splitLines.every(
-      (line) => line.length === expectedColumnCount,
-    );
-    if (isSpreadsheet) {
-      matchingDelimiter = delimiter;
-      break;
-    }
-  }
-
-  return lines.map((line) => line.trim().split(matchingDelimiter));
+  const workbook = XLSX.read(text, { type: "string" });
+  const json_data = XLSX.utils.sheet_to_json(
+    workbook.Sheets[Object.keys(workbook.Sheets)[0]], // todo: Possibly load all "Sheets" as separate data sources?
+    { raw: false },
+  ) as any[];
+  return json_data;
 };
 
 export async function parseClipboard(
