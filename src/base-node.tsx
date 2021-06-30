@@ -5,9 +5,10 @@ import { NodeIO } from "./types";
 
 interface BaseNodeProps extends NodeIO {
   children: JSX.Element | JSX.Element[];
+  className?: string;
 }
 
-function BaseNode({ sources, sinks, children }: BaseNodeProps) {
+function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
   const targetHandles = Object.keys(sources).map((sourceName, i, keys) => (
     <Tooltip2
       content={sourceName}
@@ -66,11 +67,11 @@ function BaseNode({ sources, sinks, children }: BaseNodeProps) {
   // const childNodes = useMemo(() => children, [sources, sinks]);
 
   return (
-    <>
+    <div className={className}>
       {targetHandles}
-      {children}
+      <div className="base-node-content">{children}</div>
       {sourceHandles}
-    </>
+    </div>
   );
 }
 

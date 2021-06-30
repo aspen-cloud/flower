@@ -372,7 +372,8 @@ const FlowGraph = () => {
   useEffect(() => {
     const copyHandler = async (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
-      if (!isWritable) {
+      // default prevented as proxy for spreadsheet cell copies
+      if (!isWritable && !event.defaultPrevented) {
         event.preventDefault();
         await copyElements(selectedElements);
       }
@@ -469,7 +470,8 @@ const FlowGraph = () => {
   useEffect(() => {
     const pasteHandler = async (event: ClipboardEvent) => {
       const isWritable = isWritableElement(event.target);
-      if (event.clipboardData && !isWritable) {
+      // default prevented as proxy for spreadsheet cell pastes
+      if (event.clipboardData && !isWritable && !event.defaultPrevented) {
         event.preventDefault();
         pasteData(
           await parseClipboard(event),
@@ -527,8 +529,9 @@ const FlowGraph = () => {
       {elements && ( // Don't load react flow until elements are ready
         <ReactFlow
           elements={elements}
-          panOnScroll={true}
-          panOnScrollMode={PanOnScrollMode.Free}
+          // Turning off panOnScroll for now since scrollable nodes conflict
+          // panOnScroll={true}
+          // panOnScrollMode={PanOnScrollMode.Free}
           onElementClick={onElementClick}
           onElementsRemove={onElementsRemove}
           onConnect={onConnect}
@@ -573,6 +576,9 @@ const FlowGraph = () => {
             setSelectedElements(elements || []);
           }}
           onNodeContextMenu={(event, node) => {
+            // @ts-ignore
+            if (event.target.closest(".base-node-content")) return;
+
             event.preventDefault();
             const menu = (
               <Menu>
@@ -700,6 +706,7 @@ const FlowGraph = () => {
             combo: "n",
             global: true,
             label: "Show Omnibar",
+            allowInInput: false,
             onKeyDown: () => {
               console.log("hot key pressed");
               setShowNodeOmniBar(true);
