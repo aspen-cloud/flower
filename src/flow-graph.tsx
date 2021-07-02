@@ -529,9 +529,8 @@ const FlowGraph = () => {
       {elements && ( // Don't load react flow until elements are ready
         <ReactFlow
           elements={elements}
-          // Turning off panOnScroll for now since scrollable nodes conflict
-          // panOnScroll={true}
-          // panOnScrollMode={PanOnScrollMode.Free}
+          panOnScroll={true}
+          panOnScrollMode={PanOnScrollMode.Free}
           onElementClick={onElementClick}
           onElementsRemove={onElementsRemove}
           onConnect={onConnect}

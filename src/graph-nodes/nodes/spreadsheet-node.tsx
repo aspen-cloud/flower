@@ -32,8 +32,10 @@ const SpreadsheetNode: GraphNode<SpreadsheetNodeIO> = {
 
   Component: function ({
     data: { sources, sinks },
+    selected,
   }: {
     data: SpreadsheetNodeIO;
+    selected: boolean;
   }) {
     const [width, setWidth] = useState(500);
     const [height, setHeight] = useState(500);
@@ -44,7 +46,11 @@ const SpreadsheetNode: GraphNode<SpreadsheetNodeIO> = {
     };
 
     return (
-      <BaseNode sources={sources} sinks={sinks} className="nodrag nowheel">
+      <BaseNode
+        sources={sources}
+        sinks={sinks}
+        className={`${selected ? "nowheel nodrag" : ""}`}
+      >
         {/* Can maybe use resizeRatio prop to deal with canvas scale changes */}
         <Resizable size={{ width, height }} onResizeStop={onResizeStop}>
           <Spreadsheet
