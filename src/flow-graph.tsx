@@ -485,6 +485,18 @@ const FlowGraph = () => {
     };
   }, [getCanvasPosition]);
 
+  // Prevent document zoom from firing (would happen on nowheel nodes), causes full page to zoom
+  useEffect(() => {
+    const wheelHandler = function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    document.addEventListener("wheel", wheelHandler, { passive: false });
+    return () => {
+      document.body.removeEventListener("wheel", wheelHandler);
+    };
+  }, []);
+
   const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
 
   const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
