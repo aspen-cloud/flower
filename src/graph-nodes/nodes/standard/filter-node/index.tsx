@@ -76,6 +76,7 @@ export default {
             data.sources.columnFilter.next(colFilter);
             data.sources.compareValue.next(compareVal);
           }}
+          columnValues={data.sources.table.value.columns.map((c) => c.Header)}
         />
       </BaseNode>
     );

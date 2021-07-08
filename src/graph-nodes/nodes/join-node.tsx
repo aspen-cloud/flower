@@ -141,55 +141,63 @@ const JoinNode: GraphNode<JoinNodeIO> = {
           <div>
             <h3>TableA</h3>
             <div>
-              <label>Label:</label>{" "}
-              <input
-                value={labelA}
-                onChange={(e) => setLabelA(e.target.value)}
-              />
+              <label>
+                Label:
+                <input
+                  value={labelA}
+                  onChange={(e) => setLabelA(e.target.value)}
+                />
+              </label>
             </div>
             <div>
-              <label>Join on:</label>{" "}
-              <select
-                value={joinColumnA}
-                onChange={(e) => setJoinColumnA(e.target.value)}
-              >
-                {[
-                  <option disabled selected value={""}>
-                    {" "}
-                    -- select a column --{" "}
-                  </option>,
-                  ...tableA.columns.map((c) => (
-                    <option value={c.accessor}>{c.accessor}</option>
-                  )),
-                ]}
-              </select>
+              <label>
+                Join on:
+                <select
+                  value={joinColumnA}
+                  onChange={(e) => setJoinColumnA(e.target.value)}
+                >
+                  {[
+                    <option disabled selected value={""}>
+                      {" "}
+                      -- select a column --{" "}
+                    </option>,
+                    ...tableA.columns.map((c) => (
+                      <option value={c.accessor}>{c.accessor}</option>
+                    )),
+                  ]}
+                </select>
+              </label>
             </div>
           </div>
           <div>
             <h3>TableB</h3>
             <div>
-              <label>Label:</label>{" "}
-              <input
-                value={labelB}
-                onChange={(e) => setLabelB(e.target.value)}
-              />
+              <label>
+                Label:
+                <input
+                  value={labelB}
+                  onChange={(e) => setLabelB(e.target.value)}
+                />
+              </label>
             </div>
             <div>
-              <label>Join on:</label>{" "}
-              <select
-                value={joinColumnB}
-                onChange={(e) => setJoinColumnB(e.target.value)}
-              >
-                {[
-                  <option disabled selected value={""}>
-                    {" "}
-                    -- select a column --{" "}
-                  </option>,
-                  ...tableB.columns.map((c) => (
-                    <option value={c.accessor}>{c.accessor}</option>
-                  )),
-                ]}
-              </select>
+              <label>
+                Join on:
+                <select
+                  value={joinColumnB}
+                  onChange={(e) => setJoinColumnB(e.target.value)}
+                >
+                  {[
+                    <option disabled selected value={""}>
+                      {" "}
+                      -- select a column --{" "}
+                    </option>,
+                    ...tableB.columns.map((c) => (
+                      <option value={c.accessor}>{c.accessor}</option>
+                    )),
+                  ]}
+                </select>
+              </label>
             </div>
           </div>
         </div>
