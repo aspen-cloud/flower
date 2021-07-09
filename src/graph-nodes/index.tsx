@@ -9,5 +9,6 @@ export { default as FileSource } from "./nodes/filesource-node";
 export { default as Writer } from "./nodes/writer-node";
 export { default as Spreadsheet } from "./nodes/spreadsheet-node";
 export { default as Join } from "./nodes/join-node";
+export { default as Group } from "./nodes/group-node";
 
 export * from "./nodes/primitives";
