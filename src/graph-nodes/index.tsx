@@ -11,5 +11,6 @@ export { default as Spreadsheet } from "./nodes/spreadsheet-node";
 export { default as Join } from "./nodes/join-node";
 export { default as Group } from "./nodes/group-node";
 export { default as Select } from "./nodes/select-node";
+export { default as Sort } from "./nodes/sort-node";
 
 export * from "./nodes/primitives";
