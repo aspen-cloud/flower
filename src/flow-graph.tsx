@@ -42,7 +42,7 @@ import {
   Card,
 } from "@blueprintjs/core";
 
-import { OmnibarItem } from "./types";
+import { Column, OmnibarItem } from "./types";
 import Graph, { connectionToJson, nodeToJson, persistGraph } from "./graph";
 import { autorun } from "mobx";
 import { jsonToTable, matrixToTable } from "./utils/tables";
@@ -54,6 +54,9 @@ import {
   ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
+import Spreadsheet from "./blueprint-spreadsheet";
+import { Table } from "./types";
+import { BehaviorSubject, Observable } from "rxjs";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -105,11 +108,14 @@ const FlowGraph = () => {
   const [elements, setElements] = useState<Elements>();
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
+  const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState<Elements>([]);
   const [omnibarQuery, setOmnibarQuery] = useState("");
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
     defaultOmnibarOptions,
   );
+  const [spreadsheetTableSubject, setSpreadsheetTableSubject] =
+    useState<BehaviorSubject<Table<any>>>();
 
   useEffect(() => {
     if (omnibarQuery) {
@@ -537,180 +543,230 @@ const FlowGraph = () => {
   };
 
   return (
-    <div ref={reactFlowWrapper} style={{ width: "100%", height: "100%" }}>
-      {elements && ( // Don't load react flow until elements are ready
-        <ReactFlow
-          elements={elements}
-          panOnScroll={true}
-          panOnScrollMode={PanOnScrollMode.Free}
-          onElementClick={onElementClick}
-          onElementsRemove={onElementsRemove}
-          onConnect={onConnect}
-          style={{ background: bgColor }}
-          onDoubleClick={() => {
-            console.log("double clicked...");
-          }}
-          onLoad={onLoad}
-          nodeTypes={nodeTypes}
-          connectionLineStyle={connectionLineStyle}
-          snapToGrid={true}
-          snapGrid={snapGrid}
-          defaultZoom={1}
-          onDrop={onDrop}
-          onNodeDragStart={(event, node) => {
-            if (event.altKey) {
-              // Using selected elements because multiselect is tied to onNode events
-              graphRef.current?.replaceElementGroup(
-                selectedElements.map((el) => el.id),
-              );
-            }
-          }}
-          onSelectionDragStart={async (event, nodes) => {
-            if (event.altKey) {
-              // Using selected elements because edges are not included
-              graphRef.current?.replaceElementGroup(
-                selectedElements.map((el) => el.id),
-              );
-            }
-          }}
-          onNodeDragStop={(e, node) => {
-            graphRef.current.moveNode(node.id, node.position);
-          }}
-          onSelectionDragStop={(e, nodes) => {
-            for (const node of nodes) {
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        flex: 1,
+        height: "100vh",
+      }}
+    >
+      <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
+        {elements && ( // Don't load react flow until elements are ready
+          <ReactFlow
+            elements={elements}
+            panOnScroll={true}
+            panOnScrollMode={PanOnScrollMode.Free}
+            onElementClick={onElementClick}
+            onElementsRemove={onElementsRemove}
+            onConnect={onConnect}
+            style={{ background: bgColor }}
+            onDoubleClick={() => {
+              console.log("double clicked...");
+            }}
+            onLoad={onLoad}
+            nodeTypes={nodeTypes}
+            connectionLineStyle={connectionLineStyle}
+            snapToGrid={true}
+            snapGrid={snapGrid}
+            defaultZoom={1}
+            onDrop={onDrop}
+            onNodeDragStart={(event, node) => {
+              if (event.altKey) {
+                // Using selected elements because multiselect is tied to onNode events
+                graphRef.current?.replaceElementGroup(
+                  selectedElements.map((el) => el.id),
+                );
+              }
+            }}
+            onSelectionDragStart={async (event, nodes) => {
+              if (event.altKey) {
+                // Using selected elements because edges are not included
+                graphRef.current?.replaceElementGroup(
+                  selectedElements.map((el) => el.id),
+                );
+              }
+            }}
+            onNodeDragStop={(e, node) => {
               graphRef.current.moveNode(node.id, node.position);
-            }
-          }}
-          onDragOver={onDragOver}
-          onEdgeUpdate={onEdgeUpdate}
-          onSelectionChange={(elements) => {
-            setSelectedElements(elements || []);
-          }}
-          onNodeContextMenu={(event, node) => {
-            // @ts-ignore
-            if (event.target.closest(".base-node-content")) return;
+            }}
+            onSelectionDragStop={(e, nodes) => {
+              for (const node of nodes) {
+                graphRef.current.moveNode(node.id, node.position);
+              }
+            }}
+            onDragOver={onDragOver}
+            onEdgeUpdate={onEdgeUpdate}
+            onSelectionChange={(elements) => {
+              setSelectedElements(elements || []);
+            }}
+            onNodeContextMenu={(event, node) => {
+              // @ts-ignore
+              if (event.target.closest(".base-node-content")) return;
 
-            event.preventDefault();
-            const menu = (
-              <Menu>
-                <MenuItem
-                  onClick={async () => await copyElements([node])}
-                  text="Copy node"
-                />
-                <MenuItem
-                  onClick={() => onElementsRemove([node])}
-                  text="Delete node"
-                />
-              </Menu>
-            );
-            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-          }}
-          onEdgeContextMenu={(event, edge) => {
-            event.preventDefault();
-            const menu = (
-              <Menu>
-                <MenuItem
-                  onClick={() => onElementsRemove([edge])}
-                  text="Delete edge"
-                />
-              </Menu>
-            );
-            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-          }}
-          onSelectionContextMenu={(event, nodes) => {
-            event.preventDefault();
-            const menu = (
-              <Menu>
-                <MenuItem
-                  onClick={async () => await copyElements(nodes)}
-                  text="Copy nodes"
-                />
-                <MenuItem
-                  onClick={() => onElementsRemove(nodes)}
-                  text="Delete nodes"
-                />
-              </Menu>
-            );
-            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-          }}
-          onPaneContextMenu={(event) => {
-            event.preventDefault();
-            const menu = (
-              <Menu>
-                <MenuItem
-                  onClick={() => reactflowInstance?.fitView()}
-                  text="Zoom to fit"
-                />
-                <MenuItem
-                  onClick={async (e: React.MouseEvent) =>
-                    pasteData(
-                      await parseClipboard(null),
-                      getCanvasPosition({
-                        x: event.clientX,
-                        y: event.clientY,
-                      }),
-                    )
-                  }
-                  text="Paste"
-                />
-              </Menu>
-            );
-            ContextMenu.show(menu, { left: event.clientX, top: event.clientY });
-          }}
-          edgeUpdaterRadius={35}
-          onMoveEnd={(flowTransform) =>
-            localStorage.setItem(
-              "flowgraph-state",
-              JSON.stringify(flowTransform),
-            )
-          }
-        >
-          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-          <Controls />
-          {!sideMenuOpen ? (
+              event.preventDefault();
+              const menu = (
+                <Menu>
+                  <MenuItem
+                    onClick={async () => await copyElements([node])}
+                    text="Copy node"
+                  />
+                  <MenuItem
+                    onClick={() => onElementsRemove([node])}
+                    text="Delete node"
+                  />
+                </Menu>
+              );
+              ContextMenu.show(menu, {
+                left: event.clientX,
+                top: event.clientY,
+              });
+            }}
+            onEdgeContextMenu={(event, edge) => {
+              event.preventDefault();
+              const menu = (
+                <Menu>
+                  <MenuItem
+                    onClick={() => onElementsRemove([edge])}
+                    text="Delete edge"
+                  />
+                </Menu>
+              );
+              ContextMenu.show(menu, {
+                left: event.clientX,
+                top: event.clientY,
+              });
+            }}
+            onSelectionContextMenu={(event, nodes) => {
+              event.preventDefault();
+              const menu = (
+                <Menu>
+                  <MenuItem
+                    onClick={async () => await copyElements(nodes)}
+                    text="Copy nodes"
+                  />
+                  <MenuItem
+                    onClick={() => onElementsRemove(nodes)}
+                    text="Delete nodes"
+                  />
+                </Menu>
+              );
+              ContextMenu.show(menu, {
+                left: event.clientX,
+                top: event.clientY,
+              });
+            }}
+            onPaneContextMenu={(event) => {
+              event.preventDefault();
+              const menu = (
+                <Menu>
+                  <MenuItem
+                    onClick={() => reactflowInstance?.fitView()}
+                    text="Zoom to fit"
+                  />
+                  <MenuItem
+                    onClick={async (e: React.MouseEvent) =>
+                      pasteData(
+                        await parseClipboard(null),
+                        getCanvasPosition({
+                          x: event.clientX,
+                          y: event.clientY,
+                        }),
+                      )
+                    }
+                    text="Paste"
+                  />
+                </Menu>
+              );
+              ContextMenu.show(menu, {
+                left: event.clientX,
+                top: event.clientY,
+              });
+            }}
+            edgeUpdaterRadius={35}
+            onMoveEnd={(flowTransform) =>
+              localStorage.setItem(
+                "flowgraph-state",
+                JSON.stringify(flowTransform),
+              )
+            }
+            onNodeDoubleClick={(e, node) => {
+              if (node.type === "DataSource") {
+                const graphNode = graphRef.current.nodes.get(node.id);
+                setSpreadsheetTableSubject(graphNode.outputs["output"].stream);
+                setBottomMenuOpen(true);
+              } else {
+                setSpreadsheetTableSubject(null);
+              }
+            }}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+            <Controls style={{ bottom: "unset", top: "10px" }} />
+            {!sideMenuOpen ? (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "white",
+                  borderRadius: "100%",
+                  zIndex: 1000,
+                }}
+                onClick={() => setSideMenuOpen(true)}
+              >
+                <Icon icon="double-chevron-left" iconSize={20} />
+              </div>
+            ) : (
+              ""
+            )}
             <div
               style={{
                 position: "absolute",
-                top: "10px",
-                right: "10px",
+                bottom: "10px",
+                left: "10px",
                 background: "white",
                 borderRadius: "100%",
                 zIndex: 1000,
               }}
-              onClick={() => setSideMenuOpen(true)}
+              onClick={() => setBottomMenuOpen((prev) => !prev)}
             >
-              <Icon icon="double-chevron-left" iconSize={20} />
+              <Icon
+                icon={
+                  bottomMenuOpen ? "double-chevron-down" : "double-chevron-up"
+                }
+                iconSize={20}
+              />
             </div>
-          ) : (
-            ""
-          )}
 
-          <Drawer
-            icon="multi-select"
-            onClose={() => setSideMenuOpen(false)}
-            title="Selected Elements"
-            isOpen={sideMenuOpen}
-            size={DrawerSize.SMALL}
-            hasBackdrop={false}
-            canOutsideClickClose={false}
-            canEscapeKeyClose={false}
-            enforceFocus={false}
-            portalClassName="info-sidebar"
-          >
-            <div className={Classes.DRAWER_BODY}>
-              <div className={Classes.DIALOG_BODY}>
-                {selectedElements.length ? (
-                  selectedElements.map((el, i) => (
-                    <ElementInfoMenuItem key={i} element={el} />
-                  ))
-                ) : (
-                  <div>No elements selected.</div>
-                )}
+            <Drawer
+              icon="multi-select"
+              onClose={() => setSideMenuOpen(false)}
+              title="Selected Elements"
+              isOpen={sideMenuOpen}
+              size={DrawerSize.SMALL}
+              hasBackdrop={false}
+              canOutsideClickClose={false}
+              canEscapeKeyClose={false}
+              enforceFocus={false}
+              portalClassName="info-sidebar"
+            >
+              <div className={Classes.DRAWER_BODY}>
+                <div className={Classes.DIALOG_BODY}>
+                  {selectedElements.length ? (
+                    selectedElements.map((el, i) => (
+                      <ElementInfoMenuItem key={i} element={el} />
+                    ))
+                  ) : (
+                    <div>No elements selected.</div>
+                  )}
+                </div>
               </div>
-            </div>
-          </Drawer>
-        </ReactFlow>
-      )}
+            </Drawer>
+          </ReactFlow>
+        )}
+      </div>
+
       <HotkeysTarget2
         hotkeys={[
           {
@@ -749,6 +805,46 @@ const FlowGraph = () => {
           resetOnSelect={true}
         />
       </HotkeysTarget2>
+
+      {bottomMenuOpen ? (
+        <div style={{ height: "35%" }}>
+          {spreadsheetTableSubject ? (
+            <Spreadsheet
+              initialData={spreadsheetTableSubject.value}
+              onDataUpdate={(columnIds, rowData) => {
+                const [columnsData, ...rowsData] = rowData;
+                const columnIdIndex = Object.fromEntries(
+                  columnIds.map((columnId, i) => [columnId, i]),
+                );
+                const tableColumns: Column[] = columnIds.map((columnId, i) => ({
+                  accessor: columnsData[columnId] ?? columnId,
+                  Header: columnsData[columnId] ?? columnId,
+                }));
+                const tableRows = rowsData.map((row) =>
+                  Object.fromEntries(
+                    Object.entries(row)
+                      // TODO: for some reason lots of repeat values in rows
+                      .filter(([key, val]) => key in columnIdIndex)
+                      .map(([key, val]) => [
+                        tableColumns[columnIdIndex[key]].accessor,
+                        val,
+                      ]),
+                  ),
+                );
+
+                spreadsheetTableSubject.next({
+                  columns: tableColumns,
+                  rows: tableRows,
+                });
+              }}
+            />
+          ) : (
+            "Must select a source node"
+          )}
+        </div>
+      ) : (
+        ""
+      )}
     </div>
   );
 };

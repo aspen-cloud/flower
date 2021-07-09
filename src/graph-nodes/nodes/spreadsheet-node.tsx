@@ -8,6 +8,9 @@ import {
 import { BehaviorSubject } from "rxjs";
 import Spreadsheet from "../../blueprint-spreadsheet";
 import { Resizable } from "re-resizable";
+import { csvToJson } from "../../utils/files";
+import { jsonToTable } from "../../utils/tables";
+import { nanoid } from "nanoid";
 
 interface SpreadsheetNodeIO {
   sources: {};
@@ -83,6 +86,46 @@ const SpreadsheetNode: GraphNode<SpreadsheetNodeIO> = {
               });
             }}
           />
+          <button
+            onClick={async () => {
+              const [fileHandle] = await window.showOpenFilePicker({
+                multiple: false,
+              });
+              const fileData = await fileHandle.getFile();
+              const jsonData = await csvToJson(fileData);
+              const tableData = jsonToTable(jsonData);
+
+              const columnIndex = Object.fromEntries(
+                tableData.columns.map((c, i) => [c.accessor, nanoid()]),
+              );
+              const coldata = [
+                Object.fromEntries(
+                  tableData.columns.map((c, i) => [
+                    columnIndex[c.accessor],
+                    c.accessor,
+                  ]),
+                ),
+              ];
+              const rowData = tableData.rows.map((r) =>
+                Object.fromEntries(
+                  Object.entries(r).map(([key, val]) => [
+                    columnIndex[key],
+                    val,
+                  ]),
+                ),
+              );
+
+              //@ts-ignore
+              const rows = coldata.concat(rowData);
+              const columns = Object.values(columnIndex);
+
+              // TODO: Set data
+              // setColumnIds(columns);
+              // setRowData(rows);
+            }}
+          >
+            Import data
+          </button>
         </Resizable>
       </BaseNode>
     );

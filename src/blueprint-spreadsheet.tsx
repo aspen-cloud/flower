@@ -7,24 +7,55 @@ import {
   RowHeaderCell,
 } from "@blueprintjs/table";
 import { Menu, MenuItem } from "@blueprintjs/core";
-import { csvToJson } from "./utils/files";
-import { jsonToTable } from "./utils/tables";
 import { nanoid } from "nanoid";
+import { Table as DataTable } from "./types";
 
 interface SpreadsheetProps {
   onDataUpdate?: (
     columnIds: string[],
     rowData: Record<string, string>[],
   ) => void;
+  initialData?: DataTable<any>;
 }
 
 // TODO: bulk delete
-export default function Spreadsheet({ onDataUpdate }: SpreadsheetProps) {
+export default function Spreadsheet({
+  onDataUpdate,
+  initialData,
+}: SpreadsheetProps) {
   const [columnIds, setColumnIds] = useState<string[]>([nanoid()]);
   const [rowData, setRowData] = useState<Record<string, string>[]>([{}]);
 
   useEffect(() => {
-    onDataUpdate(columnIds, rowData);
+    if (!initialData || initialData.columns.length === 0) return;
+
+    const columnIndex = Object.fromEntries(
+      initialData.columns.map((c, i) => [c.accessor, nanoid()]),
+    );
+    const coldata = [
+      Object.fromEntries(
+        initialData.columns.map((c, i) => [
+          columnIndex[c.accessor],
+          c.accessor,
+        ]),
+      ),
+    ];
+    const rowData = initialData.rows.map((r) =>
+      Object.fromEntries(
+        Object.entries(r).map(([key, val]) => [columnIndex[key], val]),
+      ),
+    );
+
+    //@ts-ignore
+    const rows = coldata.concat(rowData);
+    const columns = Object.values(columnIndex);
+
+    setColumnIds(columns);
+    setRowData(rows);
+  }, [initialData]);
+
+  useEffect(() => {
+    if (onDataUpdate) onDataUpdate(columnIds, rowData);
   }, [rowData, columnIds, onDataUpdate]);
 
   function insertRow(rowIndex: number) {
@@ -76,7 +107,8 @@ export default function Spreadsheet({ onDataUpdate }: SpreadsheetProps) {
     return (
       <EditableCell
         value={value == null ? "" : value}
-        onCancel={cellSetter(rowIndex, columnIndex, "CANCEL")}
+        // TODO: cancels not working
+        // TODO: every change propagates, only set state on confirm
         onChange={cellSetter(rowIndex, columnIndex, "CHANGE")}
         onConfirm={cellSetter(rowIndex, columnIndex, "CONFIRM")}
         onKeyDown={async (e) => {
@@ -260,43 +292,6 @@ export default function Spreadsheet({ onDataUpdate }: SpreadsheetProps) {
       >
         {[...Array(columnIds.length).keys()].map(columnRenderer)}
       </Table>
-
-      <button
-        onClick={async () => {
-          const [fileHandle] = await window.showOpenFilePicker({
-            multiple: false,
-          });
-          const fileData = await fileHandle.getFile();
-          const jsonData = await csvToJson(fileData);
-          const tableData = jsonToTable(jsonData);
-
-          const columnIndex = Object.fromEntries(
-            tableData.columns.map((c, i) => [c.accessor, nanoid()]),
-          );
-          const coldata = [
-            Object.fromEntries(
-              tableData.columns.map((c, i) => [
-                columnIndex[c.accessor],
-                c.accessor,
-              ]),
-            ),
-          ];
-          const rowData = tableData.rows.map((r) =>
-            Object.fromEntries(
-              Object.entries(r).map(([key, val]) => [columnIndex[key], val]),
-            ),
-          );
-
-          //@ts-ignore
-          const rows = coldata.concat(rowData);
-          const columns = Object.values(columnIndex);
-
-          setColumnIds(columns);
-          setRowData(rows);
-        }}
-      >
-        Import data
-      </button>
     </>
   );
 }

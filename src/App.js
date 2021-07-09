@@ -7,9 +7,5 @@ import "@blueprintjs/popover2/lib/css/blueprint-popover2.css";
 import "@blueprintjs/table/lib/css/table.css";
 
 export default function App() {
-  return (
-    <div className="canvas">
-      <FlowGraph />
-    </div>
-  );
+  return <FlowGraph />;
 }

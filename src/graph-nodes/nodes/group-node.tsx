@@ -122,8 +122,6 @@ export default {
         return obj;
       });
 
-      console.log(columns, rows);
-
       data.sinks.output.next({ columns, rows });
     }, [
       data.sources.table.value,

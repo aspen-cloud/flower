@@ -53,41 +53,38 @@ export default {
       const table = data.sources.table.value;
       const columns = [...table.columns];
 
-      const rows = [
-        ...table.rows.sort((a, b) =>
-          sortDefinitions.reduce(
-            (current, nextSortDef) => {
-              // until we have better typing just supporting string and number compare
-              const isNumber = table.rows.every(
-                (r) => !isNaN(Number(r[nextSortDef.columnName])),
-              );
+      const rows = [...table.rows].sort((a, b) =>
+        sortDefinitions.reduce(
+          (current, nextSortDef) => {
+            // until we have better typing just supporting string and number compare
+            const isNumber = table.rows.every(
+              (r) => !isNaN(Number(r[nextSortDef.columnName])),
+            );
 
-              if (isNumber) {
-                return (
-                  current ||
-                  simpleSort(
-                    Number(a[nextSortDef.columnName]),
-                    Number(b[nextSortDef.columnName]),
-                    nextSortDef.direction,
-                  )
-                );
-              }
-
+            if (isNumber) {
               return (
                 current ||
                 simpleSort(
-                  a[nextSortDef.columnName].toLowerCase(),
-                  b[nextSortDef.columnName].toLowerCase(),
+                  Number(a[nextSortDef.columnName]),
+                  Number(b[nextSortDef.columnName]),
                   nextSortDef.direction,
                 )
               );
-            },
+            }
 
-            0,
-          ),
+            return (
+              current ||
+              simpleSort(
+                a[nextSortDef.columnName].toLowerCase(),
+                b[nextSortDef.columnName].toLowerCase(),
+                nextSortDef.direction,
+              )
+            );
+          },
+
+          0,
         ),
-      ];
-
+      );
       data.sinks.output.next({ columns, rows });
     }, [data.sources.table.value, data.sinks.output, sortDefinitions]);
 
