@@ -54,6 +54,11 @@ import {
   ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
+import { GraphEdge, GraphNode } from "./graph-store";
+import { combineLatest } from "rxjs";
+import ProGraph from "./prograph";
+import graphDB from "./graph-store";
+import { map } from "rxjs/operators";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -99,6 +104,64 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
+function getComponentDataForNode(node) {
+  const nodeClass = GraphNodes[node.type];
+  const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
+  const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
+
+  const sources = sourceKeys.reduce((acc, curr) => {
+    acc[curr] = {
+      value: node.values[curr],
+      set: (newVal) => proGraph.updateNodeValue(node.id, curr, newVal),
+    };
+    return acc;
+  }, {});
+  const outputs = outputKeys.reduce((acc, curr) => {
+    acc[curr] = node.values[curr];
+    return acc;
+  }, {});
+
+  console.log(node, sources, outputs);
+  // TODO possibly include inputs
+  return {
+    sources,
+    outputs,
+  };
+}
+
+function graphToReactFlow(
+  nodes: Map<number, GraphNode>,
+  edges: Map<number, GraphEdge>,
+): Elements {
+  const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
+    position: node.position,
+    // TODO pass in Graph Values
+    data: getComponentDataForNode(node),
+    type: node.type,
+    id: node.id.toString(),
+    style: {
+      padding: "10px",
+      border: "1px solid white",
+      borderRadius: "10px",
+    },
+  }));
+
+  const flowEdges: Edge[] = Array.from(edges.values()).map((conn) => ({
+    id: conn.id.toString(),
+    source: conn.from.nodeId.toString(),
+    sourceHandle: conn.from.busKey,
+    target: conn.to.nodeId.toString(),
+    targetHandle: conn.to.busKey,
+  }));
+  return [...flowNodes, ...flowEdges];
+}
+
+const proGraph = new ProGraph(graphDB);
+
+const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
+  map(([nodes, edges]) => graphToReactFlow(nodes, edges)),
+);
+
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
@@ -136,23 +199,28 @@ const FlowGraph = () => {
 
   useEffect(() => {
     // Load nodes and edges from local storage
-    const storedNodes = JSON.parse(localStorage.getItem("nodes") || "[]");
-    const storedEdges = JSON.parse(localStorage.getItem("edges") || "[]");
-    const graph = new Graph({
-      nodes: storedNodes,
-      edges: storedEdges,
-    });
-    graphRef.current = graph;
+    // const storedNodes = JSON.parse(localStorage.getItem("nodes") || "[]");
+    // const storedEdges = JSON.parse(localStorage.getItem("edges") || "[]");
+    // const graph = new Graph({
+    //   nodes: storedNodes,
+    //   edges: storedEdges,
+    // });
+    // graphRef.current = graph;
 
-    const dispose = autorun(() => {
-      setElements(graph.reactFlowElements);
-    });
+    // const dispose = autorun(() => {
+    //   setElements(graph.reactFlowElements);
+    // });
 
-    const { stop } = persistGraph(graph);
+    // const { stop } = persistGraph(graph);
+
+    const subscription = flowElements$.subscribe((els) => {
+      setElements(els);
+    });
 
     return () => {
-      dispose();
-      stop();
+      subscription.unsubscribe();
+      //dispose();
+      //stop();
     };
   }, []);
 
@@ -257,7 +325,19 @@ const FlowGraph = () => {
   };
 
   const addNode = useCallback(({ type, data, position }) => {
-    graphRef.current?.createNode({ type, position, data });
+    //graphRef.current?.createNode({ type, position, data });
+    // @ts-ignore
+    const { outputs, sources } = GraphNodes[type];
+    const values = Object.fromEntries(
+      [
+        ...(outputs ? Object.keys(outputs) : []),
+        ...(sources ? Object.keys(sources) : []),
+      ].map((key) => [
+        key,
+        null, // TODO use default value from Node definition
+      ]),
+    );
+    proGraph.addNode({ type, position, values });
   }, []);
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -393,6 +473,7 @@ const FlowGraph = () => {
       mousePosition.current = { x: event.clientX, y: event.clientY };
     };
     document.body.addEventListener("mousemove", mouseMoveHandler);
+
     return () => {
       document.body.removeEventListener("mousemove", mouseMoveHandler);
     };
@@ -574,11 +655,15 @@ const FlowGraph = () => {
             }
           }}
           onNodeDragStop={(e, node) => {
-            graphRef.current.moveNode(node.id, node.position);
+            //graphRef.current.moveNode(node.id, node.position);
+            proGraph.moveNode(+node.id, node.position);
           }}
           onSelectionDragStop={(e, nodes) => {
+            // for (const node of nodes) {
+            //   graphRef.current.moveNode(node.id, node.position);
+            // }
             for (const node of nodes) {
-              graphRef.current.moveNode(node.id, node.position);
+              proGraph.moveNode(+node.id, node.position);
             }
           }}
           onDragOver={onDragOver}
