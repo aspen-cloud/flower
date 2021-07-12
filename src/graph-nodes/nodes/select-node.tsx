@@ -23,22 +23,13 @@ export const renderColumnSuggestion: ItemRenderer<string> = (
   if (!modifiers.matchesPredicate) {
     return null;
   }
-  // const text = `${film.rank}. ${film.title}`;
-  return (
-    <MenuItem
-      // active={modifiers.active}
-      // disabled={modifiers.disabled}
-      // label={film.year.toString()}
-      key={column}
-      onClick={handleClick}
-      text={column}
-    />
-  );
+  return <MenuItem key={column} onClick={handleClick} text={column} />;
 };
 
 /**
- * Different message on no data
- * Click away when suggest popover is open bug (there's something weird with blueprint + react flow cnavas)
+ * TODO:
+ * Different message on no data vs not found
+ * Click away when suggest popover is open bug (there's something weird with blueprint + react flow canvas)
  */
 const SelectNode: GraphNode<SelectNodeIO> = {
   initializeStreams: function ({
@@ -83,7 +74,7 @@ const SelectNode: GraphNode<SelectNodeIO> = {
         (prevSelectedTags) =>
           new Set(
             [...prevSelectedTags].filter((tag) => tag !== tagProps.children),
-          ), // TODO: better value for this?
+          ),
       );
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>
@@ -111,14 +102,7 @@ const SelectNode: GraphNode<SelectNodeIO> = {
             </Tag>
           ))}
           <ColumnSuggest
-            // {...filmSelectProps}
-            // {...flags}
-            // createNewItemFromQuery={maybeCreateNewItemFromQuery}
-            // createNewItemRenderer={maybeCreateNewItemRenderer}
             inputValueRenderer={(item: string) => item}
-            // itemsEqual={areFilmsEqual}
-            // we may customize the default filmSelectProps.items by
-            // adding newly created items to the list, so pass our own.
             items={data.sources.table.value.columns
               .filter((c) => !selectedTags.has(c.Header))
               .map((c) => c.Header)}
