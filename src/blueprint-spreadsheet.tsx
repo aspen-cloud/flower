@@ -18,7 +18,6 @@ interface SpreadsheetProps {
   initialData?: DataTable<any>;
 }
 
-// TODO: bulk delete
 export default function Spreadsheet({
   onDataUpdate,
   initialData,
@@ -100,15 +99,12 @@ export default function Spreadsheet({
     [columnIds],
   );
 
-  // TODO: better handling of focus loss (impacting omnibar)
   const cellRenderer = (rowIndex: number, columnIndex: number) => {
     const colId = columnIds[columnIndex];
     const value = rowData[rowIndex] ? rowData[rowIndex][colId] : null;
     return (
       <EditableCell
         value={value == null ? "" : value}
-        // TODO: cancels not working
-        // TODO: every change propagates, only set state on confirm
         onChange={cellSetter(rowIndex, columnIndex, "CHANGE")}
         onConfirm={cellSetter(rowIndex, columnIndex, "CONFIRM")}
         onKeyDown={async (e) => {
