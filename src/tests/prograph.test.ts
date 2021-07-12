@@ -2,13 +2,13 @@ import ProGraph from "../prograph";
 import graphDB from "../graph-store";
 import { any, number } from "superstruct";
 
-const graph = new ProGraph(graphDB);
-
-beforeEach(async () => {
-  await graph.wipeAll();
-});
-
 describe("basic CRUD", () => {
+  const graph = new ProGraph(graphDB, {});
+
+  beforeEach(async () => {
+    await graph.wipeAll();
+  });
+
   test("can add and read nodes", async () => {
     const resp = await graph.addNode({
       type: "TEST_NODE",
@@ -71,6 +71,12 @@ describe("basic CRUD", () => {
 });
 
 describe("topological sorting", () => {
+  const graph = new ProGraph(graphDB, {});
+
+  beforeEach(async () => {
+    await graph.wipeAll();
+  });
+
   it("correctly sorts simple graph", async () => {
     const nodeAKey = await graph.addNode({
       type: "TEST_NODE",
@@ -305,12 +311,9 @@ describe("topological sorting", () => {
 });
 
 describe("Basic calculations", () => {
-  it("can produce the correct output", async () => {
-    /**
-     *  Goal is to model:
-     *  D = A + B - C
-     */
-
+  let graph: ProGraph;
+  let nodeAKey, nodeBKey, nodeCKey, nodeDKey;
+  beforeAll(async () => {
     const NodeTypes = {
       Add: {
         inputs: {
@@ -345,21 +348,29 @@ describe("Basic calculations", () => {
       },
     };
 
+    graph = new ProGraph(graphDB, NodeTypes);
+    await graph.wipeAll();
+
+    /**
+     *  Goal is to model:
+     *  D = A + B - C
+     */
+
     // NODES
 
-    const nodeAKey = await graph.addNode({
+    nodeAKey = await graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
       values: { number: 10 },
     });
-    const nodeBKey = await graph.addNode({
+    nodeBKey = await graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
       values: { number: 5 },
     });
-    const nodeCKey = await graph.addNode({
+    nodeCKey = await graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
@@ -378,7 +389,7 @@ describe("Basic calculations", () => {
       values: {},
     });
 
-    const nodeDKey = await graph.addNode({
+    nodeDKey = await graph.addNode({
       type: "Output",
       position: { x: 0, y: 0 },
 
@@ -440,24 +451,39 @@ describe("Basic calculations", () => {
         busKey: "value",
       },
     });
+  });
 
-    // EVALUATE
-
-    const sorting = await graph.getTopologicallySortedNodes();
-
-    for (const node of sorting) {
-      const nodeClass = NodeTypes[node.type];
-      if (!nodeClass.inputs || nodeClass.inputs.length === 0) continue;
-      const inputVals = await graph.getNodeInputs(node.id);
-
-      for (const outputKey in nodeClass.outputs) {
-        const newVal = nodeClass.outputs[outputKey](inputVals);
-        await graph.updateNodeValue(node.id, outputKey, newVal);
-      }
-    }
+  it("can produce the correct output", async () => {
+    // D = A + B - C
+    // 10 + 5 - 50 => -35
+    await graph.evaluate();
 
     const result = await graph.getNode(+nodeDKey);
 
-    expect(result.values.value).not.toBeNull();
+    expect(result.values.value).toBe(-35);
+  });
+
+  it("will react to changes", async () => {
+    // D = A + B - C
+    // 10 + *15* - 50 => *-25*
+
+    graph.updateNodeValue(nodeBKey, "number", 15);
+
+    await graph.evaluate();
+    const result = await graph.getNode(+nodeDKey);
+
+    expect(result.values.value).toBe(-25);
+  });
+
+  it("will support granular changes", async () => {
+    // D = A + B - C
+    // 10 + *-100* - 50 => *-140*
+
+    graph.updateNodeValue(nodeBKey, "number", -100);
+
+    await graph.evaluate([nodeBKey]);
+    const result = await graph.getNode(+nodeDKey);
+
+    expect(result.values.value).toBe(-140);
   });
 });

@@ -12,14 +12,16 @@ export default class ProGraph {
   edges: Map<number, GraphEdge>;
   nodes$: BehaviorSubject<Map<number, GraphNode>>;
   edges$: BehaviorSubject<Map<number, GraphEdge>>;
-  deps;
   initPromise: Promise<void>;
   db: Dexie;
-  constructor(db: Dexie) {
+  nodeTypes: Record<string, any>; // TODO add better type
+
+  constructor(db: Dexie, nodeTypes: Record<string, any>) {
     this.db = db;
     this.edges$ = new BehaviorSubject<Map<number, GraphEdge>>(new Map());
     this.nodes$ = new BehaviorSubject<Map<number, GraphNode>>(new Map());
     this.initPromise = this._init();
+    this.nodeTypes = nodeTypes;
   }
 
   private async _init() {
@@ -186,5 +188,20 @@ export default class ProGraph {
     return this.db
       .table("nodes")
       .update(nodeId, { values: { [valueKey]: newValue } });
+  }
+
+  async evaluate(changedNodes?: number[]) {
+    const sorting = await this.getTopologicallySortedNodes(changedNodes);
+
+    for (const node of sorting) {
+      const nodeClass = this.nodeTypes[node.type];
+      if (!nodeClass.inputs || nodeClass.inputs.length === 0) continue;
+      const inputVals = await this.getNodeInputs(node.id);
+
+      for (const outputKey in nodeClass.outputs) {
+        const newVal = nodeClass.outputs[outputKey](inputVals);
+        await this.updateNodeValue(node.id, outputKey, newVal);
+      }
+    }
   }
 }
