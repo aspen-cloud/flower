@@ -34,7 +34,6 @@ export default class ProGraph {
     this.edges$.next(this.edges);
 
     this.db.on("changes", (changes) => {
-      console.log("changes", changes);
       for (const change of changes) {
         if (!["nodes", "edges"].includes(change.table)) return;
         switch (change.type) {
@@ -81,7 +80,7 @@ export default class ProGraph {
     return this.db.table("nodes").add(node);
   }
 
-  async addEdge(edge: GraphEdge) {
+  async addEdge(edge: Omit<GraphEdge, "id">) {
     // TODO ensure nodes exist
     return this.db.table("edges").add(edge);
   }
@@ -99,6 +98,10 @@ export default class ProGraph {
         await this.db.table("nodes").delete(nodeId);
       },
     );
+  }
+
+  async getNode(nodeId: number) {
+    return this.db.table("nodes").get(nodeId);
   }
 
   async deleteEdge(edgeKey: string) {
@@ -150,15 +153,38 @@ export default class ProGraph {
     return nodeList.reverse().map((nodeId) => nodeMap.get(nodeId));
   }
 
-  getNodeInputs(nodeId: number) {}
+  async getNodeInputs(nodeId: number) {
+    // Potentially run in a "read only" transaction
+    const inboundEdges = await this.db
+      .table("edges")
+      .where("to.nodeId")
+      .equals(nodeId)
+      .toArray();
+    const connectedNodeSet: Set<number> = inboundEdges.reduce((set, edge) => {
+      set.add(edge.from.nodeId);
+      return set;
+    }, new Set());
 
-  updateNodeValue(nodeId: number, valueKey: string, newValue: any) {
+    const connectedNodes = new Map(
+      (
+        await this.db
+          .table("nodes")
+          .bulkGet(Array.from(connectedNodeSet.values()))
+      ).map((node) => [node.id, node]),
+    );
+
+    const inputs = {};
+    for (const edge of inboundEdges) {
+      inputs[edge.to.busKey] = connectedNodes.get(edge.from.nodeId).values[
+        edge.from.busKey
+      ];
+    }
+    return inputs;
+  }
+
+  async updateNodeValue(nodeId: number, valueKey: string, newValue: any) {
     return this.db
       .table("nodes")
       .update(nodeId, { values: { [valueKey]: newValue } });
   }
-}
-
-function outputToFn(type: string, busKey: string) {
-  return (a, b) => a + b;
 }
