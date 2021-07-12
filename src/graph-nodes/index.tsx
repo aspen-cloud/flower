@@ -11,5 +11,5 @@
 
 //export * from "./nodes/primitives";
 
-export { default as Sources } from "./nodes/sources";
-export { default as Transformers } from "./nodes/transformers";
+export { default as Sources } from "./standard/sources";
+export { default as Transformers } from "./standard/transformers";
