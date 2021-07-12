@@ -122,11 +122,7 @@ function getComponentDataForNode(node) {
     acc[curr] = node.values[curr];
     return acc;
   }, {});
-  console.log(node.type, nodeClass, {
-    inputs,
-    sources,
-    outputs,
-  });
+
   // TODO possibly include input values
   return {
     inputs,
@@ -294,32 +290,12 @@ const FlowGraph = () => {
         busKey: connection.targetHandle,
       },
     });
-    // graphRef.current?.createConnection({
-    //   from: {
-    //     nodeId: connection.source,
-    //     busKey: connection.sourceHandle,
-    //   },
-    //   to: {
-    //     nodeId: connection.target,
-    //     busKey: connection.targetHandle,
-    //   },
-    // });
-    // setElements((els) => {
-    //   if (!validateConnection(connection, els)) return els;
-    //   onEdgeConnect(connection, els);
-    //   return addEdge(
-    //     { ...connection, animated: true, style: { stroke: "#fff" } },
-    //     els,
-    //   );
-    // });
   };
 
   const onElementsRemove = (elementsToRemove: Elements) => {
     for (const el of elementsToRemove) {
-      console.log("removing", el);
       if (isEdge(el)) {
-        console.log("deleting edge");
-        proGraph.deleteEdge(el.id);
+        proGraph.deleteEdge(+el.id);
       } else {
         proGraph.deleteNode(+el.id);
       }

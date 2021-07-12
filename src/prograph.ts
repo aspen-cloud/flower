@@ -103,11 +103,11 @@ export default class ProGraph {
   }
 
   async getNode(nodeId: number) {
-    return this.db.table("nodes").get(nodeId);
+    return this.db.table("nodes").get(+nodeId);
   }
 
-  async deleteEdge(edgeKey: string) {
-    return this.db.table("edges").delete(edgeKey);
+  async deleteEdge(edgeKey: number) {
+    return this.db.table("edges").delete(+edgeKey);
   }
 
   async getNodeEdges(nodeId: number) {
