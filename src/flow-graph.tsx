@@ -109,6 +109,8 @@ function getComponentDataForNode(node) {
   const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
 
+  const inputs = nodeClass.inputs;
+
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
       value: node.values[curr],
@@ -120,10 +122,14 @@ function getComponentDataForNode(node) {
     acc[curr] = node.values[curr];
     return acc;
   }, {});
-
-  console.log(node, sources, outputs);
-  // TODO possibly include inputs
+  console.log(node.type, nodeClass, {
+    inputs,
+    sources,
+    outputs,
+  });
+  // TODO possibly include input values
   return {
+    inputs,
     sources,
     outputs,
   };
@@ -156,7 +162,8 @@ function graphToReactFlow(
   return [...flowNodes, ...flowEdges];
 }
 
-const proGraph = new ProGraph(graphDB);
+const proGraph = new ProGraph(graphDB, GraphNodes);
+console.log("graph", proGraph);
 
 const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
   map(([nodes, edges]) => graphToReactFlow(nodes, edges)),
@@ -277,16 +284,26 @@ const FlowGraph = () => {
   };
 
   const onConnect = (connection: Connection | Edge<any>) => {
-    graphRef.current?.createConnection({
+    proGraph.addEdge({
       from: {
-        nodeId: connection.source,
+        nodeId: +connection.source,
         busKey: connection.sourceHandle,
       },
       to: {
-        nodeId: connection.target,
+        nodeId: +connection.target,
         busKey: connection.targetHandle,
       },
     });
+    // graphRef.current?.createConnection({
+    //   from: {
+    //     nodeId: connection.source,
+    //     busKey: connection.sourceHandle,
+    //   },
+    //   to: {
+    //     nodeId: connection.target,
+    //     busKey: connection.targetHandle,
+    //   },
+    // });
     // setElements((els) => {
     //   if (!validateConnection(connection, els)) return els;
     //   onEdgeConnect(connection, els);
@@ -298,19 +315,13 @@ const FlowGraph = () => {
   };
 
   const onElementsRemove = (elementsToRemove: Elements) => {
-    // setElements((els) => {
-    //   for (const el of elementsToRemove) {
-    //     if (isEdge(el)) {
-    //       onEdgeDisconnect(el, els);
-    //     }
-    //   }
-    //   return removeElements(elementsToRemove, els);
-    // });
     for (const el of elementsToRemove) {
+      console.log("removing", el);
       if (isEdge(el)) {
-        graphRef.current?.removeConnection(el.id);
+        console.log("deleting edge");
+        proGraph.deleteEdge(el.id);
       } else {
-        graphRef.current?.removeNode(el.id);
+        proGraph.deleteNode(+el.id);
       }
     }
   };
@@ -325,7 +336,6 @@ const FlowGraph = () => {
   };
 
   const addNode = useCallback(({ type, data, position }) => {
-    //graphRef.current?.createNode({ type, position, data });
     // @ts-ignore
     const { outputs, sources } = GraphNodes[type];
     const values = Object.fromEntries(

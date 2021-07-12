@@ -156,7 +156,7 @@ export default class ProGraph {
   }
 
   async getNodeInputs(nodeId: number) {
-    // Potentially run in a "read only" transaction
+    // TODO Potentially run in a "read only" transaction
     const inboundEdges = await this.db
       .table("edges")
       .where("to.nodeId")

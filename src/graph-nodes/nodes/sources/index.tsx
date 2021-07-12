@@ -1,4 +1,4 @@
-import { string } from "superstruct";
+import { number, string } from "superstruct";
 import BaseNode from "../../../base-node";
 
 const Text = {
@@ -17,6 +17,24 @@ const Text = {
   },
 };
 
+const Number = {
+  sources: {
+    number: number(),
+  },
+  Component: ({ data: { sources } }) => {
+    return (
+      <BaseNode sources={{}} sinks={sources}>
+        <input
+          type="number"
+          value={sources.number.value}
+          onChange={(e) => sources.number.set(e.target.value)}
+        />
+      </BaseNode>
+    );
+  },
+};
+
 export default {
   Text,
+  Number,
 };

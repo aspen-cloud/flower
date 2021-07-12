@@ -9,6 +9,7 @@
 // export { default as Writer } from "./nodes/writer-node";
 // export { default as Spreadsheet } from "./nodes/spreadsheet-node";
 
-export { default as Sources } from "./nodes/sources";
+//export * from "./nodes/primitives";
 
-export * from "./nodes/primitives";
+export { default as Sources } from "./nodes/sources";
+export { default as Transformers } from "./nodes/transformers";
