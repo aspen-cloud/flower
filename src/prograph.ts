@@ -1,12 +1,6 @@
 import Dexie, { IndexableTypeArrayReadonly } from "dexie";
-import { BehaviorSubject, combineLatest } from "rxjs";
+import { BehaviorSubject } from "rxjs";
 import { GraphEdge, GraphNode } from "./graph-store";
-import {
-  Elements as FlowElements,
-  Node as FlowNode,
-  Edge as FlowEdge,
-} from "react-flow-renderer";
-
 export default class ProGraph {
   nodes: Map<number, GraphNode>;
   edges: Map<number, GraphEdge>;
@@ -79,12 +73,16 @@ export default class ProGraph {
   }
 
   async addNode(node: Omit<GraphNode, "id">) {
-    return this.db.table("nodes").add(node);
+    const resp = await this.db.table("nodes").add(node);
+    await this.evaluate([+resp]);
+    return resp;
   }
 
   async addEdge(edge: Omit<GraphEdge, "id">) {
     // TODO ensure nodes exist
-    return this.db.table("edges").add(edge);
+    const resp = await this.db.table("edges").add(edge);
+    await this.evaluate([+edge.from.nodeId]);
+    return resp;
   }
 
   async deleteNode(nodeId: number) {
@@ -98,6 +96,7 @@ export default class ProGraph {
           .table("edges")
           .bulkDelete(edges as IndexableTypeArrayReadonly);
         await this.db.table("nodes").delete(nodeId);
+        await this.evaluate(); // TODO pass in affected nodes based on edges
       },
     );
   }
@@ -184,15 +183,22 @@ export default class ProGraph {
     return inputs;
   }
 
-  async updateNodeValue(nodeId: number, valueKey: string, newValue: any) {
-    return this.db
+  async updateNodeValue(
+    nodeId: number,
+    valueKey: string,
+    newValue: any,
+    evaluate = true,
+  ) {
+    const resp = await this.db
       .table("nodes")
       .update(nodeId, { values: { [valueKey]: newValue } });
+    if (evaluate) await this.evaluate([nodeId]);
+    return resp;
   }
 
   async evaluate(changedNodes?: number[]) {
     const sorting = await this.getTopologicallySortedNodes(changedNodes);
-
+    console.log("sorting", sorting);
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
       if (!nodeClass.inputs || nodeClass.inputs.length === 0) continue;
@@ -200,7 +206,7 @@ export default class ProGraph {
 
       for (const outputKey in nodeClass.outputs) {
         const newVal = nodeClass.outputs[outputKey](inputVals);
-        await this.updateNodeValue(node.id, outputKey, newVal);
+        await this.updateNodeValue(node.id, outputKey, newVal, false);
       }
     }
   }
