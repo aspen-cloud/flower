@@ -192,38 +192,16 @@ const FlowGraph = () => {
     }
   }, [omnibarQuery]);
 
+  // TODO remove in favor of prograph
   const graphRef = useRef<Graph>();
 
-  // useEffect(() => {
-  //   if (reactflowInstance && elements.length > 0) {
-  //     //reactflowInstance.fitView();
-  //   }
-  // }, [reactflowInstance, elements.length]);
-
   useEffect(() => {
-    // Load nodes and edges from local storage
-    // const storedNodes = JSON.parse(localStorage.getItem("nodes") || "[]");
-    // const storedEdges = JSON.parse(localStorage.getItem("edges") || "[]");
-    // const graph = new Graph({
-    //   nodes: storedNodes,
-    //   edges: storedEdges,
-    // });
-    // graphRef.current = graph;
-
-    // const dispose = autorun(() => {
-    //   setElements(graph.reactFlowElements);
-    // });
-
-    // const { stop } = persistGraph(graph);
-
     const subscription = flowElements$.subscribe((els) => {
       setElements(els);
     });
 
     return () => {
       subscription.unsubscribe();
-      //dispose();
-      //stop();
     };
   }, []);
 
@@ -649,13 +627,9 @@ const FlowGraph = () => {
             }
           }}
           onNodeDragStop={(e, node) => {
-            //graphRef.current.moveNode(node.id, node.position);
             proGraph.moveNode(+node.id, node.position);
           }}
           onSelectionDragStop={(e, nodes) => {
-            // for (const node of nodes) {
-            //   graphRef.current.moveNode(node.id, node.position);
-            // }
             for (const node of nodes) {
               proGraph.moveNode(+node.id, node.position);
             }
