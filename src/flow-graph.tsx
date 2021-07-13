@@ -43,8 +43,7 @@ import {
 } from "@blueprintjs/core";
 
 import { Column, OmnibarItem } from "./types";
-import Graph, { connectionToJson, nodeToJson, persistGraph } from "./graph";
-import { autorun } from "mobx";
+import Graph from "./graph";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
@@ -54,9 +53,14 @@ import {
   ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
+import { GraphEdge, GraphNode } from "./graph-store";
+import { combineLatest } from "rxjs";
+import ProGraph from "./prograph";
+import graphDB from "./graph-store";
+import { map } from "rxjs/operators";
 import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject } from "rxjs";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -102,6 +106,67 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
+function getComponentDataForNode(node) {
+  const nodeClass = GraphNodes[node.type];
+  const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
+  const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
+
+  const inputs = nodeClass.inputs;
+
+  const sources = sourceKeys.reduce((acc, curr) => {
+    acc[curr] = {
+      value: node.values[curr],
+      set: (newVal) => proGraph.updateNodeValue(node.id, curr, newVal),
+    };
+    return acc;
+  }, {});
+  const outputs = outputKeys.reduce((acc, curr) => {
+    acc[curr] = node.values[curr];
+    return acc;
+  }, {});
+
+  // TODO possibly include input values
+  return {
+    inputs,
+    sources,
+    outputs,
+  };
+}
+
+function graphToReactFlow(
+  nodes: Map<number, GraphNode>,
+  edges: Map<number, GraphEdge>,
+): Elements {
+  const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
+    position: node.position,
+    // TODO pass in Graph Values
+    data: getComponentDataForNode(node),
+    type: node.type,
+    id: node.id.toString(),
+    style: {
+      padding: "10px",
+      border: "1px solid white",
+      borderRadius: "10px",
+    },
+  }));
+
+  const flowEdges: Edge[] = Array.from(edges.values()).map((conn) => ({
+    id: conn.id.toString(),
+    source: conn.from.nodeId.toString(),
+    sourceHandle: conn.from.busKey,
+    target: conn.to.nodeId.toString(),
+    targetHandle: conn.to.busKey,
+  }));
+  return [...flowNodes, ...flowEdges];
+}
+
+const proGraph = new ProGraph(graphDB, GraphNodes);
+console.log("graph", proGraph);
+
+const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
+  map(([nodes, edges]) => graphToReactFlow(nodes, edges)),
+);
+
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
@@ -132,33 +197,16 @@ const FlowGraph = () => {
     }
   }, [omnibarQuery]);
 
+  // TODO remove in favor of prograph
   const graphRef = useRef<Graph>();
 
-  // useEffect(() => {
-  //   if (reactflowInstance && elements.length > 0) {
-  //     //reactflowInstance.fitView();
-  //   }
-  // }, [reactflowInstance, elements.length]);
-
   useEffect(() => {
-    // Load nodes and edges from local storage
-    const storedNodes = JSON.parse(localStorage.getItem("nodes") || "[]");
-    const storedEdges = JSON.parse(localStorage.getItem("edges") || "[]");
-    const graph = new Graph({
-      nodes: storedNodes,
-      edges: storedEdges,
+    const subscription = flowElements$.subscribe((els) => {
+      setElements(els);
     });
-    graphRef.current = graph;
-
-    const dispose = autorun(() => {
-      setElements(graph.reactFlowElements);
-    });
-
-    const { stop } = persistGraph(graph);
 
     return () => {
-      dispose();
-      stop();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -215,40 +263,24 @@ const FlowGraph = () => {
   };
 
   const onConnect = (connection: Connection | Edge<any>) => {
-    graphRef.current?.createConnection({
+    proGraph.addEdge({
       from: {
-        nodeId: connection.source,
+        nodeId: +connection.source,
         busKey: connection.sourceHandle,
       },
       to: {
-        nodeId: connection.target,
+        nodeId: +connection.target,
         busKey: connection.targetHandle,
       },
     });
-    // setElements((els) => {
-    //   if (!validateConnection(connection, els)) return els;
-    //   onEdgeConnect(connection, els);
-    //   return addEdge(
-    //     { ...connection, animated: true, style: { stroke: "#fff" } },
-    //     els,
-    //   );
-    // });
   };
 
   const onElementsRemove = (elementsToRemove: Elements) => {
-    // setElements((els) => {
-    //   for (const el of elementsToRemove) {
-    //     if (isEdge(el)) {
-    //       onEdgeDisconnect(el, els);
-    //     }
-    //   }
-    //   return removeElements(elementsToRemove, els);
-    // });
     for (const el of elementsToRemove) {
       if (isEdge(el)) {
-        graphRef.current?.removeConnection(el.id);
+        proGraph.deleteEdge(+el.id);
       } else {
-        graphRef.current?.removeNode(el.id);
+        proGraph.deleteNode(+el.id);
       }
     }
   };
@@ -263,7 +295,18 @@ const FlowGraph = () => {
   };
 
   const addNode = useCallback(({ type, data, position }) => {
-    graphRef.current?.createNode({ type, position, data });
+    // @ts-ignore
+    const { outputs, sources } = GraphNodes[type];
+    const values = Object.fromEntries(
+      [
+        ...(outputs ? Object.keys(outputs) : []),
+        ...(sources ? Object.keys(sources) : []),
+      ].map((key) => [
+        key,
+        null, // TODO use default value from Node definition
+      ]),
+    );
+    proGraph.addNode({ type, position, values });
   }, []);
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -367,10 +410,11 @@ const FlowGraph = () => {
   const copyElements = async (els: Elements<any>) => {
     const serializedNodes = els
       .filter((el) => isNode(el))
-      .map((el) => graphRef.current.nodes.get(el.id));
+      .map((el) => proGraph.nodes.get(+el.id));
     const serializedEdges = els
       .filter((el) => isEdge(el))
-      .map((el) => graphRef.current.connections.get(el.id));
+      .map((el) => proGraph.edges.get(+el.id));
+    // @ts-ignore
     await addElementsToClipboard(serializedNodes, serializedEdges);
   };
 
@@ -398,12 +442,13 @@ const FlowGraph = () => {
       mousePosition.current = { x: event.clientX, y: event.clientY };
     };
     document.body.addEventListener("mousemove", mouseMoveHandler);
+
     return () => {
       document.body.removeEventListener("mousemove", mouseMoveHandler);
     };
   }, []);
 
-  const pasteData = (
+  const pasteData = async (
     clipboardResult: ClipboardParseResult,
     position: XYPosition,
   ) => {
@@ -438,32 +483,39 @@ const FlowGraph = () => {
       const clipboardEdges = clipboardElements.filter(
         (clipboardElement) => !clipboardElement.element.position,
       );
-      const newNodesMap = Object.fromEntries(
-        clipboardNodes.map((clipboardNode) => [
-          clipboardNode.element.id,
-          graphRef.current?.createNode({
+
+      const newNodes = await Promise.all(
+        clipboardNodes.map((clipboardNode) =>
+          proGraph.addNode({
             type: clipboardNode.element.type,
-            data: {},
+            values: clipboardNode.element.values,
             position: {
               x: position.x + clipboardNode.xOffset,
               y: position.y + clipboardNode.yOffset,
             },
           }),
+        ),
+      );
+
+      const newNodesMap = new Map(
+        newNodes.map((newNodeId, i) => [
+          clipboardNodes[i].element.id,
+          newNodeId,
         ]),
       );
 
       for (const edge of clipboardEdges) {
         if (
-          newNodesMap[edge.element.to.nodeId] &&
-          newNodesMap[edge.element.from.nodeId]
+          newNodesMap.get(edge.element.to.nodeId) &&
+          newNodesMap.get(edge.element.from.nodeId)
         ) {
-          graphRef.current.createConnection({
+          proGraph.addEdge({
             from: {
-              nodeId: newNodesMap[edge.element.from.nodeId].id,
+              nodeId: +newNodesMap.get(edge.element.from.nodeId),
               busKey: edge.element.from.busKey,
             },
             to: {
-              nodeId: newNodesMap[edge.element.to.nodeId].id,
+              nodeId: +newNodesMap.get(edge.element.to.nodeId),
               busKey: edge.element.to.busKey,
             },
           });
@@ -579,20 +631,21 @@ const FlowGraph = () => {
                 );
               }
             }}
+            onNodeDoubleClick={(e, node) => {
+              if (node.type === "DataSource") {
+                const graphNode = graphRef.current.nodes.get(node.id);
+                setSpreadsheetTableSubject(graphNode.outputs["output"].stream);
+                setBottomMenuOpen(true);
+              } else {
+                setSpreadsheetTableSubject(null);
+              }
+            }}
             onSelectionDragStart={async (event, nodes) => {
               if (event.altKey) {
                 // Using selected elements because edges are not included
                 graphRef.current?.replaceElementGroup(
                   selectedElements.map((el) => el.id),
                 );
-              }
-            }}
-            onNodeDragStop={(e, node) => {
-              graphRef.current.moveNode(node.id, node.position);
-            }}
-            onSelectionDragStop={(e, nodes) => {
-              for (const node of nodes) {
-                graphRef.current.moveNode(node.id, node.position);
               }
             }}
             onDragOver={onDragOver}
@@ -690,13 +743,12 @@ const FlowGraph = () => {
                 JSON.stringify(flowTransform),
               )
             }
-            onNodeDoubleClick={(e, node) => {
-              if (node.type === "DataSource") {
-                const graphNode = graphRef.current.nodes.get(node.id);
-                setSpreadsheetTableSubject(graphNode.outputs["output"].stream);
-                setBottomMenuOpen(true);
-              } else {
-                setSpreadsheetTableSubject(null);
+            onNodeDragStop={(e, node) => {
+              proGraph.moveNode(+node.id, node.position);
+            }}
+            onSelectionDragStop={(e, nodes) => {
+              for (const node of nodes) {
+                proGraph.moveNode(+node.id, node.position);
               }
             }}
           >

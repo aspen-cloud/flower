@@ -67,7 +67,7 @@ function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
   // const childNodes = useMemo(() => children, [sources, sinks]);
 
   return (
-    <div className={className}>
+    <div style={{ backgroundColor: "white" }} className={className}>
       {targetHandles}
       <div className="base-node-content">{children}</div>
       {sourceHandles}
