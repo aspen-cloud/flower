@@ -428,10 +428,11 @@ const FlowGraph = () => {
   const copyElements = async (els: Elements<any>) => {
     const serializedNodes = els
       .filter((el) => isNode(el))
-      .map((el) => graphRef.current.nodes.get(el.id));
+      .map((el) => proGraph.nodes.get(+el.id));
     const serializedEdges = els
       .filter((el) => isEdge(el))
-      .map((el) => graphRef.current.connections.get(el.id));
+      .map((el) => proGraph.edges.get(+el.id));
+    // @ts-ignore
     await addElementsToClipboard(serializedNodes, serializedEdges);
   };
 
@@ -465,7 +466,7 @@ const FlowGraph = () => {
     };
   }, []);
 
-  const pasteData = (
+  const pasteData = async (
     clipboardResult: ClipboardParseResult,
     position: XYPosition,
   ) => {
@@ -500,32 +501,39 @@ const FlowGraph = () => {
       const clipboardEdges = clipboardElements.filter(
         (clipboardElement) => !clipboardElement.element.position,
       );
-      const newNodesMap = Object.fromEntries(
-        clipboardNodes.map((clipboardNode) => [
-          clipboardNode.element.id,
-          graphRef.current?.createNode({
+
+      const newNodes = await Promise.all(
+        clipboardNodes.map((clipboardNode) =>
+          proGraph.addNode({
             type: clipboardNode.element.type,
-            data: {},
+            values: clipboardNode.element.values,
             position: {
               x: position.x + clipboardNode.xOffset,
               y: position.y + clipboardNode.yOffset,
             },
           }),
+        ),
+      );
+
+      const newNodesMap = new Map(
+        newNodes.map((newNodeId, i) => [
+          clipboardNodes[i].element.id,
+          newNodeId,
         ]),
       );
 
       for (const edge of clipboardEdges) {
         if (
-          newNodesMap[edge.element.to.nodeId] &&
-          newNodesMap[edge.element.from.nodeId]
+          newNodesMap.get(edge.element.to.nodeId) &&
+          newNodesMap.get(edge.element.from.nodeId)
         ) {
-          graphRef.current.createConnection({
+          proGraph.addEdge({
             from: {
-              nodeId: newNodesMap[edge.element.from.nodeId].id,
+              nodeId: +newNodesMap.get(edge.element.from.nodeId),
               busKey: edge.element.from.busKey,
             },
             to: {
-              nodeId: newNodesMap[edge.element.to.nodeId].id,
+              nodeId: +newNodesMap.get(edge.element.to.nodeId),
               busKey: edge.element.to.busKey,
             },
           });

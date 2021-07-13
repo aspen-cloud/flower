@@ -1,6 +1,6 @@
 import XLSX from "xlsx";
-import { connectionToJson, nodeToJson } from "../graph";
-import { Node as GraphNode, Connection as GraphConnection } from "../graph";
+
+import { GraphEdge, GraphNode } from "../graph-store";
 
 export interface ClipboardParseResult {
   type: "text" | "table" | "nodes";
@@ -15,7 +15,7 @@ export interface ElementClipboardContext {
 
 export const addElementsToClipboard = async (
   nodes: GraphNode[],
-  edges: GraphConnection[],
+  edges: GraphEdge[],
 ) => {
   // TODO: offset so paste is centered (currently pastes at top left corner)
   const topLeft = {
@@ -23,12 +23,12 @@ export const addElementsToClipboard = async (
     y: Math.min(...nodes.map((el) => el.position?.y)),
   };
   const clipboardNodes: ElementClipboardContext[] = nodes.map((node) => ({
-    element: nodeToJson(node),
+    element: node,
     xOffset: node.position?.x - topLeft.x,
     yOffset: node.position?.y - topLeft.y,
   }));
   const clipboardEdges: ElementClipboardContext[] = edges.map((edge) => ({
-    element: connectionToJson(edge),
+    element: edge,
   }));
 
   const str = JSON.stringify(clipboardNodes.concat(clipboardEdges));

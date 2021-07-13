@@ -198,7 +198,7 @@ export default class ProGraph {
 
   async evaluate(changedNodes?: number[]) {
     const sorting = await this.getTopologicallySortedNodes(changedNodes);
-    console.log("sorting", sorting);
+
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
       if (!nodeClass.inputs || nodeClass.inputs.length === 0) continue;
