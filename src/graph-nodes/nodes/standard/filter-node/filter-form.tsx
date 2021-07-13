@@ -1,28 +1,29 @@
 import { useEffect, useState } from "react";
+import { Column } from "../../../../types";
 import filters from "./filters";
 
 interface FilterFormProps {
-  colName: string;
+  colAccessor: string;
   colFilter: string;
   compareVal: string;
   onChange: (any) => void;
-  columnValues: string[];
+  columns: Column[];
 }
 
 export default function FilterForm({
-  colName,
+  colAccessor,
   colFilter,
   compareVal,
   onChange,
-  columnValues,
+  columns,
 }: FilterFormProps) {
-  const [column, setColumn] = useState(colName || "");
+  const [column, setColumn] = useState(colAccessor || "");
   const [columnFilter, setColumnFilter] = useState(colFilter || "");
   const [compareValue, setCompareValue] = useState(compareVal || "");
 
   useEffect(() => {
     onChange({
-      colName: column,
+      colAccessor: column,
       colFilter: columnFilter,
       compareVal: compareValue,
     });
@@ -41,7 +42,9 @@ export default function FilterForm({
                   {" "}
                   -- select a column --{" "}
                 </option>,
-                ...columnValues.map((c) => <option value={c}>{c}</option>),
+                ...columns.map((c) => (
+                  <option value={c.accessor}>{c.Header}</option>
+                )),
               ]}
             </select>
           </label>

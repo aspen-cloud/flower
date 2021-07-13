@@ -79,13 +79,13 @@ const JoinNode: GraphNode<JoinNodeIO> = {
       const columnRenameIndexA = Object.fromEntries(
         tableA.columns.map((col) => [
           col.accessor,
-          `${safeLabelA}-${col.accessor}`,
+          `${safeLabelA}-${col.Header}`,
         ]),
       );
       const columnRenameIndexB = Object.fromEntries(
         tableB.columns.map((col) => [
           col.accessor,
-          `${safeLabelB}-${col.accessor}`,
+          `${safeLabelB}-${col.Header}`,
         ]),
       );
       const columns = tableA.columns
@@ -162,7 +162,9 @@ const JoinNode: GraphNode<JoinNodeIO> = {
                       -- select a column --{" "}
                     </option>,
                     ...tableA.columns.map((c) => (
-                      <option value={c.accessor}>{c.accessor}</option>
+                      <option key={c.accessor} value={c.accessor}>
+                        {c.Header}
+                      </option>
                     )),
                   ]}
                 </select>
@@ -193,7 +195,9 @@ const JoinNode: GraphNode<JoinNodeIO> = {
                       -- select a column --{" "}
                     </option>,
                     ...tableB.columns.map((c) => (
-                      <option value={c.accessor}>{c.accessor}</option>
+                      <option key={c.accessor} value={c.accessor}>
+                        {c.Header}
+                      </option>
                     )),
                   ]}
                 </select>

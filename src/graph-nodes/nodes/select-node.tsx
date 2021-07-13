@@ -14,16 +14,22 @@ interface SelectNodeIO {
   };
 }
 
-const ColumnSuggest = Suggest.ofType<string>();
+const ColumnSuggest = Suggest.ofType<Column>();
 
-export const renderColumnSuggestion: ItemRenderer<string> = (
+export const renderColumnSuggestion: ItemRenderer<Column> = (
   column,
   { handleClick, modifiers, query },
 ) => {
   if (!modifiers.matchesPredicate) {
     return null;
   }
-  return <MenuItem key={column} onClick={handleClick} text={column} />;
+  return (
+    <MenuItem
+      key={column.accessor}
+      onClick={handleClick}
+      text={column.Header}
+    />
+  );
 };
 
 /**
@@ -55,18 +61,34 @@ const SelectNode: GraphNode<SelectNodeIO> = {
 
   Component: function ({ data }: { data: SelectNodeIO }) {
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [columnNameMap, setColumnNameMap] =
+      useState<Record<string, string>>();
 
     useEffect(() => {
-      const table = data.sources.table.value;
-      const columns = table.columns.filter((col) =>
-        selectedTags.has(col.Header),
-      );
-      const rows = table.rows.map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([key, val]) => selectedTags.has(key)),
-        ),
-      );
-      data.sinks.output.next({ columns, rows });
+      const sub = data.sources.table.subscribe((value) => {
+        const newNameMap = value.columns.reduce((currVal, nextVal) => {
+          currVal[nextVal.accessor] = nextVal.Header;
+          return currVal;
+        }, {});
+        setColumnNameMap(newNameMap);
+      });
+
+      return () => sub.unsubscribe();
+    }, [data.sources.table]);
+
+    useEffect(() => {
+      const sub = data.sources.table.subscribe((table) => {
+        const columns = table.columns.filter((col) =>
+          selectedTags.has(col.accessor),
+        );
+        const rows = table.rows.map((row) =>
+          Object.fromEntries(
+            Object.entries(row).filter(([key, val]) => selectedTags.has(key)),
+          ),
+        );
+        data.sinks.output.next({ columns, rows });
+      });
+      return () => sub.unsubscribe();
     }, [data.sources.table, data.sinks.output, selectedTags]);
 
     const onRemove = (e, tagProps) =>
@@ -87,7 +109,9 @@ const SelectNode: GraphNode<SelectNodeIO> = {
           <button
             onClick={() =>
               setSelectedTags(
-                new Set(data.sources.table.value.columns.map((c) => c.Header)),
+                new Set(
+                  data.sources.table.value.columns.map((c) => c.accessor),
+                ),
               )
             }
           >
@@ -98,22 +122,23 @@ const SelectNode: GraphNode<SelectNodeIO> = {
           </button>
           {[...selectedTags].map((tag) => (
             <Tag key={tag} onRemove={onRemove}>
-              {tag}
+              {columnNameMap[tag]}
             </Tag>
           ))}
           <ColumnSuggest
-            inputValueRenderer={(item: string) => item}
-            items={data.sources.table.value.columns
-              .filter((c) => !selectedTags.has(c.Header))
-              .map((c) => c.Header)}
+            inputValueRenderer={(item: Column) => item.Header}
+            items={data.sources.table.value.columns.filter(
+              (c) => !selectedTags.has(c.accessor),
+            )}
             noResults={
               <MenuItem disabled={true} text="All columns selected." />
             }
-            onItemSelect={(item, event) =>
+            onItemSelect={(item, event) => {
               setSelectedTags(
-                (prevSelectedTags) => new Set([...prevSelectedTags, item]),
-              )
-            }
+                (prevSelectedTags) =>
+                  new Set([...prevSelectedTags, item.accessor]),
+              );
+            }}
             itemRenderer={renderColumnSuggestion}
             resetOnSelect={true}
             popoverProps={{ minimal: true }}

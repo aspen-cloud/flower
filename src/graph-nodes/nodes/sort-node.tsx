@@ -19,7 +19,7 @@ enum SortDirection {
 }
 
 interface SortDefinition {
-  columnName: string;
+  columnAccessor: string;
   direction: SortDirection;
 }
 
@@ -44,49 +44,67 @@ export default {
       [],
     );
 
-    const [newSortDefinitionColumn, setNewSortDefinitionColumn] =
-      useState<string>();
+    const [
+      newSortDefinitionColumnAccessor,
+      setNewSortDefinitionColumnAccessor,
+    ] = useState<string>();
     const [newSortDefinitionDirection, setNewSortDefinitionDirection] =
       useState<SortDirection>();
+    const [columnNameMap, setColumnNameMap] =
+      useState<Record<string, string>>();
 
     useEffect(() => {
-      const table = data.sources.table.value;
-      const columns = [...table.columns];
+      const sub = data.sources.table.subscribe((value) => {
+        const newNameMap = value.columns.reduce((currVal, nextVal) => {
+          currVal[nextVal.accessor] = nextVal.Header;
+          return currVal;
+        }, {});
+        setColumnNameMap(newNameMap);
+      });
 
-      const rows = [...table.rows].sort((a, b) =>
-        sortDefinitions.reduce(
-          (current, nextSortDef) => {
-            // until we have better typing just supporting string and number compare
-            const isNumber = table.rows.every(
-              (r) => !isNaN(Number(r[nextSortDef.columnName])),
-            );
+      return () => sub.unsubscribe();
+    }, [data.sources.table]);
 
-            if (isNumber) {
+    useEffect(() => {
+      const sub = data.sources.table.subscribe((table) => {
+        const columns = [...table.columns];
+
+        const rows = [...table.rows].sort((a, b) =>
+          sortDefinitions.reduce(
+            (current, nextSortDef) => {
+              // until we have better typing just supporting string and number compare
+              const isNumber = table.rows.every(
+                (r) => !isNaN(Number(r[nextSortDef.columnAccessor])),
+              );
+
+              if (isNumber) {
+                return (
+                  current ||
+                  simpleSort(
+                    Number(a[nextSortDef.columnAccessor]),
+                    Number(b[nextSortDef.columnAccessor]),
+                    nextSortDef.direction,
+                  )
+                );
+              }
+
               return (
                 current ||
                 simpleSort(
-                  Number(a[nextSortDef.columnName]),
-                  Number(b[nextSortDef.columnName]),
+                  a[nextSortDef.columnAccessor].toLowerCase(),
+                  b[nextSortDef.columnAccessor].toLowerCase(),
                   nextSortDef.direction,
                 )
               );
-            }
+            },
 
-            return (
-              current ||
-              simpleSort(
-                a[nextSortDef.columnName].toLowerCase(),
-                b[nextSortDef.columnName].toLowerCase(),
-                nextSortDef.direction,
-              )
-            );
-          },
-
-          0,
-        ),
-      );
-      data.sinks.output.next({ columns, rows });
-    }, [data.sources.table.value, data.sinks.output, sortDefinitions]);
+            0,
+          ),
+        );
+        data.sinks.output.next({ columns, rows });
+      });
+      return sub.unsubscribe();
+    }, [data.sources.table, data.sinks.output, sortDefinitions]);
 
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>
@@ -101,7 +119,7 @@ export default {
               Sort by:
               {sortDefinitions.map((sortDef, i) => (
                 <div key={i}>
-                  {sortDef.columnName} -{" "}
+                  {columnNameMap[sortDef.columnAccessor]} -{" "}
                   <select
                     value={sortDef.direction}
                     onChange={(e) =>
@@ -128,8 +146,10 @@ export default {
               ))}
               <div>
                 <select
-                  value={newSortDefinitionColumn}
-                  onChange={(e) => setNewSortDefinitionColumn(e.target.value)}
+                  value={newSortDefinitionColumnAccessor}
+                  onChange={(e) => {
+                    setNewSortDefinitionColumnAccessor(e.target.value);
+                  }}
                 >
                   {[
                     <option value={""}> -- select a column -- </option>,
@@ -137,10 +157,14 @@ export default {
                       .filter(
                         (c) =>
                           !sortDefinitions.some(
-                            (sd) => c.Header === sd.columnName,
+                            (sd) => c.accessor === sd.columnAccessor,
                           ),
                       )
-                      .map((c) => <option key={c.accessor}>{c.Header}</option>),
+                      .map((c) => (
+                        <option key={c.accessor} value={c.accessor}>
+                          {c.Header}
+                        </option>
+                      )),
                   ]}
                 </select>
                 <select
@@ -160,14 +184,15 @@ export default {
                   onClick={() =>
                     setSortDefinitions((prevSortDefs) => {
                       if (
-                        !newSortDefinitionColumn ||
+                        !newSortDefinitionColumnAccessor ||
                         !newSortDefinitionDirection
                       )
                         return prevSortDefs;
                       if (
                         prevSortDefs.find(
                           (cs) =>
-                            cs.columnName === newSortDefinitionColumn &&
+                            cs.columnAccessor ===
+                              newSortDefinitionColumnAccessor &&
                             cs.direction === newSortDefinitionDirection,
                         )
                       )
@@ -177,7 +202,7 @@ export default {
                         ...prevSortDefs,
                         {
                           direction: newSortDefinitionDirection,
-                          columnName: newSortDefinitionColumn,
+                          columnAccessor: newSortDefinitionColumnAccessor,
                         },
                       ];
                     })

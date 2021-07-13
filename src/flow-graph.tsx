@@ -335,7 +335,6 @@ const FlowGraph = () => {
     for (const item of event.dataTransfer.items) {
       if (item.kind === "file") {
         const entry = await item.getAsFileSystemHandle();
-        console.log("ENTRY", entry);
         if (entry.kind === "file") {
           await addFileNode(entry, entry.name, position);
         } else if (entry.kind === "directory") {
@@ -811,16 +810,15 @@ const FlowGraph = () => {
           {spreadsheetTableSubject ? (
             <Spreadsheet
               initialData={spreadsheetTableSubject.value}
-              onDataUpdate={(columnIds, rowData) => {
-                const [columnsData, ...rowsData] = rowData;
+              onDataUpdate={(columnData, rowData) => {
                 const columnIdIndex = Object.fromEntries(
-                  columnIds.map((columnId, i) => [columnId, i]),
+                  columnData.map((column, i) => [column.id, i]),
                 );
-                const tableColumns: Column[] = columnIds.map((columnId, i) => ({
-                  accessor: columnsData[columnId] ?? columnId,
-                  Header: columnsData[columnId] ?? columnId,
+                const tableColumns: Column[] = columnData.map((column, i) => ({
+                  accessor: column.id,
+                  Header: column.label,
                 }));
-                const tableRows = rowsData.map((row) =>
+                const tableRows = rowData.map((row) =>
                   Object.fromEntries(
                     Object.entries(row)
                       // TODO: for some reason lots of repeat values in rows

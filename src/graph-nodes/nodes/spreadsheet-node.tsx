@@ -58,32 +58,31 @@ const SpreadsheetNode: GraphNode<SpreadsheetNodeIO> = {
         <Resizable size={{ width, height }} onResizeStop={onResizeStop}>
           <Spreadsheet
             onDataUpdate={(columnIds, rowData) => {
-              const [columnsData, ...rowsData] = rowData;
-              const columnIdIndex = Object.fromEntries(
-                columnIds.map((columnId, i) => [columnId, i]),
-              );
-              const tableColumns: DataColumn[] = columnIds.map(
-                (columnId, i) => ({
-                  accessor: columnsData[columnId] ?? columnId,
-                  Header: columnsData[columnId] ?? columnId,
-                }),
-              );
-              const tableRows = rowsData.map((row) =>
-                Object.fromEntries(
-                  Object.entries(row)
-                    // TODO: for some reason lots of repeat values in rows
-                    .filter(([key, val]) => key in columnIdIndex)
-                    .map(([key, val]) => [
-                      tableColumns[columnIdIndex[key]].accessor,
-                      val,
-                    ]),
-                ),
-              );
-
-              sinks.output.next({
-                columns: tableColumns,
-                rows: tableRows,
-              });
+              // const [columnsData, ...rowsData] = rowData;
+              // const columnIdIndex = Object.fromEntries(
+              //   columnIds.map((columnId, i) => [columnId, i]),
+              // );
+              // const tableColumns: DataColumn[] = columnIds.map(
+              //   (columnId, i) => ({
+              //     accessor: columnsData[columnId] ?? columnId,
+              //     Header: columnsData[columnId] ?? columnId,
+              //   }),
+              // );
+              // const tableRows = rowsData.map((row) =>
+              //   Object.fromEntries(
+              //     Object.entries(row)
+              //       // TODO: for some reason lots of repeat values in rows
+              //       .filter(([key, val]) => key in columnIdIndex)
+              //       .map(([key, val]) => [
+              //         tableColumns[columnIdIndex[key]].accessor,
+              //         val,
+              //       ]),
+              //   ),
+              // );
+              // sinks.output.next({
+              //   columns: tableColumns,
+              //   rows: tableRows,
+              // });
             }}
           />
           <button

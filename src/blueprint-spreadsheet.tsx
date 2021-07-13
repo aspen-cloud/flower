@@ -5,6 +5,7 @@ import {
   EditableCell,
   ColumnHeaderCell,
   RowHeaderCell,
+  EditableName,
 } from "@blueprintjs/table";
 import { Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
@@ -12,50 +13,66 @@ import { Table as DataTable } from "./types";
 
 interface SpreadsheetProps {
   onDataUpdate?: (
-    columnIds: string[],
+    columnIds: TypedColumn[],
     rowData: Record<string, string>[],
   ) => void;
   initialData?: DataTable<any>;
+}
+
+enum DataType {
+  Text = "text",
+  Number = "number",
+}
+
+// Cleanup: this is basically a Column ... ported over from a different branch so that's why it wasnt changed
+interface TypedColumn {
+  id: string;
+  label: string;
+  type: DataType;
 }
 
 export default function Spreadsheet({
   onDataUpdate,
   initialData,
 }: SpreadsheetProps) {
-  const [columnIds, setColumnIds] = useState<string[]>([nanoid()]);
+  const [columnData, setColumnData] = useState<TypedColumn[]>([newColumn()]);
   const [rowData, setRowData] = useState<Record<string, string>[]>([{}]);
+
+  function newColumn(accessor?: string, label?: string): TypedColumn {
+    return {
+      id: accessor || nanoid(),
+      label: label || "",
+      type: DataType.Text,
+    };
+  }
 
   useEffect(() => {
     if (!initialData || initialData.columns.length === 0) return;
 
     const columnIndex = Object.fromEntries(
-      initialData.columns.map((c, i) => [c.accessor, nanoid()]),
+      initialData.columns.map((c, i) => [
+        c.accessor,
+        newColumn(c.accessor, c.Header),
+      ]),
     );
-    const coldata = [
+
+    const rowData = initialData.rows.map((r: Record<string, any>) =>
       Object.fromEntries(
-        initialData.columns.map((c, i) => [
-          columnIndex[c.accessor],
-          c.accessor,
-        ]),
-      ),
-    ];
-    const rowData = initialData.rows.map((r) =>
-      Object.fromEntries(
-        Object.entries(r).map(([key, val]) => [columnIndex[key], val]),
+        Object.entries(r).map(([key, val]) => [columnIndex[key].id, val]),
       ),
     );
 
     //@ts-ignore
-    const rows = coldata.concat(rowData);
+    const rows = rowData;
     const columns = Object.values(columnIndex);
 
-    setColumnIds(columns);
+    setColumnData(columns);
     setRowData(rows);
   }, [initialData]);
 
   useEffect(() => {
-    if (onDataUpdate) onDataUpdate(columnIds, rowData);
-  }, [rowData, columnIds, onDataUpdate]);
+    if (onDataUpdate) onDataUpdate(columnData, rowData);
+  }, [rowData, columnData, onDataUpdate]);
 
   function insertRow(rowIndex: number) {
     setRowData((prevRowData) => {
@@ -72,14 +89,14 @@ export default function Spreadsheet({
   }
 
   function insertColumn(columnIndex: number) {
-    setColumnIds((prevColumnData) => {
-      prevColumnData.splice(columnIndex, 0, nanoid());
+    setColumnData((prevColumnData) => {
+      prevColumnData.splice(columnIndex, 0, newColumn());
       return [...prevColumnData];
     });
   }
 
   function deleteColumn(columnIndex: number) {
-    setColumnIds((prevColumnData) => {
+    setColumnData((prevColumnData) => {
       if (prevColumnData.length > 1) prevColumnData.splice(columnIndex, 1);
       return [...prevColumnData];
     });
@@ -90,17 +107,17 @@ export default function Spreadsheet({
       return (value) => {
         setRowData((prevRowData) => {
           const newRows = [...prevRowData];
-          const colId = columnIds[columnIndex];
+          const colId = columnData[columnIndex].id;
           newRows[rowIndex][colId] = value;
           return newRows;
         });
       };
     },
-    [columnIds],
+    [columnData],
   );
 
   const cellRenderer = (rowIndex: number, columnIndex: number) => {
-    const colId = columnIds[columnIndex];
+    const colId = columnData[columnIndex].id;
     const value = rowData[rowIndex] ? rowData[rowIndex][colId] : null;
     return (
       <EditableCell
@@ -117,24 +134,24 @@ export default function Spreadsheet({
             const matrixData = clipboardData
               .split("\n")
               .map((line) => line.split("\t"));
-            setColumnIds((prevColumnIds) => {
-              const newColumnIds = [...prevColumnIds];
+            setColumnData((prevColumnData) => {
+              const newColumnData = [...prevColumnData];
               const newColsNeeded =
-                columnIndex + matrixData[0].length - newColumnIds.length;
+                columnIndex + matrixData[0].length - newColumnData.length;
               if (newColsNeeded > 0) {
-                newColumnIds.splice(
-                  newColumnIds.length,
+                newColumnData.splice(
+                  newColumnData.length,
                   0,
                   ...Array(newColsNeeded)
                     .fill(0)
-                    .map(() => nanoid()),
+                    .map(() => newColumn()),
                 );
               }
               setRowData((prevRowData) => {
                 const newRows = [...prevRowData];
                 matrixData.forEach((row, i) => {
                   row.forEach((cellValue, j) => {
-                    const columnId = newColumnIds[columnIndex + j];
+                    const columnId = newColumnData[columnIndex + j].id;
                     if (rowIndex + i === newRows.length)
                       newRows.splice(newRows.length, 0, {});
                     newRows[rowIndex + i][columnId] = cellValue;
@@ -142,13 +159,13 @@ export default function Spreadsheet({
                 });
                 return newRows;
               });
-              return newColumnIds;
+              return newColumnData;
             });
           }
 
           if (
             (e.key === "ArrowRight" || e.key === "Tab") &&
-            columnIndex === columnIds.length - 1
+            columnIndex === columnData.length - 1
           ) {
             insertColumn(columnIndex + 1);
           }
@@ -174,6 +191,17 @@ export default function Spreadsheet({
       />
     );
   };
+
+  const columnNameSetter = (columnIndex: number, type: string) => {
+    return (value) => {
+      setColumnData((prevColumnData) => {
+        const newColumnData = [...prevColumnData];
+        newColumnData[columnIndex].label = value;
+        return newColumnData;
+      });
+    };
+  };
+
   const columnRenderer = (columnIndex: number) => {
     const columnHeaderCellRenderer = () => {
       const menuRenderer = () => {
@@ -197,14 +225,45 @@ export default function Spreadsheet({
                 deleteColumn(columnIndex);
               }}
             />
+            {/* <MenuItem text="Select type">
+              {Object.keys(DataType).map((k) => (
+                <MenuItem
+                  key={k}
+                  active={columnData[columnIndex].type === DataType[k]}
+                  text={k}
+                  onClick={() =>
+                    // TODO: change underlying data or always parse as string?
+                    setColumnData((prevColumnData) => {
+                      const newColumnData = [...prevColumnData];
+                      newColumnData[columnIndex].type = DataType[k];
+                      return newColumnData;
+                    })
+                  }
+                />
+              ))}
+            </MenuItem> */}
           </Menu>
         );
       };
 
+      const nameRenderer = (name: string) => {
+        return (
+          <EditableName
+            name={name}
+            onChange={columnNameSetter(columnIndex, "CHANGE")}
+            onCancel={columnNameSetter(columnIndex, "CANCEL")}
+            onConfirm={columnNameSetter(columnIndex, "CONFIRM")}
+            placeholder={(columnIndex + 1).toString()}
+          />
+        );
+      };
+
+      const column = columnData[columnIndex];
       return (
         <ColumnHeaderCell
-          name={(columnIndex + 1).toString()}
+          name={column.label}
           menuRenderer={menuRenderer}
+          nameRenderer={nameRenderer}
         />
       );
     };
@@ -212,7 +271,7 @@ export default function Spreadsheet({
       <Column
         cellRenderer={cellRenderer}
         columnHeaderCellRenderer={columnHeaderCellRenderer}
-        id={columnIds[columnIndex]}
+        id={columnData[columnIndex].id}
       />
     );
   };
@@ -256,10 +315,11 @@ export default function Spreadsheet({
         numRows={rowData.length}
         enableFocusedCell={true}
         enableColumnReordering={true}
+        enableColumnInteractionBar={true}
         enableRowReordering={true}
         onColumnsReordered={(oldIndex, newIndex, length) => {
-          setColumnIds((prevColumnIds) => {
-            const newColIds = [...prevColumnIds];
+          setColumnData((prevColumnData) => {
+            const newColIds = [...prevColumnData];
             newColIds.splice(
               newIndex,
               0,
@@ -280,13 +340,13 @@ export default function Spreadsheet({
           });
         }}
         getCellClipboardData={(rowIndex, columnIndex) => {
-          const columnId = columnIds[columnIndex];
+          const columnId = columnData[columnIndex].id;
           const cellData = rowData[rowIndex][columnId];
           return cellData;
         }}
         rowHeaderCellRenderer={rowHeaderCellRenderer}
       >
-        {[...Array(columnIds.length).keys()].map(columnRenderer)}
+        {[...Array(columnData.length).keys()].map(columnRenderer)}
       </Table>
     </>
   );
