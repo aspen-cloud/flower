@@ -1,4 +1,4 @@
-import { number, string } from "superstruct";
+import { array, number, object, string } from "superstruct";
 import BaseNode from "../../../base-node";
 
 const Text = {
@@ -34,7 +34,35 @@ const Number = {
   },
 };
 
+const DataTable = {
+  sources: {
+    label: string(),
+    table: array(object()),
+  },
+  Component: ({ data: { sources } }) => {
+    return (
+      <BaseNode sources={{}} sinks={{ table: sources.table }}>
+        <figure style={{ textAlign: "center" }}>
+          <img
+            style={{
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+            width="50px"
+            src="/database.svg"
+          />
+          <figcaption style={{ backgroundColor: "#dedede", padding: "0 1em" }}>
+            {/* TODO: make editable */}
+            {sources.label.value}
+          </figcaption>
+        </figure>
+      </BaseNode>
+    );
+  },
+};
+
 export default {
   Text,
   Number,
+  DataTable,
 };

@@ -297,15 +297,17 @@ const FlowGraph = () => {
   const addNode = useCallback(({ type, data, position }) => {
     // @ts-ignore
     const { outputs, sources } = GraphNodes[type];
-    const values = Object.fromEntries(
-      [
-        ...(outputs ? Object.keys(outputs) : []),
-        ...(sources ? Object.keys(sources) : []),
-      ].map((key) => [
-        key,
-        null, // TODO use default value from Node definition
-      ]),
-    );
+    const values =
+      data ||
+      Object.fromEntries(
+        [
+          ...(outputs ? Object.keys(outputs) : []),
+          ...(sources ? Object.keys(sources) : []),
+        ].map((key) => [
+          key,
+          null, // TODO use default value from Node definition
+        ]),
+      );
     proGraph.addNode({ type, position, values });
   }, []);
 
@@ -466,9 +468,9 @@ const FlowGraph = () => {
     if (type === "table") {
       const tableData = jsonToTable(data);
       addNode({
-        type: "DataSource",
+        type: "DataTable",
         data: {
-          data: tableData,
+          table: tableData,
         },
         position,
       });

@@ -1,5 +1,6 @@
 import { any } from "superstruct";
 import BaseNode from "../../../base-node";
+import DataTable from "../../nodes/standard/table-node/data-table";
 
 const Viewer = {
   inputs: {
@@ -17,6 +18,25 @@ const Viewer = {
   },
 };
 
+const TableViewer = {
+  inputs: {
+    table: any(),
+  },
+  outputs: {
+    table: ({ table }) => table,
+  },
+  Component: ({ data }) => {
+    const { inputs, outputs } = data;
+    const table = outputs.table || { rows: [], columns: [] };
+    return (
+      <BaseNode sources={inputs} sinks={outputs}>
+        <DataTable data={table.rows} columns={table.columns} />
+      </BaseNode>
+    );
+  },
+};
+
 export default {
   Viewer,
+  TableViewer,
 };
