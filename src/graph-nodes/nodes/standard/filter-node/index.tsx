@@ -22,7 +22,7 @@ import FilterForm from "./filter-form";
 interface FilterIO {
   sources: {
     table: BehaviorSubject<Table<any>>;
-    columnName: BehaviorSubject<string>;
+    columnAccessor: BehaviorSubject<string>;
     columnFilter: BehaviorSubject<string>;
     compareValue: BehaviorSubject<string>;
   };
@@ -35,7 +35,7 @@ export default {
   initializeStreams: function () {
     const sources = {
       table: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
-      columnName: new BehaviorSubject(""),
+      columnAccessor: new BehaviorSubject(""),
       columnFilter: new BehaviorSubject(""),
       compareValue: new BehaviorSubject(""),
     };
@@ -44,15 +44,14 @@ export default {
       sinks: {
         output: combineLatest([
           sources.table,
-          sources.columnName,
+          sources.columnAccessor,
           sources.columnFilter,
           sources.compareValue,
         ]).pipe(
-          map(([table, columnName, columnFilter, compareValue]) => {
+          map(([table, columnAccessor, columnFilter, compareValue]) => {
             const filter = filters[columnFilter] || (() => true);
-
             const newRows = table.rows.filter((row) =>
-              filter(row[columnName], compareValue),
+              filter(row[columnAccessor], compareValue),
             );
 
             return {
@@ -68,14 +67,15 @@ export default {
     return (
       <BaseNode sources={data.sources} sinks={data.sinks}>
         <FilterForm
-          colName="asdfasdf"
+          colAccessor=""
           colFilter=""
           compareVal=""
-          onChange={({ colName, colFilter, compareVal }) => {
-            data.sources.columnName.next(colName);
+          onChange={({ colAccessor, colFilter, compareVal }) => {
+            data.sources.columnAccessor.next(colAccessor);
             data.sources.columnFilter.next(colFilter);
             data.sources.compareValue.next(compareVal);
           }}
+          columns={data.sources.table.value.columns}
         />
       </BaseNode>
     );

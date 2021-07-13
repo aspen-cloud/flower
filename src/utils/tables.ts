@@ -1,12 +1,26 @@
+import { nanoid } from "nanoid";
+
 export function jsonToTable(json_data: any[]) {
-  const cols = Object.keys(json_data.length ? json_data[0] : {}).map((col) => ({
-    Header: col,
-    accessor: col,
-  }));
+  const columns = Object.keys(json_data.length ? json_data[0] : {}).map(
+    (col) => ({
+      Header: col,
+      accessor: nanoid(),
+    }),
+  );
+
+  const columnIndex = Object.fromEntries(
+    columns.map((c, i) => [c.Header, c.accessor]),
+  );
+
+  const rows = json_data.map((r) =>
+    Object.fromEntries(
+      Object.entries(r).map(([header, val]) => [columnIndex[header], val]),
+    ),
+  );
 
   return {
-    columns: cols,
-    rows: json_data,
+    columns,
+    rows,
   };
 }
 
@@ -15,7 +29,7 @@ export function matrixToTable(matrix_data: string[][]) {
 
   const columns = colData.map((col) => ({
     Header: col,
-    accessor: col,
+    accessor: nanoid(),
   }));
 
   const rows = rowData.map((row) =>
