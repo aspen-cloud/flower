@@ -3,7 +3,16 @@ import graphDB from "../graph-store";
 import { any, number } from "superstruct";
 
 describe("basic CRUD", () => {
-  const graph = new ProGraph(graphDB, {});
+  const graph = new ProGraph(graphDB, {
+    TEST_NODE: {
+      inputs: {
+        input: any(),
+      },
+      outputs: {
+        output: ({ input }) => input,
+      },
+    },
+  });
 
   beforeEach(async () => {
     await graph.wipeAll();
@@ -23,14 +32,24 @@ describe("basic CRUD", () => {
   });
 
   test("can add and read edges", async () => {
+    const node1 = await graph.addNode({
+      type: "TEST_NODE",
+      position: { x: 0, y: 0 },
+      values: [],
+    });
+    const node2 = await graph.addNode({
+      type: "TEST_NODE",
+      position: { x: 0, y: 0 },
+      values: [],
+    });
     const resp = await graph.addEdge({
       from: {
-        nodeId: 1,
-        busKey: "testOutput",
+        nodeId: +node1,
+        busKey: "output",
       },
       to: {
-        nodeId: 2,
-        busKey: "testInput",
+        nodeId: +node2,
+        busKey: "input",
       },
     });
 
@@ -55,11 +74,11 @@ describe("basic CRUD", () => {
     await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeBKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
@@ -71,7 +90,16 @@ describe("basic CRUD", () => {
 });
 
 describe("topological sorting", () => {
-  const graph = new ProGraph(graphDB, {});
+  const graph = new ProGraph(graphDB, {
+    TEST_NODE: {
+      inputs: {
+        input: any(),
+      },
+      outputs: {
+        output: ({ input }) => input,
+      },
+    },
+  });
 
   beforeEach(async () => {
     await graph.wipeAll();
@@ -85,7 +113,7 @@ describe("topological sorting", () => {
       values: [],
     });
     const nodeBKey = await graph.addNode({
-      type: "OTHER_TEST_NODE",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
@@ -93,11 +121,11 @@ describe("topological sorting", () => {
     const edgeResp = await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeBKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
@@ -107,31 +135,31 @@ describe("topological sorting", () => {
 
   it("correctly sorts complex graph", async () => {
     const nodeAKey = await graph.addNode({
-      type: "NodeA",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeBKey = await graph.addNode({
-      type: "NodeB",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeCKey = await graph.addNode({
-      type: "NodeC",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeDKey = await graph.addNode({
-      type: "NodeD",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeEKey = await graph.addNode({
-      type: "NodeE",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
@@ -140,96 +168,96 @@ describe("topological sorting", () => {
     await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeBKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeDKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeBKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeCKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeDKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeEKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeCKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeEKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     const nodes = await graph.getTopologicallySortedNodes();
-    expect(nodes.map((node) => node.type)).toEqual([
-      "NodeA",
-      "NodeD",
-      "NodeB",
-      "NodeC",
-      "NodeE",
+    expect(nodes.map((node) => node.id)).toEqual([
+      nodeAKey,
+      nodeDKey,
+      nodeBKey,
+      nodeCKey,
+      nodeEKey,
     ]);
     expect(nodes).toHaveLength(5);
   });
 
   it("correctly partials order based on seed", async () => {
     const nodeAKey = await graph.addNode({
-      type: "NodeA",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeBKey = await graph.addNode({
-      type: "NodeB",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeCKey = await graph.addNode({
-      type: "NodeC",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeDKey = await graph.addNode({
-      type: "NodeD",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
     const nodeEKey = await graph.addNode({
-      type: "NodeE",
+      type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
@@ -238,75 +266,79 @@ describe("topological sorting", () => {
     await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeBKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeAKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeDKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeBKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeCKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeDKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeEKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     await graph.addEdge({
       from: {
         nodeId: +nodeCKey,
-        busKey: "testOutput",
+        busKey: "output",
       },
       to: {
         nodeId: +nodeEKey,
-        busKey: "testInput",
+        busKey: "input",
       },
     });
 
     const bDeps = await graph.getTopologicallySortedNodes([+nodeBKey]);
-    expect(bDeps.map((node) => node.type)).toEqual(["NodeB", "NodeC", "NodeE"]);
+    expect(bDeps.map((node) => node.id)).toEqual([
+      nodeBKey,
+      nodeCKey,
+      nodeEKey,
+    ]);
 
     const aDeps = await graph.getTopologicallySortedNodes([+nodeAKey]);
-    expect(aDeps.map((node) => node.type)).toEqual([
-      "NodeA",
-      "NodeD",
-      "NodeB",
-      "NodeC",
-      "NodeE",
+    expect(aDeps.map((node) => node.id)).toEqual([
+      nodeAKey,
+      nodeDKey,
+      nodeBKey,
+      nodeCKey,
+      nodeEKey,
     ]);
 
     const eDeps = await graph.getTopologicallySortedNodes([+nodeEKey]);
-    expect(eDeps.map((node) => node.type)).toEqual(["NodeE"]);
+    expect(eDeps.map((node) => node.id)).toEqual([nodeEKey]);
 
     const cDeps = await graph.getTopologicallySortedNodes([+nodeCKey]);
-    expect(cDeps.map((node) => node.type)).toEqual(["NodeC", "NodeE"]);
+    expect(cDeps.map((node) => node.id)).toEqual([nodeCKey, nodeEKey]);
   });
 });
 
