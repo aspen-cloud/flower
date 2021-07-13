@@ -11,6 +11,7 @@ interface BaseNodeProps extends NodeIO {
 function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
   const targetHandles = Object.keys(sources).map((sourceName, i, keys) => (
     <Tooltip2
+      key={i}
       content={sourceName}
       placement="top"
       portalClassName="handle-tooltip"
@@ -38,6 +39,7 @@ function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
   ));
   const sourceHandles = Object.keys(sinks).map((sinkName, i, keys) => (
     <Tooltip2
+      key={i}
       content={sinkName}
       placement="bottom"
       portalClassName="handle-tooltip"
