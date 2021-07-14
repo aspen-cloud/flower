@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Column,
   Table,
@@ -31,7 +31,7 @@ interface TypedColumn {
   type: DataType;
 }
 
-export default function Spreadsheet({
+export default React.memo(function Spreadsheet({
   onDataUpdate,
   initialData,
 }: SpreadsheetProps) {
@@ -47,32 +47,20 @@ export default function Spreadsheet({
   }
 
   useEffect(() => {
-    if (!initialData || initialData.columns.length === 0) return;
-
-    const columnIndex = Object.fromEntries(
-      initialData.columns.map((c, i) => [
-        c.accessor,
-        newColumn(c.accessor, c.Header),
-      ]),
+    if (!initialData) return;
+    const columns = initialData.columns.map((c) =>
+      newColumn(c.accessor, c.Header),
     );
-
-    const rowData = initialData.rows.map((r: Record<string, any>) =>
-      Object.fromEntries(
-        Object.entries(r).map(([key, val]) => [columnIndex[key].id, val]),
-      ),
-    );
-
-    //@ts-ignore
-    const rows = rowData;
-    const columns = Object.values(columnIndex);
+    const rows = initialData.rows;
 
     setColumnData(columns);
     setRowData(rows);
   }, [initialData]);
 
   useEffect(() => {
+    // NOTE: probably best to avoid adding onDataUpdate as dep, may run the update with bad data and causes the data to get screwy
     if (onDataUpdate) onDataUpdate(columnData, rowData);
-  }, [rowData, columnData, onDataUpdate]);
+  }, [rowData, columnData]);
 
   function insertRow(rowIndex: number) {
     setRowData((prevRowData) => {
@@ -350,4 +338,4 @@ export default function Spreadsheet({
       </Table>
     </>
   );
-}
+});

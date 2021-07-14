@@ -167,6 +167,11 @@ const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
   map(([nodes, edges]) => graphToReactFlow(nodes, edges)),
 );
 
+interface SpreadSheetTableData {
+  initialData: Table<any>;
+  nodeId: number;
+}
+
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
@@ -179,8 +184,9 @@ const FlowGraph = () => {
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
     defaultOmnibarOptions,
   );
-  const [spreadsheetTableSubject, setSpreadsheetTableSubject] =
-    useState<BehaviorSubject<Table<any>>>();
+
+  const [spreadsheetTableData, setSpreadsheetTableData] =
+    useState<SpreadSheetTableData>();
 
   useEffect(() => {
     if (omnibarQuery) {
@@ -281,6 +287,8 @@ const FlowGraph = () => {
         proGraph.deleteEdge(+el.id);
       } else {
         proGraph.deleteNode(+el.id);
+        if (spreadsheetTableData.nodeId === +el.id)
+          setSpreadsheetTableData(undefined);
       }
     }
   };
@@ -634,12 +642,16 @@ const FlowGraph = () => {
               }
             }}
             onNodeDoubleClick={(e, node) => {
-              if (node.type === "DataSource") {
-                const graphNode = graphRef.current.nodes.get(node.id);
-                setSpreadsheetTableSubject(graphNode.outputs["output"].stream);
+              if (node.type === "DataTable") {
+                const nodeId = +node.id;
+                const graphNode = proGraph.nodes.get(nodeId);
+                setSpreadsheetTableData({
+                  nodeId,
+                  initialData: graphNode.values.table as Table<any>,
+                });
                 setBottomMenuOpen(true);
               } else {
-                setSpreadsheetTableSubject(null);
+                setSpreadsheetTableData(undefined);
               }
             }}
             onSelectionDragStart={async (event, nodes) => {
@@ -861,33 +873,23 @@ const FlowGraph = () => {
 
       {bottomMenuOpen ? (
         <div style={{ height: "35%" }}>
-          {spreadsheetTableSubject ? (
+          {spreadsheetTableData ? (
             <Spreadsheet
-              initialData={spreadsheetTableSubject.value}
-              onDataUpdate={(columnData, rowData) => {
-                const columnIdIndex = Object.fromEntries(
-                  columnData.map((column, i) => [column.id, i]),
-                );
-                const tableColumns: Column[] = columnData.map((column, i) => ({
-                  accessor: column.id,
-                  Header: column.label,
+              initialData={spreadsheetTableData.initialData}
+              onDataUpdate={async (columnData, rowData) => {
+                const columns = columnData.map((c) => ({
+                  Header: c.label,
+                  accessor: c.id,
                 }));
-                const tableRows = rowData.map((row) =>
-                  Object.fromEntries(
-                    Object.entries(row)
-                      // TODO: for some reason lots of repeat values in rows
-                      .filter(([key, val]) => key in columnIdIndex)
-                      .map(([key, val]) => [
-                        tableColumns[columnIdIndex[key]].accessor,
-                        val,
-                      ]),
-                  ),
+                const rows = rowData;
+                await proGraph.updateNodeValue(
+                  spreadsheetTableData.nodeId,
+                  "table",
+                  {
+                    columns,
+                    rows,
+                  },
                 );
-
-                spreadsheetTableSubject.next({
-                  columns: tableColumns,
-                  rows: tableRows,
-                });
               }}
             />
           ) : (
