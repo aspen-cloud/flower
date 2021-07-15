@@ -110,7 +110,7 @@ export default React.memo(function Spreadsheet({
     return (
       <EditableCell
         value={value == null ? "" : value}
-        onChange={cellSetter(rowIndex, columnIndex, "CHANGE")}
+        onCancel={cellSetter(rowIndex, columnIndex, "CANCEL")}
         onConfirm={cellSetter(rowIndex, columnIndex, "CONFIRM")}
         onKeyDown={async (e) => {
           // stop propagation from triggering omnibar
@@ -238,7 +238,7 @@ export default React.memo(function Spreadsheet({
         return (
           <EditableName
             name={name}
-            onChange={columnNameSetter(columnIndex, "CHANGE")}
+            // onChange={columnNameSetter(columnIndex, "CHANGE")}
             onCancel={columnNameSetter(columnIndex, "CANCEL")}
             onConfirm={columnNameSetter(columnIndex, "CONFIRM")}
             placeholder={(columnIndex + 1).toString()}
