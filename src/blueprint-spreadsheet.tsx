@@ -238,7 +238,6 @@ export default React.memo(function Spreadsheet({
         return (
           <EditableName
             name={name}
-            // onChange={columnNameSetter(columnIndex, "CHANGE")}
             onCancel={columnNameSetter(columnIndex, "CANCEL")}
             onConfirm={columnNameSetter(columnIndex, "CONFIRM")}
             placeholder={(columnIndex + 1).toString()}
