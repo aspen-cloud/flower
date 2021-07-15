@@ -180,6 +180,11 @@ export default class ProGraph {
         edge.from.busKey
       ];
     }
+
+    const node = await this.getNode(nodeId);
+    for (const sourcekey in this.nodeTypes[node.type].sources) {
+      inputs[sourcekey] = node.values[sourcekey];
+    }
     return inputs;
   }
 
@@ -189,9 +194,16 @@ export default class ProGraph {
     newValue: any,
     evaluate = true,
   ) {
-    const resp = await this.db
-      .table("nodes")
-      .update(nodeId, { values: { [valueKey]: newValue } });
+    const resp = await this.db.transaction(
+      "rw",
+      this.db.table("nodes"),
+      async () => {
+        const node = await this.db.table("nodes").get(nodeId);
+        const newValues = { ...node.values, [valueKey]: newValue };
+        return this.db.table("nodes").update(nodeId, { values: newValues });
+      },
+    );
+
     if (evaluate) await this.evaluate([nodeId]);
     return resp;
   }
@@ -201,7 +213,6 @@ export default class ProGraph {
 
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
-      if (!nodeClass.inputs || nodeClass.inputs.length === 0) continue;
       const inputVals = await this.getNodeInputs(node.id);
 
       for (const outputKey in nodeClass.outputs) {
