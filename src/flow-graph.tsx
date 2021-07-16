@@ -287,7 +287,7 @@ const FlowGraph = () => {
         proGraph.deleteEdge(+el.id);
       } else {
         proGraph.deleteNode(+el.id);
-        if (spreadsheetTableData.nodeId === +el.id)
+        if (spreadsheetTableData?.nodeId === +el.id)
           setSpreadsheetTableData(undefined);
       }
     }
