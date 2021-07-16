@@ -60,7 +60,7 @@ import graphDB from "./graph-store";
 import { map } from "rxjs/operators";
 import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
-import { BehaviorSubject } from "rxjs";
+import DefaultEdge from "./graph-nodes/edges/default-edge";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -188,6 +188,10 @@ interface SpreadSheetTableData {
   initialData: Table<any>;
   nodeId: number;
 }
+
+const edgeTypes = {
+  default: DefaultEdge,
+};
 
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
@@ -645,6 +649,7 @@ const FlowGraph = () => {
             }}
             onLoad={onLoad}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             connectionLineStyle={connectionLineStyle}
             snapToGrid={true}
             snapGrid={snapGrid}
