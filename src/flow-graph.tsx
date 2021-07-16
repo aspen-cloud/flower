@@ -106,13 +106,16 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
-function getComponentDataForNode(node) {
+function getComponentDataForNode(node, parentNodeConnections) {
   const nodeClass = GraphNodes[node.type];
+  const inputKeys = nodeClass.inputs ? Object.keys(nodeClass.inputs) : [];
   const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
-
-  const inputs = nodeClass.inputs;
-
+  const inputs = inputKeys.reduce((acc, curr) => {
+    const connection = parentNodeConnections[curr];
+    acc[curr] = connection?.node?.values[connection?.outputBus];
+    return acc;
+  }, {});
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
       value: node.values[curr],
@@ -137,10 +140,24 @@ function graphToReactFlow(
   nodes: Map<number, GraphNode>,
   edges: Map<number, GraphEdge>,
 ): Elements {
+  // TODO: is there a better way to get this information?
+  const parentsMap = [...nodes.values()].reduce((acc, curr) => {
+    acc[curr.id] = [...edges.values()]
+      .filter((e) => e.to.nodeId === curr.id)
+      .reduce((accEdges, currEdge) => {
+        accEdges[currEdge.to.busKey] = {
+          node: nodes.get(currEdge.from.nodeId),
+          outputBus: currEdge.from.busKey,
+        };
+        return accEdges;
+      }, {});
+    return acc;
+  }, {});
+
   const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
     position: node.position,
     // TODO pass in Graph Values
-    data: getComponentDataForNode(node),
+    data: getComponentDataForNode(node, parentsMap[node.id]),
     type: node.type,
     id: node.id.toString(),
     style: {
