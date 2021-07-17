@@ -420,10 +420,10 @@ const FlowGraph = () => {
   const copyElements = async (els: Elements<any>) => {
     const serializedNodes = els
       .filter((el) => isNode(el))
-      .map((el) => proGraph.nodes.get(+el.id));
+      .map((el) => proGraph._nodes.get(+el.id));
     const serializedEdges = els
       .filter((el) => isEdge(el))
-      .map((el) => proGraph.edges.get(+el.id));
+      .map((el) => proGraph._edges.get(+el.id));
     // @ts-ignore
     await addElementsToClipboard(serializedNodes, serializedEdges);
   };
@@ -644,7 +644,7 @@ const FlowGraph = () => {
             onNodeDoubleClick={(e, node) => {
               if (node.type === "DataTable") {
                 const nodeId = +node.id;
-                const graphNode = proGraph.nodes.get(nodeId);
+                const graphNode = proGraph._nodes.get(nodeId);
                 setSpreadsheetTableData({
                   nodeId,
                   initialData: graphNode.values.table as Table<any>,

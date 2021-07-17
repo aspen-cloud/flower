@@ -1,224 +1,153 @@
-import Dexie, { IndexableTypeArrayReadonly } from "dexie";
-import { BehaviorSubject } from "rxjs";
-import { GraphEdge, GraphNode } from "./graph-store";
-export default class ProGraph {
-  nodes: Map<number, GraphNode>;
-  edges: Map<number, GraphEdge>;
-  nodes$: BehaviorSubject<Map<number, GraphNode>>;
-  edges$: BehaviorSubject<Map<number, GraphEdge>>;
-  initPromise: Promise<void>;
-  db: Dexie;
-  nodeTypes: Record<string, any>; // TODO add better type
+import * as Y from 'yjs'
+import { IndexeddbPersistence } from 'y-indexeddb'
+import { nanoid } from 'nanoid';
 
-  constructor(db: Dexie, nodeTypes: Record<string, any>) {
-    this.db = db;
-    this.edges$ = new BehaviorSubject<Map<number, GraphEdge>>(new Map());
-    this.nodes$ = new BehaviorSubject<Map<number, GraphNode>>(new Map());
-    this.initPromise = this._init();
-    this.nodeTypes = nodeTypes;
-  }
+export interface GraphNode {
+    id: string;
+    type: string;
+    values: Record<string, any>;
+    position: { x: number; y: number };
+}
 
-  private async _init() {
-    this.nodes = new Map(
-      (await this.db.table("nodes").toArray()).map((node) => [node.id, node]),
-    );
-    this.nodes$.next(this.nodes);
 
-    this.edges = new Map(
-      (await this.db.table("edges").toArray()).map((edge) => [edge.id, edge]),
-    );
-    this.edges$.next(this.edges);
-
-    this.db.on("changes", (changes) => {
-      for (const change of changes) {
-        if (!["nodes", "edges"].includes(change.table)) return;
-        switch (change.type) {
-          case 1: // CREATED
-          case 2: // UPDATED
-            this[change.table].set(change.key, {
-              id: change.key,
-              ...change.obj,
-            });
-            break;
-          case 3: // DELETED
-            this[change.table].delete(change.key);
-            break;
-          default:
-            //should never happen
-            break;
-        }
-      }
-      const anyNodesChanged = changes.some(
-        (change) => change.table === "nodes",
-      );
-      const anyEdgesChanged = changes.some(
-        (change) => change.table === "edges",
-      );
-      if (anyNodesChanged) {
-        this.nodes$.next(this.nodes);
-      }
-      if (anyEdgesChanged) {
-        this.edges$.next(this.edges);
-      }
-    });
-  }
-
-  async moveNode(nodeId: number, position: { x: number; y: number }) {
-    return this.db.table("nodes").update(nodeId, { position });
-  }
-
-  async wipeAll() {
-    await this.db.table("nodes").clear();
-    await this.db.table("edges").clear();
-  }
-
-  async addNode(node: Omit<GraphNode, "id">) {
-    const resp = await this.db.table("nodes").add(node);
-    await this.evaluate([+resp]);
-    return resp;
-  }
-
-  async addEdge(edge: Omit<GraphEdge, "id">) {
-    // TODO ensure nodes exist
-    const resp = await this.db.table("edges").add(edge);
-    await this.evaluate([+edge.from.nodeId]);
-    return resp;
-  }
-
-  async deleteNode(nodeId: number) {
-    return this.db.transaction(
-      "rw",
-      this.db.table("edges"),
-      this.db.table("nodes"),
-      async () => {
-        const edges = await (await this.getNodeEdges(nodeId)).primaryKeys();
-        await this.db
-          .table("edges")
-          .bulkDelete(edges as IndexableTypeArrayReadonly);
-        await this.db.table("nodes").delete(nodeId);
-        await this.evaluate(); // TODO pass in affected nodes based on edges
-      },
-    );
-  }
-
-  async getNode(nodeId: number) {
-    return this.db.table("nodes").get(+nodeId);
-  }
-
-  async deleteEdge(edgeKey: number) {
-    return this.db.table("edges").delete(+edgeKey);
-  }
-
-  async getNodeEdges(nodeId: number) {
-    return this.db
-      .table("edges")
-      .where("from.nodeId")
-      .equals(nodeId)
-      .or("to.nodeId")
-      .equals(nodeId);
-  }
-
-  async getAllNodes(): Promise<GraphNode[]> {
-    return this.db.table("nodes").toCollection().toArray();
-  }
-
-  async getAllEdges(): Promise<GraphEdge[]> {
-    return this.db.table("edges").toCollection().toArray();
-  }
-
-  async getTopologicallySortedNodes(seedNodeIds?: number[]) {
-    const nodes = await this.getAllNodes();
-    const edges = await this.getAllEdges();
-
-    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
-
-    const visited = {};
-    const nodeList = [];
-
-    const visit = (nodeId: number) => {
-      if (visited[nodeId]) return;
-      visited[nodeId] = true;
-      const deps = Array.from(edges).filter(
-        (edge) => edge.from.nodeId === nodeId,
-      );
-      deps.forEach((edge) => visit(edge.to.nodeId));
-      nodeList.push(nodeId);
+export interface GraphEdge {
+    id: string;
+    from: {
+        nodeId: string;
+        busKey: string;
     };
+    to: {
+        nodeId: string;
+        busKey: string;
+    };
+}
 
-    if (seedNodeIds) {
-      seedNodeIds.forEach((nodeId) => visit(nodeId));
-    } else {
-      nodes.forEach((node) => visit(node.id));
+
+export default class ProGraph {
+    private ydoc: Y.Doc;
+    _nodes: Y.Map<GraphNode>;
+    _edges: Y.Map<GraphEdge>;
+    _outputs: Record<string, Record<string, any>>;
+    nodeTypes: Record<string, any>;
+
+    constructor(nodeTypes: Record<string, any>) {
+        this.ydoc = new Y.Doc()
+        this.nodeTypes = nodeTypes;
+        this._outputs = {}
+
+        // this allows you to instantly get the (cached) documents data
+        const indexeddbProvider = new IndexeddbPersistence('main-graph', this.ydoc)
+        indexeddbProvider.whenSynced.then(() => {
+            console.log('loaded data from indexed db')
+        });
+
+        this._nodes = this.ydoc.getMap('nodes');
+        this._edges = this.ydoc.getMap('edges');
     }
 
-    return nodeList.reverse().map((nodeId) => nodeMap.get(nodeId));
-  }
-
-  async getNodeInputs(nodeId: number) {
-    // TODO Potentially run in a "read only" transaction
-    const inboundEdges = await this.db
-      .table("edges")
-      .where("to.nodeId")
-      .equals(nodeId)
-      .toArray();
-    const connectedNodeSet: Set<number> = inboundEdges.reduce((set, edge) => {
-      set.add(edge.from.nodeId);
-      return set;
-    }, new Set());
-
-    const connectedNodes = new Map(
-      (
-        await this.db
-          .table("nodes")
-          .bulkGet(Array.from(connectedNodeSet.values()))
-      ).map((node) => [node.id, node]),
-    );
-
-    const inputs = {};
-    for (const edge of inboundEdges) {
-      inputs[edge.to.busKey] = connectedNodes.get(edge.from.nodeId).values[
-        edge.from.busKey
-      ];
+    wipeAll() {
+        this._nodes.clear();
+        this._edges.clear();
     }
 
-    const node = await this.getNode(nodeId);
-    for (const sourcekey in this.nodeTypes[node.type].sources) {
-      inputs[sourcekey] = node.values[sourcekey];
+    addNode(node: Omit<GraphNode, "id">) {
+        const id = nanoid(5);
+        this._nodes.set(id, { id, ...node });
+        if (node.values) {
+            this.updateNodeOutput(id, node.values);
+        }
+        return id;
     }
-    return inputs;
-  }
 
-  async updateNodeValue(
-    nodeId: number,
-    valueKey: string,
-    newValue: any,
-    evaluate = true,
-  ) {
-    const resp = await this.db.transaction(
-      "rw",
-      this.db.table("nodes"),
-      async () => {
-        const node = await this.db.table("nodes").get(nodeId);
-        const newValues = { ...node.values, [valueKey]: newValue };
-        return this.db.table("nodes").update(nodeId, { values: newValues });
-      },
-    );
-
-    if (evaluate) await this.evaluate([nodeId]);
-    return resp;
-  }
-
-  async evaluate(changedNodes?: number[]) {
-    const sorting = await this.getTopologicallySortedNodes(changedNodes);
-
-    for (const node of sorting) {
-      const nodeClass = this.nodeTypes[node.type];
-      const inputVals = await this.getNodeInputs(node.id);
-
-      for (const outputKey in nodeClass.outputs) {
-        const newVal = nodeClass.outputs[outputKey](inputVals);
-        await this.updateNodeValue(node.id, outputKey, newVal, false);
-      }
+    addEdge(edge: Omit<GraphEdge, "id">) {
+        const id = nanoid(5);
+        this._edges.set(id, { id, ...edge });
+        return id;
     }
-  }
+
+    deleteNode(nodeId: string) {
+        this.ydoc.transact(() => {
+            this._nodes.delete(nodeId);
+            const connectedEdges = Array.from(this._edges.values()).filter((edge: GraphEdge) => edge.to.nodeId === nodeId || edge.from.nodeId === nodeId);
+            for (const edge of connectedEdges) {
+                this._edges.delete(edge.id);
+            }
+        })
+    }
+
+    getTopologicallySortedNodes(seedNodeIds?: string[]) {
+        const visited = {};
+        const nodeList = [];
+
+        const visit = (nodeId: string) => {
+            if (visited[nodeId]) return;
+            visited[nodeId] = true;
+            const deps = Array.from(this._edges.values()).filter(
+                (edge: GraphEdge) => edge.from.nodeId === nodeId,
+            );
+            deps.forEach((edge) => visit(edge.to.nodeId));
+            nodeList.push(nodeId);
+        }
+
+        if (seedNodeIds) {
+            seedNodeIds.forEach((nodeId) => visit(nodeId));
+        } else {
+            Array.from(this._nodes.values()).forEach((node) => visit(node.id));
+        }
+
+        return nodeList.reverse().map((nodeId) => this._nodes.get(nodeId));
+    }
+
+    getNodeInputs(nodeId: string) {
+        const inboundEdges = Array.from(this._edges.values() as IterableIterator<GraphEdge>).filter((edge) => edge.to.nodeId === nodeId);
+
+        const inputs = {};
+        for (const edge of inboundEdges) {
+            const nodeOutputs = this._outputs[edge.from.nodeId];
+            if (!nodeOutputs) continue;
+            inputs[edge.to.busKey] = nodeOutputs[
+                edge.from.busKey
+            ];
+        }
+
+        const node = this._nodes.get(nodeId);
+        for (const sourcekey in (this.nodeTypes[node.type].sources || {})) {
+            inputs[sourcekey] = node.values[sourcekey];
+        }
+        return inputs;
+    }
+
+    updateNodeSource(nodeId: string,
+        valueKey: string,
+        newValue: any,
+        evaluate = true,) {
+        const node = this._nodes.get(nodeId);
+        node.values = { ...node.values, [valueKey]: newValue };
+        this._nodes.set(node.id, node);
+        this.updateNodeOutput(nodeId, { [valueKey]: newValue });
+    }
+
+    updateNodeOutput(
+        nodeId: string,
+        outputs: Record<string, any>,
+        evaluate = true,
+    ) {
+        const currentNodeOutputs = this._outputs[nodeId] || {};
+        this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs }
+    }
+
+    evaluate(changedNodes?: string[]) {
+        const sorting = this.getTopologicallySortedNodes(changedNodes);
+
+        for (const node of sorting) {
+            const nodeClass = this.nodeTypes[node.type];
+            const inputVals = this.getNodeInputs(node.id);
+
+            for (const outputKey in nodeClass.outputs) {
+                const newVal = nodeClass.outputs[outputKey](inputVals);
+                this.updateNodeOutput(node.id, { [outputKey]: newVal }, false);
+            }
+        }
+    }
+
 }

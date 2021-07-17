@@ -1,9 +1,10 @@
+global.indexedDB = require("fake-indexeddb");
+global.IDBKeyRange = require("fake-indexeddb/lib/FDBKeyRange");
 import ProGraph from "../prograph";
-import graphDB from "../graph-store";
 import { any, number } from "superstruct";
 
 describe("basic CRUD", () => {
-  const graph = new ProGraph(graphDB, {
+  const graph = new ProGraph({
     TEST_NODE: {
       inputs: {
         input: any(),
@@ -14,83 +15,80 @@ describe("basic CRUD", () => {
     },
   });
 
-  beforeEach(async () => {
-    await graph.wipeAll();
+  beforeEach(() => {
+    graph.wipeAll();
   });
 
-  test("can add and read nodes", async () => {
-    const resp = await graph.addNode({
+  test("can add and read nodes", () => {
+    const resp = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
       values: [],
     });
 
-    expect(resp).not.toBeNull();
-
-    const allNodes = await graph.getAllNodes();
-    expect(allNodes).toHaveLength(1);
+    const allNodes = graph._nodes;
+    expect(allNodes.size).toBe(1);
   });
 
-  test("can add and read edges", async () => {
-    const node1 = await graph.addNode({
+  test("can add and read edges", () => {
+    const node1 = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
       values: [],
     });
-    const node2 = await graph.addNode({
+    const node2 = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
       values: [],
     });
-    const resp = await graph.addEdge({
+    const resp = graph.addEdge({
       from: {
-        nodeId: +node1,
+        nodeId: node1,
         busKey: "output",
       },
       to: {
-        nodeId: +node2,
+        nodeId: node2,
         busKey: "input",
       },
     });
 
     expect(resp).not.toBeNull();
-
-    const allEdges = await graph.getAllEdges();
-    expect(allEdges).toHaveLength(1);
+    ;
+    expect(graph._edges.size).toBe(1);
   });
 
-  test("can delete node and connected to edges", async () => {
-    const nodeAKey = await graph.addNode({
+  test("can delete node and connected to edges", () => {
+    const nodeAKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
       values: [],
     });
-    const nodeBKey = await graph.addNode({
+    const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "input",
       },
     });
 
-    await graph.deleteNode(+nodeBKey);
+    graph.deleteNode(nodeBKey);
 
-    expect(await graph.getAllNodes()).toHaveLength(1);
-    expect(await graph.getAllEdges()).toHaveLength(0);
+    expect(graph._nodes.size).toBe(1);
+    expect(graph._edges.size).toBe(0);
   });
 });
 
 describe("topological sorting", () => {
-  const graph = new ProGraph(graphDB, {
+  const graph = new ProGraph({
     TEST_NODE: {
       inputs: {
         input: any(),
@@ -101,126 +99,127 @@ describe("topological sorting", () => {
     },
   });
 
-  beforeEach(async () => {
-    await graph.wipeAll();
+  beforeEach(() => {
+    graph.wipeAll();
   });
 
-  it("correctly sorts simple graph", async () => {
-    const nodeAKey = await graph.addNode({
+  it("correctly sorts simple graph", () => {
+    const nodeAKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeBKey = await graph.addNode({
+    const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const edgeResp = await graph.addEdge({
+    const edgeResp = graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "input",
       },
     });
 
-    const nodes = await graph.getTopologicallySortedNodes();
+    const nodes = graph.getTopologicallySortedNodes();
+
     expect(nodes.map((node) => node.id)).toEqual([nodeAKey, nodeBKey]);
   });
 
-  it("correctly sorts complex graph", async () => {
-    const nodeAKey = await graph.addNode({
+  it("correctly sorts complex graph", () => {
+    const nodeAKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeBKey = await graph.addNode({
+    const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeCKey = await graph.addNode({
+    const nodeCKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeDKey = await graph.addNode({
+    const nodeDKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeEKey = await graph.addNode({
+    const nodeEKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeDKey,
+        nodeId: nodeDKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeCKey,
+        nodeId: nodeCKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeDKey,
+        nodeId: nodeDKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeEKey,
+        nodeId: nodeEKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeCKey,
+        nodeId: nodeCKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeEKey,
+        nodeId: nodeEKey,
         busKey: "input",
       },
     });
 
-    const nodes = await graph.getTopologicallySortedNodes();
+    const nodes = graph.getTopologicallySortedNodes();
     expect(nodes.map((node) => node.id)).toEqual([
       nodeAKey,
       nodeDKey,
@@ -231,101 +230,101 @@ describe("topological sorting", () => {
     expect(nodes).toHaveLength(5);
   });
 
-  it("correctly partials order based on seed", async () => {
-    const nodeAKey = await graph.addNode({
+  it("correctly partials order based on seed", () => {
+    const nodeAKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeBKey = await graph.addNode({
+    const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeCKey = await graph.addNode({
+    const nodeCKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeDKey = await graph.addNode({
+    const nodeDKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
-    const nodeEKey = await graph.addNode({
+    const nodeEKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
       values: [],
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeDKey,
+        nodeId: nodeDKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeCKey,
+        nodeId: nodeCKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeDKey,
+        nodeId: nodeDKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeEKey,
+        nodeId: nodeEKey,
         busKey: "input",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeCKey,
+        nodeId: nodeCKey,
         busKey: "output",
       },
       to: {
-        nodeId: +nodeEKey,
+        nodeId: nodeEKey,
         busKey: "input",
       },
     });
 
-    const bDeps = await graph.getTopologicallySortedNodes([+nodeBKey]);
+    const bDeps = graph.getTopologicallySortedNodes([nodeBKey]);
     expect(bDeps.map((node) => node.id)).toEqual([
       nodeBKey,
       nodeCKey,
       nodeEKey,
     ]);
 
-    const aDeps = await graph.getTopologicallySortedNodes([+nodeAKey]);
+    const aDeps = graph.getTopologicallySortedNodes([nodeAKey]);
     expect(aDeps.map((node) => node.id)).toEqual([
       nodeAKey,
       nodeDKey,
@@ -334,10 +333,10 @@ describe("topological sorting", () => {
       nodeEKey,
     ]);
 
-    const eDeps = await graph.getTopologicallySortedNodes([+nodeEKey]);
+    const eDeps = graph.getTopologicallySortedNodes([nodeEKey]);
     expect(eDeps.map((node) => node.id)).toEqual([nodeEKey]);
 
-    const cDeps = await graph.getTopologicallySortedNodes([+nodeCKey]);
+    const cDeps = graph.getTopologicallySortedNodes([nodeCKey]);
     expect(cDeps.map((node) => node.id)).toEqual([nodeCKey, nodeEKey]);
   });
 });
@@ -345,7 +344,7 @@ describe("topological sorting", () => {
 describe("Basic calculations", () => {
   let graph: ProGraph;
   let nodeAKey, nodeBKey, nodeCKey, nodeDKey;
-  beforeAll(async () => {
+  beforeAll(() => {
     const NodeTypes = {
       Add: {
         inputs: {
@@ -380,48 +379,48 @@ describe("Basic calculations", () => {
       },
     };
 
-    graph = new ProGraph(graphDB, NodeTypes);
-    await graph.wipeAll();
+    graph = new ProGraph(NodeTypes);
+    graph.wipeAll();
 
     /**
      *  Goal is to model:
-     *  D = A + B - C
+     *  D = A  B - C
      */
 
     // NODES
 
-    nodeAKey = await graph.addNode({
+    nodeAKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
       values: { number: 10 },
     });
-    nodeBKey = await graph.addNode({
+    nodeBKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
       values: { number: 5 },
     });
-    nodeCKey = await graph.addNode({
+    nodeCKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
       values: { number: 50 },
     });
 
-    const addNodeKey = await graph.addNode({
+    const addNodeKey = graph.addNode({
       type: "Add",
       position: { x: 0, y: 0 },
       values: {},
     });
 
-    const subtractNodeKey = await graph.addNode({
+    const subtractNodeKey = graph.addNode({
       type: "Subtract",
       position: { x: 0, y: 0 },
       values: {},
     });
 
-    nodeDKey = await graph.addNode({
+    nodeDKey = graph.addNode({
       type: "Output",
       position: { x: 0, y: 0 },
 
@@ -429,93 +428,93 @@ describe("Basic calculations", () => {
     });
 
     // EDGES
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeAKey,
+        nodeId: nodeAKey,
         busKey: "number",
       },
       to: {
-        nodeId: +addNodeKey,
+        nodeId: addNodeKey,
         busKey: "left",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeBKey,
+        nodeId: nodeBKey,
         busKey: "number",
       },
       to: {
-        nodeId: +addNodeKey,
+        nodeId: addNodeKey,
         busKey: "right",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +addNodeKey,
+        nodeId: addNodeKey,
         busKey: "sum",
       },
       to: {
-        nodeId: +subtractNodeKey,
+        nodeId: subtractNodeKey,
         busKey: "left",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +nodeCKey,
+        nodeId: nodeCKey,
         busKey: "number",
       },
       to: {
-        nodeId: +subtractNodeKey,
+        nodeId: subtractNodeKey,
         busKey: "right",
       },
     });
 
-    await graph.addEdge({
+    graph.addEdge({
       from: {
-        nodeId: +subtractNodeKey,
+        nodeId: subtractNodeKey,
         busKey: "difference",
       },
       to: {
-        nodeId: +nodeDKey,
+        nodeId: nodeDKey,
         busKey: "value",
       },
     });
   });
 
-  it("can produce the correct output", async () => {
-    // D = A + B - C
-    // 10 + 5 - 50 => -35
-    await graph.evaluate();
+  it("can produce the correct output", () => {
+    // D = A  B - C
+    // 10  5 - 50 => -35
+    graph.evaluate();
 
-    const result = await graph.getNode(+nodeDKey);
+    const result = graph._nodes.get(nodeDKey);
 
-    expect(result.values.value).toBe(-35);
+    expect(graph._outputs[nodeDKey].value).toBe(-35);
   });
 
-  it("will react to changes", async () => {
-    // D = A + B - C
-    // 10 + *15* - 50 => *-25*
+  it("will react to changes", () => {
+    // D = A  B - C
+    // 10  *15* - 50 => *-25*
 
-    graph.updateNodeValue(nodeBKey, "number", 15);
+    graph.updateNodeSource(nodeBKey, "number", 15);
 
-    await graph.evaluate();
-    const result = await graph.getNode(+nodeDKey);
+    graph.evaluate();
+    const result = graph._nodes.get(nodeDKey);
 
-    expect(result.values.value).toBe(-25);
+    expect(graph._outputs[nodeDKey].value).toBe(-25);
   });
 
-  it("will support granular changes", async () => {
-    // D = A + B - C
-    // 10 + *-100* - 50 => *-140*
+  it("will support granular changes", () => {
+    // D = A  B - C
+    // 10  *-100* - 50 => *-140*
 
-    graph.updateNodeValue(nodeBKey, "number", -100);
+    graph.updateNodeSource(nodeBKey, "number", -100);
 
-    await graph.evaluate([nodeBKey]);
-    const result = await graph.getNode(+nodeDKey);
+    graph.evaluate([nodeBKey]);
+    const result = graph._nodes.get(nodeDKey);
 
-    expect(result.values.value).toBe(-140);
+    expect(graph._outputs[nodeDKey].value).toBe(-140);
   });
 });
