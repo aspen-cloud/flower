@@ -90,12 +90,14 @@ export default class ProGraph {
         if (node.sources) {
             this.updateNodeOutput(id, node.sources);
         }
+        this.evaluate();
         return id;
     }
 
     addEdge(edge: Omit<GraphEdge, "id">) {
         const id = nanoid(5);
         this._edges.set(id, { id, ...edge });
+        this.evaluate();
         return id;
     }
 
@@ -115,10 +117,12 @@ export default class ProGraph {
             }
         })
         delete this._outputs[nodeId];
+        this.evaluate();
     }
 
     deleteEdge(edgeId: string) {
         this._edges.delete(edgeId);
+        this.evaluate();
     }
 
     getTopologicallySortedNodes(seedNodeIds?: string[]) {
