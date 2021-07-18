@@ -1,5 +1,5 @@
-import { any, array, string } from "superstruct";
-import { useEffect, useState } from "react";
+import { any, string, set } from "superstruct";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Tag, MenuItem } from "@blueprintjs/core";
 import { Suggest, ItemRenderer } from "@blueprintjs/select";
 import BaseNode from "../../../base-node";
@@ -28,16 +28,17 @@ const Select = {
     table: any(),
   },
   sources: {
-    selectedTags: array(string()),
+    selectedTags: set(string()),
   },
   outputs: {
     table: ({ table, selectedTags }) => {
       const tbl = table || { columns: [], rows: [] };
-      const tags = selectedTags || [];
-      const columns = tbl.columns.filter((col) => tags.includes(col.accessor));
+      const tags: Set<string> = new Set(selectedTags || []);
+
+      const columns = tbl.columns.filter((col) => tags.has(col.accessor));
       const rows = tbl.rows.map((row) =>
         Object.fromEntries(
-          Object.entries(row).filter(([key, val]) => tags.includes(key)),
+          Object.entries(row).filter(([key, val]) => tags.has(key)),
         ),
       );
       return { columns, rows };
@@ -45,14 +46,10 @@ const Select = {
   },
   Component: ({ data }) => {
     const table = data.inputs.table || { columns: [], rows: [] };
-    const [selectedTags, setSelectedTags] = useState<Set<string>>(
-      data.sources.selectedTags?.value
-        ? new Set(data.sources.selectedTags?.value)
-        : new Set(),
-    );
-    useEffect(() => {
-      data.sources.selectedTags.set([...selectedTags]);
-    }, [selectedTags, data.sources.selectedTags]);
+
+    const setSelectedTags = useCallback((newSet) => data.sources.selectedTags.set(Array.from(newSet.values())), [data.sources.selectedTags]);
+
+    const tagSet: Set<string> = useMemo(() => new Set(data.sources.selectedTags?.value), [data.sources.selectedTags]);
 
     const [columnNameMap, setColumnNameMap] = useState<Record<string, string>>(
       {},
@@ -68,13 +65,11 @@ const Select = {
       setColumnNameMap(newNameMap);
     }, [data.inputs.table]);
 
-    const onRemove = (e, tagProps) =>
-      setSelectedTags(
-        (prevSelectedTags) =>
-          new Set(
-            [...prevSelectedTags].filter((tag) => tag !== tagProps.children),
-          ),
-      );
+    const onRemove = (columnAccessor: string) => {
+      const newSet = new Set(tagSet);
+      newSet.delete(columnAccessor);
+      setSelectedTags(newSet);
+    }
 
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
@@ -94,22 +89,21 @@ const Select = {
           <button onClick={() => setSelectedTags(new Set())}>
             Deselect All
           </button>
-          {[...selectedTags].map((tag) => (
-            <Tag key={tag} onRemove={onRemove}>
+          {Array.from(tagSet.values()).map((tag) => (
+            <Tag key={tag} onRemove={() => onRemove(tag)}>
               {columnNameMap[tag]}
             </Tag>
           ))}
           <ColumnSuggest
             inputValueRenderer={(item: Column) => item.Header}
-            items={table.columns.filter((c) => !selectedTags.has(c.accessor))}
+            items={table.columns.filter((c) => !tagSet.has(c.accessor))}
             noResults={
               <MenuItem disabled={true} text="All columns selected." />
             }
             onItemSelect={(item, event) => {
-              setSelectedTags(
-                (prevSelectedTags) =>
-                  new Set([...prevSelectedTags, item.accessor]),
-              );
+              const newSet = new Set(tagSet);
+              newSet.add(item.accessor);
+              setSelectedTags(newSet);
             }}
             itemRenderer={renderColumnSuggestion}
             resetOnSelect={true}
