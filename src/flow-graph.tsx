@@ -61,7 +61,7 @@ import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
 const initBgColor = "#343434";
 
@@ -113,7 +113,9 @@ function getComponentDataForNode(node) {
 
   const inputVals = proGraph.getNodeInputs(node.id);
 
-  const inputs = Object.fromEntries(inputKeys.map(key => [key, inputVals[key]]));
+  const inputs = Object.fromEntries(
+    inputKeys.map((key) => [key, inputVals[key]]),
+  );
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
       value: node.sources[curr],
@@ -291,7 +293,7 @@ const FlowGraph = () => {
         proGraph.deleteEdge(el.id);
       } else {
         proGraph.deleteNode(el.id);
-        if (spreadsheetTableData.nodeId === el.id)
+        if (spreadsheetTableData?.nodeId === el.id)
           setSpreadsheetTableData(undefined);
       }
     }
