@@ -61,11 +61,6 @@ body {
   pointer-events: none;
 }
 
-/* See https://github.com/wbkd/react-flow/issues/1114 for better edge select fix */
-.react-flow__edge {
-  pointer-events: bounding-box;
-}
-
 /* edge selected styles */
 .react-flow__edge.selected .react-flow__edge-path {
   stroke-width: 0.5em;

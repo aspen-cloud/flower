@@ -1,5 +1,10 @@
-import { any, number } from "superstruct";
+import { any, array, enums, number, object, string } from "superstruct";
+import { useEffect, useState } from "react";
 import BaseNode from "../../../base-node";
+import Sort from "./sort-transformer";
+import Select from "./select-transformer";
+import Join from "./join-transformer";
+import Group from "./group-transformer";
 
 const Add = {
   inputs: {
@@ -20,4 +25,8 @@ const Add = {
 
 export default {
   Add,
+  Sort,
+  Select,
+  Join,
+  Group,
 };

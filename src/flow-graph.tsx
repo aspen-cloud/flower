@@ -59,6 +59,8 @@ import { map } from "rxjs/operators";
 import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
 
+import DefaultEdge from "./graph-nodes/edges/default-edge";
+
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
 const initBgColor = "#343434";
@@ -103,13 +105,16 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
-function getComponentDataForNode(node) {
+function getComponentDataForNode(node, parentNodeConnections) {
   const nodeClass = GraphNodes[node.type];
+  const inputKeys = nodeClass.inputs ? Object.keys(nodeClass.inputs) : [];
   const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
-
-  const inputs = nodeClass.inputs;
-
+  const inputs = inputKeys.reduce((acc, curr) => {
+    const connection = parentNodeConnections[curr];
+    acc[curr] = connection?.node?.values[connection?.outputBus];
+    return acc;
+  }, {});
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
       value: node.sources[curr],
@@ -134,10 +139,24 @@ function graphToReactFlow(
   nodes: Map<string, GraphNode>,
   edges: Map<string, GraphEdge>,
 ): Elements {
+  // TODO: is there a better way to get this information?
+  const parentsMap = [...nodes.values()].reduce((acc, curr) => {
+    acc[curr.id] = [...edges.values()]
+      .filter((e) => e.to.nodeId === curr.id)
+      .reduce((accEdges, currEdge) => {
+        accEdges[currEdge.to.busKey] = {
+          node: nodes.get(currEdge.from.nodeId),
+          outputBus: currEdge.from.busKey,
+        };
+        return accEdges;
+      }, {});
+    return acc;
+  }, {});
+
   const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
     position: node.position,
     // TODO pass in Graph Values
-    data: getComponentDataForNode(node),
+    data: getComponentDataForNode(node, parentsMap[node.id]),
     type: node.type,
     id: node.id.toString(),
     style: {
@@ -168,6 +187,10 @@ interface SpreadSheetTableData {
   initialData: Table<any>;
   nodeId: string;
 }
+
+const edgeTypes = {
+  default: DefaultEdge,
+};
 
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
@@ -625,6 +648,7 @@ const FlowGraph = () => {
             }}
             onLoad={onLoad}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             connectionLineStyle={connectionLineStyle}
             snapToGrid={true}
             snapGrid={snapGrid}
