@@ -105,16 +105,15 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
-function getComponentDataForNode(node, parentNodeConnections) {
+function getComponentDataForNode(node) {
   const nodeClass = GraphNodes[node.type];
   const inputKeys = nodeClass.inputs ? Object.keys(nodeClass.inputs) : [];
   const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
-  const inputs = inputKeys.reduce((acc, curr) => {
-    const connection = parentNodeConnections[curr];
-    acc[curr] = connection?.node?.values[connection?.outputBus];
-    return acc;
-  }, {});
+
+  const inputVals = proGraph.getNodeInputs(node.id);
+
+  const inputs = Object.fromEntries(inputKeys.map(key => [key, inputVals[key]]));
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
       value: node.sources[curr],
@@ -127,7 +126,6 @@ function getComponentDataForNode(node, parentNodeConnections) {
     return acc;
   }, {});
 
-  // TODO possibly include input values
   return {
     inputs,
     sources,
@@ -139,24 +137,10 @@ function graphToReactFlow(
   nodes: Map<string, GraphNode>,
   edges: Map<string, GraphEdge>,
 ): Elements {
-  // TODO: is there a better way to get this information?
-  const parentsMap = [...nodes.values()].reduce((acc, curr) => {
-    acc[curr.id] = [...edges.values()]
-      .filter((e) => e.to.nodeId === curr.id)
-      .reduce((accEdges, currEdge) => {
-        accEdges[currEdge.to.busKey] = {
-          node: nodes.get(currEdge.from.nodeId),
-          outputBus: currEdge.from.busKey,
-        };
-        return accEdges;
-      }, {});
-    return acc;
-  }, {});
-
   const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
     position: node.position,
     // TODO pass in Graph Values
-    data: getComponentDataForNode(node, parentsMap[node.id]),
+    data: getComponentDataForNode(node),
     type: node.type,
     id: node.id.toString(),
     style: {
