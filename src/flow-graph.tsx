@@ -53,16 +53,13 @@ import {
   ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
-import { GraphEdge, GraphNode } from "./graph-store";
 import { combineLatest } from "rxjs";
-import ProGraph from "./prograph";
-import graphDB from "./graph-store";
+import ProGraph, { GraphEdge, GraphNode } from "./prograph";
 import { map } from "rxjs/operators";
 import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
-import { BehaviorSubject } from "rxjs";
 
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
 const initBgColor = "#343434";
 
@@ -115,13 +112,13 @@ function getComponentDataForNode(node) {
 
   const sources = sourceKeys.reduce((acc, curr) => {
     acc[curr] = {
-      value: node.values[curr],
-      set: (newVal) => proGraph.updateNodeValue(node.id, curr, newVal),
+      value: node.sources[curr],
+      set: (newVal) => proGraph.updateNodeSource(node.id, curr, newVal),
     };
     return acc;
   }, {});
   const outputs = outputKeys.reduce((acc, curr) => {
-    acc[curr] = node.values[curr];
+    acc[curr] = node.outputs && node.outputs[curr];
     return acc;
   }, {});
 
@@ -134,8 +131,8 @@ function getComponentDataForNode(node) {
 }
 
 function graphToReactFlow(
-  nodes: Map<number, GraphNode>,
-  edges: Map<number, GraphEdge>,
+  nodes: Map<string, GraphNode>,
+  edges: Map<string, GraphEdge>,
 ): Elements {
   const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
     position: node.position,
@@ -160,7 +157,7 @@ function graphToReactFlow(
   return [...flowNodes, ...flowEdges];
 }
 
-const proGraph = new ProGraph(graphDB, GraphNodes);
+const proGraph = new ProGraph(GraphNodes);
 console.log("graph", proGraph);
 
 const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
@@ -169,7 +166,7 @@ const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
 
 interface SpreadSheetTableData {
   initialData: Table<any>;
-  nodeId: number;
+  nodeId: string;
 }
 
 const FlowGraph = () => {
@@ -271,11 +268,11 @@ const FlowGraph = () => {
   const onConnect = (connection: Connection | Edge<any>) => {
     proGraph.addEdge({
       from: {
-        nodeId: +connection.source,
+        nodeId: connection.source,
         busKey: connection.sourceHandle,
       },
       to: {
-        nodeId: +connection.target,
+        nodeId: connection.target,
         busKey: connection.targetHandle,
       },
     });
@@ -284,10 +281,10 @@ const FlowGraph = () => {
   const onElementsRemove = (elementsToRemove: Elements) => {
     for (const el of elementsToRemove) {
       if (isEdge(el)) {
-        proGraph.deleteEdge(+el.id);
+        proGraph.deleteEdge(el.id);
       } else {
-        proGraph.deleteNode(+el.id);
-        if (spreadsheetTableData.nodeId === +el.id)
+        proGraph.deleteNode(el.id);
+        if (spreadsheetTableData.nodeId === el.id)
           setSpreadsheetTableData(undefined);
       }
     }
@@ -316,7 +313,7 @@ const FlowGraph = () => {
           null, // TODO use default value from Node definition
         ]),
       );
-    proGraph.addNode({ type, position, values });
+    proGraph.addNode({ type, position, sources: values });
   }, []);
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -420,10 +417,10 @@ const FlowGraph = () => {
   const copyElements = async (els: Elements<any>) => {
     const serializedNodes = els
       .filter((el) => isNode(el))
-      .map((el) => proGraph._nodes.get(+el.id));
+      .map((el) => proGraph._nodes.get(el.id));
     const serializedEdges = els
       .filter((el) => isEdge(el))
-      .map((el) => proGraph._edges.get(+el.id));
+      .map((el) => proGraph._edges.get(el.id));
     // @ts-ignore
     await addElementsToClipboard(serializedNodes, serializedEdges);
   };
@@ -498,7 +495,7 @@ const FlowGraph = () => {
         clipboardNodes.map((clipboardNode) =>
           proGraph.addNode({
             type: clipboardNode.element.type,
-            values: clipboardNode.element.values,
+            sources: clipboardNode.element.values,
             position: {
               x: position.x + clipboardNode.xOffset,
               y: position.y + clipboardNode.yOffset,
@@ -521,11 +518,11 @@ const FlowGraph = () => {
         ) {
           proGraph.addEdge({
             from: {
-              nodeId: +newNodesMap.get(edge.element.from.nodeId),
+              nodeId: newNodesMap.get(edge.element.from.nodeId),
               busKey: edge.element.from.busKey,
             },
             to: {
-              nodeId: +newNodesMap.get(edge.element.to.nodeId),
+              nodeId: newNodesMap.get(edge.element.to.nodeId),
               busKey: edge.element.to.busKey,
             },
           });
@@ -643,11 +640,11 @@ const FlowGraph = () => {
             }}
             onNodeDoubleClick={(e, node) => {
               if (node.type === "DataTable") {
-                const nodeId = +node.id;
+                const nodeId = node.id;
                 const graphNode = proGraph._nodes.get(nodeId);
                 setSpreadsheetTableData({
                   nodeId,
-                  initialData: graphNode.values.table as Table<any>,
+                  initialData: graphNode.sources.table as Table<any>,
                 });
                 setBottomMenuOpen(true);
               } else {
@@ -758,11 +755,11 @@ const FlowGraph = () => {
               )
             }
             onNodeDragStop={(e, node) => {
-              proGraph.moveNode(+node.id, node.position);
+              proGraph.moveNode(node.id, node.position);
             }}
             onSelectionDragStop={(e, nodes) => {
               for (const node of nodes) {
-                proGraph.moveNode(+node.id, node.position);
+                proGraph.moveNode(node.id, node.position);
               }
             }}
           >
@@ -882,7 +879,7 @@ const FlowGraph = () => {
                   accessor: c.id,
                 }));
                 const rows = rowData;
-                await proGraph.updateNodeValue(
+                await proGraph.updateNodeSource(
                   spreadsheetTableData.nodeId,
                   "table",
                   {

@@ -23,7 +23,7 @@ describe("basic CRUD", () => {
     const resp = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
-      values: [],
+      sources: [],
     });
 
     const allNodes = graph._nodes;
@@ -34,12 +34,12 @@ describe("basic CRUD", () => {
     const node1 = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
-      values: [],
+      sources: [],
     });
     const node2 = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
-      values: [],
+      sources: [],
     });
     const resp = graph.addEdge({
       from: {
@@ -61,13 +61,13 @@ describe("basic CRUD", () => {
     const nodeAKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
-      values: [],
+      sources: [],
     });
     const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     graph.addEdge({
       from: {
@@ -108,13 +108,13 @@ describe("topological sorting", () => {
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const edgeResp = graph.addEdge({
       from: {
@@ -137,31 +137,31 @@ describe("topological sorting", () => {
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeCKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeDKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeEKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
 
     graph.addEdge({
@@ -235,31 +235,31 @@ describe("topological sorting", () => {
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeBKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeCKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeDKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
     const nodeEKey = graph.addNode({
       type: "TEST_NODE",
       position: { x: 0, y: 0 },
 
-      values: [],
+      sources: [],
     });
 
     graph.addEdge({
@@ -393,38 +393,38 @@ describe("Basic calculations", () => {
       type: "Number",
       position: { x: 0, y: 0 },
 
-      values: { number: 10 },
+      sources: { number: 10 },
     });
     nodeBKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      values: { number: 5 },
+      sources: { number: 5 },
     });
     nodeCKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      values: { number: 50 },
+      sources: { number: 50 },
     });
 
     const addNodeKey = graph.addNode({
       type: "Add",
       position: { x: 0, y: 0 },
-      values: {},
+      sources: {},
     });
 
     const subtractNodeKey = graph.addNode({
       type: "Subtract",
       position: { x: 0, y: 0 },
-      values: {},
+      sources: {},
     });
 
     nodeDKey = graph.addNode({
       type: "Output",
       position: { x: 0, y: 0 },
 
-      values: { value: null },
+      sources: { value: null },
     });
 
     // EDGES

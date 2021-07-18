@@ -1,11 +1,13 @@
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import { nanoid } from 'nanoid';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface GraphNode {
     id: string;
     type: string;
-    values: Record<string, any>;
+    sources?: Record<string, any>;
+    outputs?: Record<string, any>;
     position: { x: number; y: number };
 }
 
@@ -25,6 +27,8 @@ export interface GraphEdge {
 
 export default class ProGraph {
     private ydoc: Y.Doc;
+    nodes$: BehaviorSubject<Map<string, GraphNode>>;
+    edges$: BehaviorSubject<Map<string, GraphEdge>>;
     _nodes: Y.Map<GraphNode>;
     _edges: Y.Map<GraphEdge>;
     _outputs: Record<string, Record<string, any>>;
@@ -38,11 +42,41 @@ export default class ProGraph {
         // this allows you to instantly get the (cached) documents data
         const indexeddbProvider = new IndexeddbPersistence('main-graph', this.ydoc)
         indexeddbProvider.whenSynced.then(() => {
-            console.log('loaded data from indexed db')
+            this.evaluate();
         });
 
         this._nodes = this.ydoc.getMap('nodes');
         this._edges = this.ydoc.getMap('edges');
+        this.nodes$ = new BehaviorSubject(this.nodes);
+        this.edges$ = new BehaviorSubject(this.edges);
+
+        this._nodes.observe((_changeEvent, _transaction) => {
+            this.nodes$.next(this.nodes);
+        })
+
+        this._edges.observe((_changeEvent, _transaction) => {
+            this.edges$.next(this.edges);
+        })
+    }
+
+    getNode(nodeId: string) {
+        return {
+            ...this._nodes.get(nodeId),
+            outputs: this._outputs[nodeId],
+        }
+    }
+
+    get nodes() {
+        const plainMap = new Map(Object.entries(this._nodes.toJSON() as Record<string, GraphNode>));
+
+        plainMap.forEach(node => {
+            node.outputs = this._outputs[node.id];
+        });
+        return plainMap;
+    }
+
+    get edges() {
+        return new Map(Object.entries(this._edges.toJSON())) as Map<string, GraphEdge>;
     }
 
     wipeAll() {
@@ -50,11 +84,11 @@ export default class ProGraph {
         this._edges.clear();
     }
 
-    addNode(node: Omit<GraphNode, "id">) {
+    addNode(node: Omit<GraphNode, "id" | "outputs">) {
         const id = nanoid(5);
         this._nodes.set(id, { id, ...node });
-        if (node.values) {
-            this.updateNodeOutput(id, node.values);
+        if (node.sources) {
+            this.updateNodeOutput(id, node.sources);
         }
         return id;
     }
@@ -65,6 +99,13 @@ export default class ProGraph {
         return id;
     }
 
+    moveNode(nodeId: string, position: { x: number, y: number }) {
+        const currNode = this._nodes.get(nodeId);
+        // Might need to copy to new node to trigger observer
+        currNode.position = position;
+        this._nodes.set(nodeId, currNode);
+    }
+
     deleteNode(nodeId: string) {
         this.ydoc.transact(() => {
             this._nodes.delete(nodeId);
@@ -73,6 +114,11 @@ export default class ProGraph {
                 this._edges.delete(edge.id);
             }
         })
+        delete this._outputs[nodeId];
+    }
+
+    deleteEdge(edgeId: string) {
+        this._edges.delete(edgeId);
     }
 
     getTopologicallySortedNodes(seedNodeIds?: string[]) {
@@ -103,7 +149,8 @@ export default class ProGraph {
 
         const inputs = {};
         for (const edge of inboundEdges) {
-            const nodeOutputs = this._outputs[edge.from.nodeId];
+            const inboundNodeId = edge.from.nodeId;
+            const nodeOutputs = { ...this._nodes.get(inboundNodeId).sources, ...this._outputs[inboundNodeId] };
             if (!nodeOutputs) continue;
             inputs[edge.to.busKey] = nodeOutputs[
                 edge.from.busKey
@@ -112,18 +159,17 @@ export default class ProGraph {
 
         const node = this._nodes.get(nodeId);
         for (const sourcekey in (this.nodeTypes[node.type].sources || {})) {
-            inputs[sourcekey] = node.values[sourcekey];
+            inputs[sourcekey] = node.sources[sourcekey];
         }
         return inputs;
     }
 
     updateNodeSource(nodeId: string,
         valueKey: string,
-        newValue: any,
-        evaluate = true,) {
+        newValue: any) {
         const node = this._nodes.get(nodeId);
-        node.values = { ...node.values, [valueKey]: newValue };
-        this._nodes.set(node.id, node);
+        node.sources = { ...node.sources, [valueKey]: newValue };
+        this._nodes.set(node.id, { ...node });
         this.updateNodeOutput(nodeId, { [valueKey]: newValue });
     }
 
@@ -134,6 +180,9 @@ export default class ProGraph {
     ) {
         const currentNodeOutputs = this._outputs[nodeId] || {};
         this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs }
+        if (evaluate) {
+            this.evaluate();
+        }
     }
 
     evaluate(changedNodes?: string[]) {
@@ -148,6 +197,13 @@ export default class ProGraph {
                 this.updateNodeOutput(node.id, { [outputKey]: newVal }, false);
             }
         }
+
+        this._broadcastChanges();
+    }
+
+    _broadcastChanges() {
+        this.nodes$.next(this.nodes);
+        this.edges$.next(this.edges);
     }
 
 }
