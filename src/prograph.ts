@@ -42,7 +42,7 @@ export interface GraphEdge {
 export interface NodeClass {
   inputs: Record<string, Struct>;
   sources: Record<string, Struct>;
-  outputs: Record<string, (vals: Record<string, any>) => any>; 
+  outputs: Record<string, (vals: Record<string, any>) => any>;
 }
 
 export default class ProGraph {
@@ -331,60 +331,165 @@ export default class ProGraph {
 
   getSuggestedEdges() {
     const nodeList = Array.from(this.nodes.values());
-    
-    const inputs = nodeList.flatMap(node => {
+
+    const inputs = nodeList.flatMap((node) => {
       const Type = this.nodeTypes[node.type];
       if (!Type.inputs) return [];
-      return Object.entries(Type.inputs).map(([busKey, struct]) => ({nodeId: node.id, busKey, type: struct.type}));
+      return Object.entries(Type.inputs).map(([busKey, struct]) => ({
+        nodeId: node.id,
+        busKey,
+        type: struct.type,
+      }));
     });
 
     const edgeList = Array.from(this.edges.values());
 
-    const inboundEdgeSet = new Set(edgeList.map(edge =>   `${edge.to.nodeId}-${edge.to.busKey}`));
+    const inboundEdgeSet = new Set(
+      edgeList.map((edge) => `${edge.to.nodeId}-${edge.to.busKey}`),
+    );
 
-    const openInputs = inputs.filter(input => !inboundEdgeSet.has(`${input.nodeId}-${input.busKey}`));
-
+    const openInputs = inputs.filter(
+      (input) => !inboundEdgeSet.has(`${input.nodeId}-${input.busKey}`),
+    );
 
     // Going to oversimplify to three types: string, number, function, table
     const valToType = (val) => {
       if (typeof val === "string") return "string";
       if (typeof val === "number") return "number";
-      if (typeof val === "function") return "func"
+      if (typeof val === "function") return "func";
       return "table";
-    }
+    };
 
-    const outputList = Object.entries(this._outputs).flatMap(([nodeId, outputs]) => Object.entries(outputs).map(([busKey, val]) => ({
-      nodeId,
-      busKey,
-      type: valToType(val.value),
-    })));
+    const outputList = Object.entries(this._outputs).flatMap(
+      ([nodeId, outputs]) =>
+        Object.entries(outputs).map(([busKey, val]) => ({
+          nodeId,
+          busKey,
+          type: valToType(val.value),
+        })),
+    );
 
-    const typeToOutputs: Record<string, {nodeId: string, busKey: string}[]> = outputList.reduce((acc, curr) => {
-      if (!acc[curr.type]) {
-        acc[curr.type] = [];
-      }
+    const typeToOutputs: Record<string, { nodeId: string; busKey: string }[]> =
+      outputList.reduce((acc, curr) => {
+        if (!acc[curr.type]) {
+          acc[curr.type] = [];
+        }
 
-      acc[curr.type].push({nodeId: curr.nodeId, busKey: curr.busKey})
+        acc[curr.type].push({ nodeId: curr.nodeId, busKey: curr.busKey });
 
-      return acc;
-    }, {});
+        return acc;
+      }, {});
 
-
-    return openInputs.flatMap(input => typeToOutputs[input.type] ? typeToOutputs[input.type].filter(output => output.nodeId != input.nodeId).map((output) => ({
-      from: {
-        nodeId: output.nodeId,
-        busKey: output.busKey
-      },
-      to: {
-        nodeId: input.nodeId,
-        busKey: input.busKey
-      }
-    })) : []);
-
+    return openInputs.flatMap((input) =>
+      typeToOutputs[input.type]
+        ? typeToOutputs[input.type]
+            .filter((output) => output.nodeId != input.nodeId)
+            .map((output) => ({
+              from: {
+                nodeId: output.nodeId,
+                busKey: output.busKey,
+              },
+              to: {
+                nodeId: input.nodeId,
+                busKey: input.busKey,
+              },
+            }))
+        : [],
+    );
   }
 
   _broadcastChanges() {
     this.nodes$.next(this.nodes);
     this.edges$.next(this.edges);
+  }
+
+  replaceElementGroup(nodeIds: string[], edgeIds: string[]) {
+    const selectedNodes = nodeIds
+      .map((id) => this.nodes.get(id))
+      .filter((el) => el);
+    const selectedEdges = edgeIds
+      .map((id) => this.edges.get(id))
+      .filter((el) => el);
+
+    const newNodes: Record<string, string> = Object.fromEntries(
+      selectedNodes.map((node) => {
+        const { id, ...nodeData } = node;
+        const newNode = this.addNode({
+          ...nodeData,
+        });
+        return [node.id, newNode];
+      }),
+    );
+
+    const connectionsAdded: Record<string, string[]> = {};
+
+    for (const [originalNodeId, newNode] of Object.entries(newNodes)) {
+      const incomingConnections = Array.from(this.edges.values()).filter(
+        (conn) => conn.to.nodeId === originalNodeId,
+      );
+      const outgoingConnections = Array.from(this.edges.values()).filter(
+        (conn) => conn.from.nodeId === originalNodeId,
+      );
+
+      for (const connection of incomingConnections) {
+        const {
+          to: { busKey: toBus },
+          from: { busKey: fromBus, nodeId: fromNode },
+        } = connection;
+        if (!edgeIds.includes(connection.id)) {
+          this.deleteEdge(connection.id);
+        }
+
+        if (
+          !connectionsAdded[newNode]?.includes(newNodes[fromNode] ?? fromNode)
+        ) {
+          this.addEdge({
+            from: {
+              nodeId: newNodes[fromNode] ?? fromNode,
+              busKey: fromBus,
+            },
+            to: {
+              nodeId: newNode,
+              busKey: toBus,
+            },
+          });
+          connectionsAdded[newNode] = [
+            ...(connectionsAdded[newNode] || []),
+            newNodes[fromNode] ?? fromNode,
+          ];
+        }
+      }
+      for (const connection of outgoingConnections) {
+        const {
+          to: { busKey: toBus, nodeId: toNode },
+          from: { busKey: fromBus },
+        } = connection;
+        if (!selectedEdges.includes(connection)) {
+          this.deleteEdge(connection.id);
+        }
+
+        // BUG HERE?
+        if (
+          !connectionsAdded[newNode]?.includes(
+            newNodes[newNodes[toNode] ?? toNode] ?? newNode,
+          )
+        ) {
+          this.addEdge({
+            from: {
+              nodeId: newNode,
+              busKey: fromBus,
+            },
+            to: {
+              nodeId: newNodes[toNode] ?? toNode,
+              busKey: toBus,
+            },
+          });
+          connectionsAdded[newNodes[toNode] ?? toNode] = [
+            ...(connectionsAdded[newNodes[toNode] ?? toNode] || []),
+            newNode,
+          ];
+        }
+      }
+    }
   }
 }

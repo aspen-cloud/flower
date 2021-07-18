@@ -810,6 +810,21 @@ const FlowGraph = () => {
     [graphElements, mouseElements, suggestedEdges],
   );
 
+  const handleDragStart = useCallback(
+    (event) => {
+      if (event.altKey) {
+        // Using selected elements because multiselect is tied to onNode events
+        const selectedNodes = selectedElements.filter((el) => isNode(el));
+        const selectedEdges = selectedElements.filter((el) => isEdge(el));
+        proGraph.replaceElementGroup(
+          selectedNodes.map((el) => el.id),
+          selectedEdges.map((el) => el.id),
+        );
+      }
+    },
+    [selectedElements],
+  );
+
   return (
     <div
       style={{
@@ -872,14 +887,7 @@ const FlowGraph = () => {
               snapGrid={snapGrid}
               defaultZoom={1}
               onDrop={onDrop}
-              onNodeDragStart={(event, node) => {
-                if (event.altKey) {
-                  // Using selected elements because multiselect is tied to onNode events
-                  graphRef.current?.replaceElementGroup(
-                    selectedElements.map((el) => el.id),
-                  );
-                }
-              }}
+              onNodeDragStart={(event, _node) => handleDragStart(event)}
               onNodeDoubleClick={(e, node) => {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
@@ -893,14 +901,7 @@ const FlowGraph = () => {
                   setSpreadsheetTableData(undefined);
                 }
               }}
-              onSelectionDragStart={async (event, nodes) => {
-                if (event.altKey) {
-                  // Using selected elements because edges are not included
-                  graphRef.current?.replaceElementGroup(
-                    selectedElements.map((el) => el.id),
-                  );
-                }
-              }}
+              onSelectionDragStart={(event, _nodes) => handleDragStart(event)}
               onDragOver={onDragOver}
               onEdgeUpdate={onEdgeUpdate}
               onSelectionChange={(elements) => {
@@ -1002,10 +1003,14 @@ const FlowGraph = () => {
                   JSON.stringify(flowTransform),
                 )
               }
+              // TODO: watch API change to fix issue with drag stophttps://github.com/wbkd/react-flow/issues/1314
               onNodeDragStop={(e, node) => {
+                // Drag stop for individual node or multi node select
+                // Bug with multi node select
                 proGraph.moveNode(node.id, node.position);
               }}
               onSelectionDragStop={(e, nodes) => {
+                // Drag stop for area selection
                 for (const node of nodes) {
                   proGraph.moveNode(node.id, node.position);
                 }
