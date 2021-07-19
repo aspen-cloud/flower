@@ -4,6 +4,8 @@ import Sort from "./sort-transformer";
 import Select from "./select-transformer";
 import Join from "./join-transformer";
 import Group from "./group-transformer";
+import Formula from "./formula";
+import GenerateColumn from "./generate-column";
 
 const Add = {
   inputs: {
@@ -28,4 +30,6 @@ export default {
   Select,
   Join,
   Group,
+  Formula,
+  GenerateColumn,
 };
