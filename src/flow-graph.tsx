@@ -368,16 +368,22 @@ const FlowGraph = () => {
     const file = await entry.getFile();
     const jsonData = await csvToJson(file);
     const tableData = jsonToTable(jsonData);
-
-    graphRef.current?.createNode({
-      type: "FileSource",
+    addNode({
+      type: "DataTable",
       data: {
-        data: tableData,
-        entry,
-        lastRead: file,
+        table: tableData,
       },
       position,
     });
+    // graphRef.current?.createNode({
+    //   type: "FileSource",
+    //   data: {
+    //     data: tableData,
+    //     entry,
+    //     lastRead: file,
+    //   },
+    //   position,
+    // });
   }
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -402,6 +408,7 @@ const FlowGraph = () => {
       if (item.kind === "file") {
         const entry = await item.getAsFileSystemHandle();
         if (entry.kind === "file") {
+          // TODO: maybe add position offset if multiple
           await addFileNode(entry, entry.name, position);
         } else if (entry.kind === "directory") {
           // run code for is entry is a directory
