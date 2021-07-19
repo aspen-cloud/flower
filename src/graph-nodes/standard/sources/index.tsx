@@ -1,9 +1,10 @@
-import { array, number, object, string } from "superstruct";
+import { defaulted, nullable, number, string } from "superstruct";
 import BaseNode from "../../../base-node";
+import { TableStruct } from "../../../structs";
 
 const Text = {
   sources: {
-    text: string(),
+    text: defaulted(string(), ""),
   },
   Component: ({ data: { sources } }) => {
     return (
@@ -19,7 +20,7 @@ const Text = {
 
 const Number = {
   sources: {
-    number: number(),
+    number: defaulted(number(), 0),
   },
   Component: ({ data: { sources } }) => {
     return (
@@ -27,7 +28,7 @@ const Number = {
         <input
           type="number"
           value={sources.number.value}
-          onChange={(e) => sources.number.set(e.target.value)}
+          onChange={(e) => sources.number.set(+e.target.value)}
         />
       </BaseNode>
     );
@@ -36,8 +37,8 @@ const Number = {
 
 const DataTable = {
   sources: {
-    label: string(),
-    table: array(object()),
+    label: defaulted(string(), ""),
+    table: defaulted(TableStruct, {}),
   },
   Component: ({ data: { sources } }) => {
     return (

@@ -1,23 +1,21 @@
-import { any, array, enums, object, string } from "superstruct";
-import { useEffect, useState } from "react";
+import { any, array, defaulted, enums, object, string } from "superstruct";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
+import { TableStruct } from "../../../structs";
 
 const Join = {
   inputs: {
-    tableA: any(),
-    tableB: any(),
+    tableA: defaulted(TableStruct, {}),
+    tableB: defaulted(TableStruct, {}),
   },
   sources: {
-    labelA: string(),
-    labelB: string(),
-    joinColumnA: string(),
-    joinColumnB: string(),
+    labelA: defaulted(string(), ""),
+    labelB: defaulted(string(), ""),
+    joinColumnA: defaulted(string(), ""),
+    joinColumnB: defaulted(string(), ""),
   },
   outputs: {
     table: ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
-      const tblA = tableA || { columns: [], rows: [] };
-      const tblB = tableB || { columns: [], rows: [] };
-
       const safeLabelA = labelA || "A";
       const safeLabelB = labelB || "B";
 
@@ -26,31 +24,31 @@ const Join = {
       }
 
       const columnRenameIndexA = Object.fromEntries(
-        tblA.columns.map((col) => [
+        tableA.columns.map((col) => [
           col.accessor,
           `${safeLabelA}-${col.Header}`,
         ]),
       );
       const columnRenameIndexB = Object.fromEntries(
-        tblB.columns.map((col) => [
+        tableB.columns.map((col) => [
           col.accessor,
           `${safeLabelB}-${col.Header}`,
         ]),
       );
-      const columns = tblA.columns
+      const columns = tableA.columns
         .map((col) => ({
           accessor: columnRenameIndexA[col.accessor],
           Header: columnRenameIndexA[col.accessor],
         }))
         .concat(
-          tblB.columns.map((col) => ({
+          tableB.columns.map((col) => ({
             accessor: columnRenameIndexB[col.accessor],
             Header: columnRenameIndexB[col.accessor],
           })),
         );
 
-      const rowsA = joinColumnA ? tblA.rows : [];
-      const rowsB = joinColumnB ? tblB.rows : [];
+      const rowsA = joinColumnA ? tableA.rows : [];
+      const rowsB = joinColumnB ? tableB.rows : [];
 
       const rows = rowsA.map((rowA) => ({
         ...Object.fromEntries(
@@ -71,30 +69,49 @@ const Join = {
   },
   Component: ({ data }) => {
     // TODO: labels could be passed down with table object
-    const [labelA, setLabelA] = useState(data.sources.labelA?.value || "");
-    useEffect(() => {
-      data.sources.labelA.set(labelA);
-    }, [labelA, data.sources.labelA]);
-    const [labelB, setLabelB] = useState(data.sources.labelB?.value || "");
-    useEffect(() => {
-      data.sources.labelB.set(labelB);
-    }, [labelB, data.sources.labelB]);
-
-    const [joinColumnA, setJoinColumnA] = useState(
-      data.sources.joinColumnA?.value || "",
+    const labelA = useMemo(
+      () => data.sources.labelA.value,
+      [data.sources.labelA],
     );
-    useEffect(() => {
-      data.sources.joinColumnA.set(joinColumnA);
-    }, [joinColumnA, data.sources.joinColumnA]);
-    const [joinColumnB, setJoinColumnB] = useState(
-      data.sources.joinColumnB?.value || "",
+    const setLabelA = useCallback(
+      (newLabel) => {
+        data.sources.labelA.set(newLabel);
+      },
+      [data.sources.labelA],
     );
-    useEffect(() => {
-      data.sources.joinColumnB.set(joinColumnB);
-    }, [joinColumnB, data.sources.joinColumnB]);
 
-    const tableA = data.inputs.tableA || { columns: [], rows: [] };
-    const tableB = data.inputs.tableB || { columns: [], rows: [] };
+    const labelB = useMemo(
+      () => data.sources.labelB.value,
+      [data.sources.labelB],
+    );
+    const setLabelB = useCallback(
+      (newLabel) => {
+        data.sources.labelB.set(newLabel);
+      },
+      [data.sources.labelB],
+    );
+
+    const joinColumnA = useMemo(
+      () => data.sources.joinColumnA.value,
+      [data.sources.joinColumnA],
+    );
+    const setJoinColumnA = useCallback(
+      (newColumn) => {
+        data.sources.joinColumnA.set(newColumn);
+      },
+      [data.sources.joinColumnA],
+    );
+
+    const joinColumnB = useMemo(
+      () => data.sources.joinColumnB.value,
+      [data.sources.joinColumnB],
+    );
+    const setJoinColumnB = useCallback(
+      (newColumn) => {
+        data.sources.joinColumnB.set(newColumn);
+      },
+      [data.sources.joinColumnB],
+    );
 
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
@@ -129,7 +146,7 @@ const Join = {
                       {" "}
                       -- select a column --{" "}
                     </option>,
-                    ...tableA.columns.map((c) => (
+                    ...data.inputs.tableA.columns.map((c) => (
                       <option key={c.accessor} value={c.accessor}>
                         {c.Header}
                       </option>
@@ -162,7 +179,7 @@ const Join = {
                       {" "}
                       -- select a column --{" "}
                     </option>,
-                    ...tableB.columns.map((c) => (
+                    ...data.inputs.tableB.columns.map((c) => (
                       <option key={c.accessor} value={c.accessor}>
                         {c.Header}
                       </option>

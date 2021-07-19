@@ -60,6 +60,7 @@ import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
+import { create, Struct } from "superstruct";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -107,19 +108,25 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
 
 function getComponentDataForNode(node) {
   const nodeClass = GraphNodes[node.type];
-  const inputKeys = nodeClass.inputs ? Object.keys(nodeClass.inputs) : [];
-  const sourceKeys = nodeClass.sources ? Object.keys(nodeClass.sources) : [];
+  const inputEntries: [string, Struct][] = nodeClass.inputs
+    ? Object.entries(nodeClass.inputs)
+    : [];
+  const sourceEntries: [string, Struct][] = nodeClass.sources
+    ? Object.entries(nodeClass.sources)
+    : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
 
   const inputVals = proGraph.getNodeInputs(node.id);
-
   const inputs = Object.fromEntries(
-    inputKeys.map((key) => [key, inputVals[key]]),
+    inputEntries.map(([key, struct]) => [key, create(inputVals[key], struct)]),
   );
-  const sources = sourceKeys.reduce((acc, curr) => {
-    acc[curr] = {
-      value: node.sources[curr],
-      set: (newVal) => proGraph.updateNodeSource(node.id, curr, newVal),
+  const sources = sourceEntries.reduce((acc, curr) => {
+    const [key, struct] = curr;
+    acc[key] = {
+      value: create(node.sources[key], struct),
+      set: (newVal) => {
+        proGraph.updateNodeSource(node.id, key, create(newVal, struct));
+      },
     };
     return acc;
   }, {});

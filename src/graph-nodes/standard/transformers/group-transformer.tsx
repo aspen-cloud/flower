@@ -1,6 +1,7 @@
-import { any, array, enums, object, string } from "superstruct";
-import { useEffect, useState } from "react";
+import { array, defaulted, enums, Infer, object, string } from "superstruct";
+import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
+import { TableStruct } from "../../../structs";
 
 enum AggregateFunction {
   SUM = "SUM",
@@ -8,11 +9,11 @@ enum AggregateFunction {
   COUNT = "COUNT",
 }
 
-// TODO: custom aggregate functions?
-interface GroupSelection {
-  aggregateFunction: AggregateFunction;
-  columnAccessor: string;
-}
+const ColumnSelectionStruct = object({
+  aggregateFunction: enums(Object.keys(AggregateFunction)),
+  columnAccessor: string(),
+});
+type GroupSelection = Infer<typeof ColumnSelectionStruct>;
 
 function groupBy(data: any[], groupKeys: string[]) {
   const groupDict: Record<string, any[]> = {};
@@ -59,19 +60,17 @@ function aggregate(func: AggregateFunction, values: string[]) {
   return 0;
 }
 
+// TODO: custom aggregate functions
 const Group = {
   inputs: {
-    table: any(),
+    table: defaulted(TableStruct, {}),
   },
   sources: {
-    columnSelections: any(),
-    groupColumns: any(),
+    columnSelections: defaulted(array(ColumnSelectionStruct), []),
+    groupColumns: defaulted(array(string()), []),
   },
   outputs: {
-    table: (inputData) => {
-      const table = inputData.table || { columns: [], rows: [] };
-      const groupColumns = inputData.groupColumns || [];
-      const columnSelections = inputData.columnSelections || [];
+    table: ({ table, columnSelections, groupColumns }) => {
       const columnNameMap = Object.fromEntries(
         table.columns.map((c) => [c.accessor, c.Header]),
       );
@@ -114,19 +113,27 @@ const Group = {
     },
   },
   Component: ({ data }) => {
-    const [columnSelections, setColumnSelections] = useState<GroupSelection[]>(
-      data.sources.columnSelections?.value || [],
+    const columnSelections: GroupSelection[] = useMemo(
+      () => data.sources.columnSelections.value,
+      [data.sources.columnSelections],
     );
-    useEffect(() => {
-      data.sources.columnSelections.set(columnSelections);
-    }, [columnSelections, data.sources.columnSelections]);
+    const setColumnSelections = useCallback(
+      (newColumnSelections) => {
+        data.sources.columnSelections.set(newColumnSelections);
+      },
+      [data.sources.columnSelections],
+    );
 
-    const [groupColumns, setGroupColumns] = useState<string[]>(
-      data.sources.groupColumns?.value || [],
+    const groupColumns: string[] = useMemo(
+      () => data.sources.groupColumns.value,
+      [data.sources.groupColumns],
     );
-    useEffect(() => {
-      data.sources.groupColumns.set(groupColumns);
-    }, [groupColumns, data.sources.groupColumns]);
+    const setGroupColumns = useCallback(
+      (newGroupColumns) => {
+        data.sources.groupColumns.set(newGroupColumns);
+      },
+      [data.sources.groupColumns],
+    );
 
     const [newGroupColumnInput, setNewGroupColumnInput] = useState<string>();
     const [newColumnSelectionAccessor, setNewColumnSelectionAccessor] =
@@ -134,9 +141,8 @@ const Group = {
     const [newColumnselectionFunc, setNewColumnSelectionFunc] =
       useState<AggregateFunction>();
 
-    const table = data.inputs.table || { columns: [], rows: [] };
     const columnNameMap = Object.fromEntries(
-      table.columns.map((c) => [c.accessor, c.Header]),
+      data.inputs.table.columns.map((c) => [c.accessor, c.Header]),
     );
 
     return (
@@ -155,13 +161,11 @@ const Group = {
                   {columnNameMap[selection.columnAccessor]} -{" "}
                   <select
                     value={selection.aggregateFunction}
-                    onChange={(e) =>
-                      setColumnSelections((prevColumnSelections) => {
-                        selection.aggregateFunction = e.target
-                          .value as AggregateFunction;
-                        return [...prevColumnSelections];
-                      })
-                    }
+                    onChange={(e) => {
+                      selection.aggregateFunction = e.target
+                        .value as AggregateFunction;
+                      setColumnSelections(columnSelections);
+                    }}
                   >
                     {Object.entries(AggregateFunction).map(([key, val]) => (
                       <option key={key} value={val}>
@@ -171,8 +175,8 @@ const Group = {
                   </select>
                   <button
                     onClick={() =>
-                      setColumnSelections((prevColumnSelections) =>
-                        prevColumnSelections.filter((cs) => cs !== selection),
+                      setColumnSelections(
+                        columnSelections.filter((cs) => cs !== selection),
                       )
                     }
                   >
@@ -189,7 +193,7 @@ const Group = {
                 >
                   {[
                     <option value={""}> -- select a column -- </option>,
-                    ...table.columns.map((c) => (
+                    ...data.inputs.table.columns.map((c) => (
                       <option key={c.accessor} value={c.accessor}>
                         {c.Header}
                       </option>
@@ -212,32 +216,27 @@ const Group = {
                   ]}
                 </select>
                 <button
-                  onClick={() =>
-                    setColumnSelections((prevColumnSelections) => {
-                      if (
-                        !newColumnSelectionAccessor ||
-                        !newColumnselectionFunc
+                  onClick={() => {
+                    if (!newColumnSelectionAccessor || !newColumnselectionFunc)
+                      return;
+                    if (
+                      columnSelections.find(
+                        (cs) =>
+                          cs.columnAccessor === newColumnSelectionAccessor &&
+                          cs.aggregateFunction === newColumnselectionFunc,
                       )
-                        return prevColumnSelections;
-                      if (
-                        prevColumnSelections.find(
-                          (cs) =>
-                            cs.columnAccessor === newColumnSelectionAccessor &&
-                            cs.aggregateFunction === newColumnselectionFunc,
-                        )
-                      )
-                        return prevColumnSelections;
+                    )
+                      return;
 
-                      return [
-                        ...prevColumnSelections,
-                        {
-                          aggregateFunction:
-                            AggregateFunction[newColumnselectionFunc],
-                          columnAccessor: newColumnSelectionAccessor,
-                        },
-                      ];
-                    })
-                  }
+                    setColumnSelections([
+                      ...columnSelections,
+                      {
+                        aggregateFunction:
+                          AggregateFunction[newColumnselectionFunc],
+                        columnAccessor: newColumnSelectionAccessor,
+                      },
+                    ]);
+                  }}
                 >
                   Add
                 </button>
@@ -247,13 +246,13 @@ const Group = {
           <div>
             <label>
               By:
-              {groupColumns.map((colName, i) => (
+              {groupColumns.map((colAccessor, i) => (
                 <div key={i}>
-                  {colName}
+                  {columnNameMap[colAccessor]}
                   <button
                     onClick={() =>
-                      setGroupColumns((prevGroupColumns) =>
-                        prevGroupColumns.filter((gc) => gc !== colName),
+                      setGroupColumns(
+                        groupColumns.filter((gc) => gc !== colAccessor),
                       )
                     }
                   >
@@ -268,7 +267,7 @@ const Group = {
                 >
                   {[
                     <option value={""}> -- select a column -- </option>,
-                    ...table.columns
+                    ...data.inputs.table.columns
                       .filter((c) => !groupColumns.includes(c.Header))
                       .map((c) => (
                         <option key={c.accessor} value={c.accessor}>
@@ -278,14 +277,14 @@ const Group = {
                   ]}
                 </select>
                 <button
-                  onClick={() =>
-                    setGroupColumns((prevGroupColumns) => {
-                      if (!newGroupColumnInput) return prevGroupColumns;
-                      return [
-                        ...new Set([...prevGroupColumns, newGroupColumnInput]),
-                      ];
-                    })
-                  }
+                  onClick={() => {
+                    if (!newGroupColumnInput) return;
+                    setGroupColumns(
+                      Array.from(
+                        new Set([...groupColumns, newGroupColumnInput]),
+                      ),
+                    );
+                  }}
                 >
                   Add
                 </button>

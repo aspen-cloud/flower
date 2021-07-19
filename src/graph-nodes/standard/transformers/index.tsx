@@ -1,5 +1,4 @@
-import { any, array, enums, number, object, string } from "superstruct";
-import { useEffect, useState } from "react";
+import { defaulted, number } from "superstruct";
 import BaseNode from "../../../base-node";
 import Sort from "./sort-transformer";
 import Select from "./select-transformer";
@@ -8,8 +7,8 @@ import Group from "./group-transformer";
 
 const Add = {
   inputs: {
-    left: number(),
-    right: number(),
+    left: defaulted(number(), 0),
+    right: defaulted(number(), 0),
   },
   outputs: {
     sum: ({ left, right }) => +left + +right,

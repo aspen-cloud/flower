@@ -1,43 +1,38 @@
-import { any, array, enums, object, string } from "superstruct";
-import { useEffect, useState } from "react";
+import { array, defaulted, enums, Infer, object, string } from "superstruct";
+import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
+import { TableStruct } from "../../../structs";
 
+// TODO: what's the best way to converge struct and enum values
 enum SortDirection {
   ASC = "ASC",
   DESC = "DESC",
 }
+const SortDirectionStruct = enums(Object.keys(SortDirection));
 
-interface SortDefinition {
-  columnAccessor: string;
-  direction: SortDirection;
-}
+const SortDefinitionStruct = object({
+  columnAccessor: string(),
+  direction: SortDirectionStruct,
+});
+type SortDefinition = Infer<typeof SortDefinitionStruct>;
 
 function simpleSort(a: any, b: any, direction: SortDirection) {
   if (direction === SortDirection.ASC) return a > b ? 1 : a < b ? -1 : 0;
   return a < b ? 1 : a > b ? -1 : 0;
 }
 
-const SortDirectionType = enums(["ASC", "DESC"]);
-
-const SortDefinitionType = object({
-  columnAccessor: string(),
-  direction: SortDirectionType,
-});
-
 const Sort = {
   inputs: {
-    table: any(),
+    table: defaulted(TableStruct, {}),
   },
   sources: {
-    sortDefinitions: array(SortDefinitionType),
+    sortDefinitions: defaulted(array(SortDefinitionStruct), []),
   },
   outputs: {
     table: ({ table, sortDefinitions }) => {
-      const tbl = table || { columns: [], rows: [] };
-      const sortDefs = sortDefinitions || [];
-      const columns = [...tbl.columns];
-      const rows = [...tbl.rows].sort((a, b) =>
-        sortDefs.reduce((current, nextSortDef) => {
+      const columns = [...table.columns];
+      const rows = [...table.rows].sort((a, b) =>
+        sortDefinitions.reduce((current, nextSortDef) => {
           // until we have better typing just supporting string and number compare
           const isNumber = table.rows.every(
             (r) => !isNaN(Number(r[nextSortDef.columnAccessor])),
@@ -66,34 +61,32 @@ const Sort = {
     },
   },
   Component: ({ data }) => {
-    const [sortDefinitions, setSortDefinitions] = useState<SortDefinition[]>(
-      data.sources?.sortDefinitions.value || [],
+    const sortDefinitions: SortDefinition[] = useMemo(
+      () => data.sources.sortDefinitions.value,
+      [data.sources.sortDefinitions],
     );
+    const setSortDefinitions = useCallback(
+      (newSortDefinitions) => {
+        data.sources.sortDefinitions.set(newSortDefinitions);
+      },
+      [data.sources.sortDefinitions],
+    );
+
     const [
       newSortDefinitionColumnAccessor,
       setNewSortDefinitionColumnAccessor,
     ] = useState<string>();
     const [newSortDefinitionDirection, setNewSortDefinitionDirection] =
       useState<SortDirection>();
-    const [columnNameMap, setColumnNameMap] = useState<Record<string, string>>(
-      {},
-    );
 
-    useEffect(() => {
-      const newNameMap = (data.inputs.table?.columns || []).reduce(
-        (currVal, nextVal) => {
+    const columnNameMap: Record<string, string> = useMemo(
+      () =>
+        (data.inputs.table?.columns || []).reduce((currVal, nextVal) => {
           currVal[nextVal.accessor] = nextVal.Header;
           return currVal;
-        },
-        {},
-      );
-      setColumnNameMap(newNameMap);
-    }, [data.inputs.table]);
-
-    // TODO: do we need state/effects here?
-    useEffect(() => {
-      data.sources.sortDefinitions.set(sortDefinitions);
-    }, [sortDefinitions, data.sources.sortDefinitions]);
+        }, {}),
+      [data.inputs.table],
+    );
 
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
@@ -111,23 +104,21 @@ const Sort = {
                   {columnNameMap[sortDef.columnAccessor]} -{" "}
                   <select
                     value={sortDef.direction}
-                    onChange={(e) =>
-                      setSortDefinitions((prevSortDefs) => {
-                        sortDef.direction = e.target.value as SortDirection;
-                        return [...prevSortDefs];
-                      })
-                    }
+                    onChange={(e) => {
+                      sortDef.direction = e.target.value as SortDirection;
+                      setSortDefinitions(sortDefinitions);
+                    }}
                   >
                     {Object.entries(SortDirection).map(([key, val]) => (
                       <option key={key}>{val}</option>
                     ))}
                   </select>
                   <button
-                    onClick={() =>
-                      setSortDefinitions((prevSortDefs) =>
-                        prevSortDefs.filter((cs) => cs !== sortDef),
-                      )
-                    }
+                    onClick={() => {
+                      setSortDefinitions(
+                        sortDefinitions.filter((cs) => cs !== sortDef),
+                      );
+                    }}
                   >
                     Delete
                   </button>
@@ -170,32 +161,30 @@ const Sort = {
                   ]}
                 </select>
                 <button
-                  onClick={() =>
-                    setSortDefinitions((prevSortDefs) => {
-                      if (
-                        !newSortDefinitionColumnAccessor ||
-                        !newSortDefinitionDirection
+                  onClick={() => {
+                    if (
+                      !newSortDefinitionColumnAccessor ||
+                      !newSortDefinitionDirection
+                    )
+                      return;
+                    if (
+                      sortDefinitions.find(
+                        (cs) =>
+                          cs.columnAccessor ===
+                            newSortDefinitionColumnAccessor &&
+                          cs.direction === newSortDefinitionDirection,
                       )
-                        return prevSortDefs;
-                      if (
-                        prevSortDefs.find(
-                          (cs) =>
-                            cs.columnAccessor ===
-                              newSortDefinitionColumnAccessor &&
-                            cs.direction === newSortDefinitionDirection,
-                        )
-                      )
-                        return prevSortDefs;
+                    )
+                      return;
 
-                      return [
-                        ...prevSortDefs,
-                        {
-                          direction: newSortDefinitionDirection,
-                          columnAccessor: newSortDefinitionColumnAccessor,
-                        },
-                      ];
-                    })
-                  }
+                    setSortDefinitions([
+                      ...sortDefinitions,
+                      {
+                        direction: newSortDefinitionDirection,
+                        columnAccessor: newSortDefinitionColumnAccessor,
+                      },
+                    ]);
+                  }}
                 >
                   Add
                 </button>
