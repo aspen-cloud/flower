@@ -31,7 +31,6 @@ export default function DefaultEdge({
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd}
-        onClick={() => console.log("foo")}
       />
       <path
         id={id}
