@@ -2,7 +2,7 @@ import * as Y from "yjs";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Observable } from "rxjs";
-import { create, Struct } from "superstruct";
+import { create, object, Struct } from "superstruct";
 
 export interface GraphNode {
   id: string;
@@ -67,7 +67,7 @@ export default class ProGraph {
 
   get nodes() {
     const plainMap = new Map(
-      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>),
+      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>)
     );
 
     plainMap.forEach((node) => {
@@ -117,7 +117,7 @@ export default class ProGraph {
       this._nodes.delete(nodeId);
       const connectedEdges = Array.from(this._edges.values()).filter(
         (edge: GraphEdge) =>
-          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId,
+          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId
       );
       for (const edge of connectedEdges) {
         this._edges.delete(edge.id);
@@ -140,7 +140,7 @@ export default class ProGraph {
       if (visited[nodeId]) return;
       visited[nodeId] = true;
       const deps = Array.from(this._edges.values()).filter(
-        (edge: GraphEdge) => edge.from.nodeId === nodeId,
+        (edge: GraphEdge) => edge.from.nodeId === nodeId
       );
       deps.forEach((edge) => visit(edge.to.nodeId));
       nodeList.push(nodeId);
@@ -160,13 +160,12 @@ export default class ProGraph {
     const inboundEdges = Object.fromEntries(
       Array.from(this._edges.values() as IterableIterator<GraphEdge>)
         .filter((edge) => edge.to.nodeId === nodeId)
-        .map((edge) => [edge.to.busKey, edge]),
+        .map((edge) => [edge.to.busKey, edge])
     );
 
-    const inputs = {};
-    for (const [inputKey, inputStruct] of Object.entries<Struct>(
-      this.nodeTypes[node.type].inputs || {},
-    )) {
+    const inputTypes = this.nodeTypes[node.type].inputs || {};
+    let inputs = {};
+    for (const [inputKey, inputStruct] of Object.entries<Struct>(inputTypes)) {
       const edge = inboundEdges[inputKey];
       if (edge) {
         const inboundNodeId = edge.from.nodeId;
@@ -175,19 +174,22 @@ export default class ProGraph {
           ...this._outputs[inboundNodeId],
         };
         if (!inboundNodeOutputs) continue;
-        inputs[inputKey] = create(
-          inboundNodeOutputs[edge.from.busKey],
-          inputStruct,
-        );
+        inputs[inputKey] = inboundNodeOutputs[edge.from.busKey];
       } else {
-        inputs[inputKey] = create(undefined, inputStruct);
+        inputs[inputKey] = undefined;
       }
     }
 
+    inputs = create(inputs, object(inputTypes));
+
     for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
-      this.nodeTypes[node.type].sources || {},
+      this.nodeTypes[node.type].sources || {}
     )) {
-      inputs[sourcekey] = create(node.sources[sourcekey], sourceStruct);
+      try {
+        inputs[sourcekey] = create(node.sources[sourcekey], sourceStruct);
+      } catch (e) {
+        inputs[sourcekey] = undefined;
+      }
     }
 
     return inputs;
@@ -203,7 +205,7 @@ export default class ProGraph {
   updateNodeOutput(
     nodeId: string,
     outputs: Record<string, any>,
-    evaluate = true,
+    evaluate = true
   ) {
     const currentNodeOutputs = this._outputs[nodeId] || {};
     this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs };

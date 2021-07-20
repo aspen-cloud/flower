@@ -38,7 +38,7 @@ const Number = {
 const DataTable = {
   sources: {
     label: defaulted(string(), ""),
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, { row: [], columns: [] }),
   },
   Component: ({ data: { sources } }) => {
     return (

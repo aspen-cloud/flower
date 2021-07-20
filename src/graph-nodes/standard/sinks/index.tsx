@@ -1,4 +1,4 @@
-import { any } from "superstruct";
+import { any, object, array, defaulted } from "superstruct";
 import BaseNode from "../../../base-node";
 import DataTable from "../../nodes/standard/table-node/data-table";
 
@@ -20,7 +20,13 @@ const Viewer = {
 
 const TableViewer = {
   inputs: {
-    table: any(),
+    table: defaulted(
+      object({
+        rows: array(),
+        columns: array(),
+      }),
+      () => ({ rows: [], columns: [] })
+    ),
   },
   outputs: {
     table: ({ table }) => table,
