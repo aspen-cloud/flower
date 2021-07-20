@@ -6,6 +6,7 @@ import Join from "./join-transformer";
 import Group from "./group-transformer";
 import Formula from "./formula";
 import GenerateColumn from "./generate-column";
+import Filter from "./filter-transformer";
 
 const Add = {
   inputs: {
@@ -32,4 +33,5 @@ export default {
   Group,
   Formula,
   GenerateColumn,
+  Filter,
 };
