@@ -48,7 +48,10 @@ const DataTable = {
     table: defaulted(TableStruct, {}),
   },
   outputs: {
-    table: ({ table }) => table,
+    table:
+      () =>
+      ({ table }) =>
+        table,
   },
   Component: ({ data: { sources, outputs } }) => {
     return (

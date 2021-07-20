@@ -24,6 +24,7 @@ export interface GraphNode {
   sources?: Record<string, any>;
   outputs?: Record<string, NodeOutput>;
   position: { x: number; y: number };
+  outputFuncs?: Record<string, (...args: [any]) => any>;
 }
 
 export interface GraphEdge {
@@ -146,7 +147,10 @@ export default class ProGraph {
 
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    this._nodes.set(id, new Y.Map(Object.entries({ id, ...node })));
+    this._nodes.set(
+      id,
+      new Y.Map(Object.entries({ id, ...node, outputFuncs: {} })),
+    );
     if (node.sources) {
       this.updateNodeSources(id, node.sources);
     }
@@ -307,12 +311,16 @@ export default class ProGraph {
         let outputValue;
         let outputError;
         try {
-          outputValue = nodeClass.outputs[outputKey]({
+          if (!node.outputFuncs[outputKey]) {
+            node.outputFuncs[outputKey] = nodeClass.outputs[outputKey]();
+          }
+          outputValue = node.outputFuncs[outputKey]({
             ...inputVals,
             ...sourceVals,
           });
         } catch (err) {
           outputError = err;
+          console.log("OUPUT ERROR", err);
         }
         this.updateNodeOutput(
           node.id,

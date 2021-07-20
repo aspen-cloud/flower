@@ -1,8 +1,11 @@
-import { any, array, defaulted, enums, object, string } from "superstruct";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { defaulted, string } from "superstruct";
+import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
 import DirtyInput from "../../../dirty-input";
+import { nanoid } from "nanoid";
+import { Column } from "../../../types";
+import { flowMemo } from "../../../utils/memo";
 
 const Join = {
   inputs: {
@@ -16,56 +19,67 @@ const Join = {
     joinColumnB: defaulted(string(), ""),
   },
   outputs: {
-    table: ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
-      const safeLabelA = labelA || "A";
-      const safeLabelB = labelB || "B";
+    table: () => {
+      const calcColumns = flowMemo(
+        ({ ...args }): Column[] => {
+          const safeLabelA = args.labelA || "A";
+          const safeLabelB = args.labelB || "B";
 
-      if (safeLabelA === safeLabelB) {
-        return { columns: [], rows: [] };
-      }
+          if (safeLabelA === safeLabelB) {
+            return [];
+          }
 
-      const columnRenameIndexA = Object.fromEntries(
-        tableA.columns.map((col) => [
-          col.accessor,
-          `${safeLabelA}-${col.Header}`,
-        ]),
+          console.log("new cols");
+          return args.tableA.columns
+            .map((col) => ({
+              accessor: col.accessor || nanoid(),
+              Header: `${safeLabelA}-${col.Header}`,
+            }))
+            .concat(
+              args.tableB.columns.map((col) => ({
+                accessor: col.accessor || nanoid(),
+                Header: `${safeLabelB}-${col.Header}`,
+              })),
+            );
+        },
+        ["labelA", "labelB"],
       );
-      const columnRenameIndexB = Object.fromEntries(
-        tableB.columns.map((col) => [
-          col.accessor,
-          `${safeLabelB}-${col.Header}`,
-        ]),
+
+      const calcRows = flowMemo(
+        ({ ...args }): any[] => {
+          const rowsA = args.joinColumnA ? args.tableA.rows : [];
+          const rowsB = args.joinColumnB ? args.tableB.rows : [];
+
+          console.log("new rows");
+          return rowsA.map((rowA) => ({
+            ...rowA,
+            ...(rowsB.find(
+              (rowB) => rowA[args.joinColumnA] === rowB[args.joinColumnB],
+            ) || {}),
+          }));
+        },
+        ["joinColumnA", "joinColumnB"],
       );
-      const columns = tableA.columns
-        .map((col) => ({
-          accessor: columnRenameIndexA[col.accessor],
-          Header: columnRenameIndexA[col.accessor],
-        }))
-        .concat(
-          tableB.columns.map((col) => ({
-            accessor: columnRenameIndexB[col.accessor],
-            Header: columnRenameIndexB[col.accessor],
-          })),
-        );
 
-      const rowsA = joinColumnA ? tableA.rows : [];
-      const rowsB = joinColumnB ? tableB.rows : [];
-
-      const rows = rowsA.map((rowA) => ({
-        ...Object.fromEntries(
-          Object.entries(rowA).map(([key, val]) => [
-            columnRenameIndexA[key],
-            val,
-          ]),
-        ),
-        ...Object.fromEntries(
-          Object.entries(
-            rowsB.find((rowB) => rowA[joinColumnA] === rowB[joinColumnB]) || {},
-          ).map(([key, val]) => [columnRenameIndexB[key], val]),
-        ),
-      }));
-
-      return { columns, rows };
+      return ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
+        const columns = calcColumns({
+          tableA,
+          tableB,
+          labelA,
+          labelB,
+          joinColumnA,
+          joinColumnB,
+        });
+        const rows = calcRows({
+          tableA,
+          tableB,
+          labelA,
+          labelB,
+          joinColumnA,
+          joinColumnB,
+        });
+        return { columns, rows };
+      };
     },
   },
   Component: ({ data }) => {

@@ -25,11 +25,14 @@ const TableViewer = {
         rows: array(),
         columns: array(),
       }),
-      () => ({ rows: [], columns: [] })
+      () => ({ rows: [], columns: [] }),
     ),
   },
   outputs: {
-    table: ({ table }) => table,
+    table:
+      () =>
+      ({ table }) =>
+        table,
   },
   Component: ({ data }) => {
     const { inputs, outputs } = data;

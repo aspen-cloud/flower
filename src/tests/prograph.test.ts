@@ -53,7 +53,6 @@ describe("basic CRUD", () => {
     });
 
     expect(resp).not.toBeNull();
-    ;
     expect(graph._edges.size).toBe(1);
   });
 
@@ -498,7 +497,7 @@ describe("Basic calculations", () => {
     // D = A  B - C
     // 10  *15* - 50 => *-25*
 
-    graph.updateNodeSource(nodeBKey, "number", 15);
+    graph.updateNodeSources(nodeBKey, { number: 15 });
 
     graph.evaluate();
     const result = graph._nodes.get(nodeDKey);
@@ -510,7 +509,7 @@ describe("Basic calculations", () => {
     // D = A  B - C
     // 10  *-100* - 50 => *-140*
 
-    graph.updateNodeSource(nodeBKey, "number", -100);
+    graph.updateNodeSources(nodeBKey, { number: -100 });
 
     graph.evaluate([nodeBKey]);
     const result = graph._nodes.get(nodeDKey);
