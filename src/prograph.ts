@@ -4,11 +4,23 @@ import { nanoid } from "nanoid";
 import { BehaviorSubject, Observable } from "rxjs";
 import { create, object, Struct } from "superstruct";
 
+// Value or error produced by output function
+interface NodeOutput {
+  value: any;
+  error: Error;
+}
+
+// value or error from recieved input value
+interface NodeInput {
+  value: any;
+  error: Error;
+}
+
 export interface GraphNode {
   id: string;
   type: string;
   sources?: Record<string, any>;
-  outputs?: Record<string, any>;
+  outputs?: Record<string, NodeOutput>;
   position: { x: number; y: number };
 }
 
@@ -30,7 +42,7 @@ export default class ProGraph {
   edges$: BehaviorSubject<Map<string, GraphEdge>>;
   _nodes: Y.Map<GraphNode>;
   _edges: Y.Map<GraphEdge>;
-  _outputs: Record<string, Record<string, any>>;
+  _outputs: Record<string, Record<string, NodeOutput>>;
   nodeTypes: Record<string, any>;
 
   constructor(nodeTypes: Record<string, any>) {
@@ -67,7 +79,7 @@ export default class ProGraph {
 
   get nodes() {
     const plainMap = new Map(
-      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>),
+      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>)
     );
 
     plainMap.forEach((node) => {
@@ -117,7 +129,7 @@ export default class ProGraph {
       this._nodes.delete(nodeId);
       const connectedEdges = Array.from(this._edges.values()).filter(
         (edge: GraphEdge) =>
-          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId,
+          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId
       );
       for (const edge of connectedEdges) {
         this._edges.delete(edge.id);
@@ -128,9 +140,8 @@ export default class ProGraph {
   }
 
   deleteEdge(edgeId: string) {
-    const edge = this._edges.get(edgeId);
     this._edges.delete(edgeId);
-    this.evaluate([edge.to.nodeId]);
+    this.evaluate();
   }
 
   getTopologicallySortedNodes(seedNodeIds?: string[]) {
@@ -141,7 +152,7 @@ export default class ProGraph {
       if (visited[nodeId]) return;
       visited[nodeId] = true;
       const deps = Array.from(this._edges.values()).filter(
-        (edge: GraphEdge) => edge.from.nodeId === nodeId,
+        (edge: GraphEdge) => edge.from.nodeId === nodeId
       );
       deps.forEach((edge) => visit(edge.to.nodeId));
       nodeList.push(nodeId);
@@ -161,52 +172,65 @@ export default class ProGraph {
     const inboundEdges = Object.fromEntries(
       Array.from(this._edges.values() as IterableIterator<GraphEdge>)
         .filter((edge) => edge.to.nodeId === nodeId)
-        .map((edge) => [edge.to.busKey, edge]),
+        .map((edge) => [edge.to.busKey, edge])
     );
 
     const inputTypes = this.nodeTypes[node.type].inputs || {};
-    let inputs = {};
+    const inputs: Record<string, NodeInput> = {};
     for (const [inputKey, inputStruct] of Object.entries<Struct>(inputTypes)) {
       const edge = inboundEdges[inputKey];
-      if (edge) {
-        const inboundNodeId = edge.from.nodeId;
-        const inboundNodeOutputs = {
-          ...this._nodes.get(inboundNodeId).sources,
-          ...this._outputs[inboundNodeId],
-        };
-        if (!inboundNodeOutputs) continue;
-        inputs[inputKey] = inboundNodeOutputs[edge.from.busKey];
-      } else {
-        inputs[inputKey] = undefined;
-      }
-    }
-
-    inputs = create(inputs, object(inputTypes));
-
-    for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
-      this.nodeTypes[node.type].sources || {},
-    )) {
       try {
-        inputs[sourcekey] = create(node.sources[sourcekey], sourceStruct);
-      } catch (e) {
-        inputs[sourcekey] = undefined;
+        if (edge) {
+          const inboundNodeId = edge.from.nodeId;
+          const inboundNodeOutputs = {
+            ...Object.fromEntries(
+              Object.entries(this._outputs[inboundNodeId] || {}).map(
+                ([k, v]) => [k, v?.value]
+              )
+            ),
+          };
+          if (!inboundNodeOutputs) continue;
+          inputs[inputKey] = {
+            value: create(inboundNodeOutputs[edge.from.busKey], inputStruct),
+            error: undefined,
+          };
+        } else {
+          inputs[inputKey] = { value: undefined, error: undefined };
+        }
+      } catch (err) {
+        inputs[inputKey] = { value: undefined, error: err };
       }
     }
 
     return inputs;
   }
 
+  getNodeSources(nodeId) {
+    const node = this._nodes.get(nodeId);
+    const sources = {};
+    for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
+      this.nodeTypes[node.type].sources || {}
+    )) {
+      try {
+        sources[sourcekey] = create(node.sources[sourcekey], sourceStruct);
+      } catch (e) {
+        sources[sourcekey] = undefined;
+      }
+    }
+    return sources;
+  }
+
   updateNodeSource(nodeId: string, valueKey: string, newValue: any) {
     const node = this._nodes.get(nodeId);
     node.sources = { ...node.sources, [valueKey]: newValue };
     this._nodes.set(node.id, { ...node });
-    this.updateNodeOutput(nodeId, { [valueKey]: newValue });
+    this.evaluate([nodeId]);
   }
 
   updateNodeOutput(
     nodeId: string,
-    outputs: Record<string, any>,
-    evaluate = true,
+    outputs: Record<string, NodeOutput>,
+    evaluate = true
   ) {
     const currentNodeOutputs = this._outputs[nodeId] || {};
     this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs };
@@ -220,11 +244,30 @@ export default class ProGraph {
 
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
-      const inputVals = this.getNodeInputs(node.id);
+      const inputVals = Object.fromEntries(
+        Object.entries(this.getNodeInputs(node.id)).map(([k, v]) => [
+          k,
+          v?.value,
+        ])
+      );
+      const sourceVals = this.getNodeSources(node.id);
 
       for (const outputKey in nodeClass.outputs) {
-        const newVal = nodeClass.outputs[outputKey](inputVals);
-        this.updateNodeOutput(node.id, { [outputKey]: newVal }, false);
+        let outputValue;
+        let outputError;
+        try {
+          outputValue = nodeClass.outputs[outputKey]({
+            ...inputVals,
+            ...sourceVals,
+          });
+        } catch (err) {
+          outputError = err;
+        }
+        this.updateNodeOutput(
+          node.id,
+          { [outputKey]: { value: outputValue, error: outputError } },
+          false
+        );
       }
     }
 

@@ -25,6 +25,28 @@ const Add = {
   },
 };
 
+// Example of error thrown in output
+const Divide = {
+  inputs: {
+    numerator: defaulted(number(), 0),
+    divisor: defaulted(number(), 0),
+  },
+  outputs: {
+    quotient: ({ numerator, divisor }) => {
+      if (divisor === 0) throw new Error("Cannot divide by 0");
+
+      return +numerator / +divisor;
+    },
+  },
+  Component: ({ data: { inputs, outputs } }) => {
+    return (
+      <BaseNode sources={inputs} sinks={outputs}>
+        <div>{"Divide"}</div>
+      </BaseNode>
+    );
+  },
+};
+
 export default {
   Add,
   Sort,
@@ -34,4 +56,5 @@ export default {
   Formula,
   GenerateColumn,
   Filter,
+  Divide,
 };
