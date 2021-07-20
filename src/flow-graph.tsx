@@ -203,13 +203,23 @@ const FlowGraph = () => {
 
   useEffect(() => {
     if (omnibarQuery) {
+      const validNumber = !isNaN(Number(omnibarQuery));
       setNodeTypeList([
         ...defaultOmnibarOptions,
         {
-          type: "Constant",
-          label: `Constant: ${omnibarQuery}`,
-          data: { value: omnibarQuery },
+          type: "Text",
+          label: `Text: ${omnibarQuery}`,
+          data: { text: omnibarQuery },
         },
+        ...(validNumber
+          ? [
+              {
+                type: "Number",
+                label: `Number: ${omnibarQuery}`,
+                data: { number: Number(omnibarQuery) },
+              },
+            ]
+          : []),
       ]);
     } else {
       setNodeTypeList([...defaultOmnibarOptions]);
