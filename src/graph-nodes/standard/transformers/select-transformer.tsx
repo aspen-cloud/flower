@@ -1,14 +1,14 @@
 import { any, string, set, defaulted, array } from "superstruct";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Tag, MenuItem } from "@blueprintjs/core";
-import { Suggest, ItemRenderer } from "@blueprintjs/select";
+import { Suggest, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
 import BaseNode from "../../../base-node";
 import { Column } from "../../../types";
 import { TableStruct } from "../../../structs";
 
 const ColumnSuggest = Suggest.ofType<Column>();
 
-export const renderColumnSuggestion: ItemRenderer<Column> = (
+const renderColumnSuggestion: ItemRenderer<Column> = (
   column,
   { handleClick, modifiers, query },
 ) => {
@@ -22,6 +22,15 @@ export const renderColumnSuggestion: ItemRenderer<Column> = (
       text={column.Header}
     />
   );
+};
+
+const columnSuggestPredicate: ItemPredicate<Column> = (
+  query,
+  item,
+  number,
+  exactMatch,
+) => {
+  return item.Header.includes(query);
 };
 
 const Select = {
@@ -121,6 +130,7 @@ const Select = {
             itemRenderer={renderColumnSuggestion}
             resetOnSelect={true}
             popoverProps={{ minimal: true }}
+            itemPredicate={columnSuggestPredicate}
           />
         </div>
       </BaseNode>
