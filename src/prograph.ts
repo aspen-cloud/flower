@@ -43,7 +43,7 @@ export default class ProGraph {
     // this allows you to instantly get the (cached) documents data
     const indexeddbProvider = new IndexeddbPersistence("main-graph", this.ydoc);
     const webRTCProvider = new WebrtcProvider("aspen-demo", this.ydoc, {
-      signaling: ["wss://y-webrtc-ckynwnzncc.now.sh"],
+      signaling: ["wss://signaling.yjs.dev"],
       password: "aspen-demo",
       maxConns: 70 + Math.floor(Math.random() * 70),
       awareness: new awarenessProtocol.Awareness(this.ydoc),
