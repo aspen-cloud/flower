@@ -60,11 +60,19 @@ export default class ProGraph {
     this.nodes$ = new BehaviorSubject(this.nodes);
     this.edges$ = new BehaviorSubject(this.edges);
 
-    this._nodes.observe((_changeEvent, _transaction) => {
+    this._nodes.observe((_changeEvent, transaction) => {
+      if (!transaction.local) {
+        // TODO pass in affected nodes
+        this.evaluate();
+      }
       this.nodes$.next(this.nodes);
     });
 
-    this._edges.observe((_changeEvent, _transaction) => {
+    this._edges.observe((_changeEvent, transaction) => {
+      if (!transaction.local) {
+        // TODO pass in affected nodes
+        this.evaluate();
+      }
       this.edges$.next(this.edges);
     });
   }
