@@ -1,4 +1,6 @@
 import * as Y from "yjs";
+import * as awarenessProtocol from "y-protocols/awareness.js";
+import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Observable } from "rxjs";
@@ -40,6 +42,15 @@ export default class ProGraph {
 
     // this allows you to instantly get the (cached) documents data
     const indexeddbProvider = new IndexeddbPersistence("main-graph", this.ydoc);
+    const webRTCProvider = new WebrtcProvider("aspen-demo", this.ydoc, {
+      signaling: ["wss://y-webrtc-ckynwnzncc.now.sh"],
+      password: "aspen-demo",
+      maxConns: 70 + Math.floor(Math.random() * 70),
+      awareness: new awarenessProtocol.Awareness(this.ydoc),
+      filterBcConns: true,
+      peerOpts: {},
+    });
+
     indexeddbProvider.whenSynced.then(() => {
       this.evaluate();
     });
