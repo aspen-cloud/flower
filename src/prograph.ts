@@ -67,7 +67,7 @@ export default class ProGraph {
 
   get nodes() {
     const plainMap = new Map(
-      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>)
+      Object.entries(this._nodes.toJSON() as Record<string, GraphNode>),
     );
 
     plainMap.forEach((node) => {
@@ -94,14 +94,14 @@ export default class ProGraph {
     if (node.sources) {
       this.updateNodeOutput(id, node.sources);
     }
-    this.evaluate();
+    this.evaluate([id]);
     return id;
   }
 
   addEdge(edge: Omit<GraphEdge, "id">) {
     const id = nanoid(5);
-    this._edges.set(id, { id, ...edge });
-    this.evaluate();
+    const newEdge = this._edges.set(id, { id, ...edge });
+    this.evaluate([newEdge.from.nodeId]);
     return id;
   }
 
@@ -117,19 +117,20 @@ export default class ProGraph {
       this._nodes.delete(nodeId);
       const connectedEdges = Array.from(this._edges.values()).filter(
         (edge: GraphEdge) =>
-          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId
+          edge.to.nodeId === nodeId || edge.from.nodeId === nodeId,
       );
       for (const edge of connectedEdges) {
         this._edges.delete(edge.id);
       }
     });
     delete this._outputs[nodeId];
-    this.evaluate();
+    this.evaluate(); // TODO pass in affected nodes based on edges
   }
 
   deleteEdge(edgeId: string) {
+    const edge = this._edges.get(edgeId);
     this._edges.delete(edgeId);
-    this.evaluate();
+    this.evaluate([edge.to.nodeId]);
   }
 
   getTopologicallySortedNodes(seedNodeIds?: string[]) {
@@ -140,7 +141,7 @@ export default class ProGraph {
       if (visited[nodeId]) return;
       visited[nodeId] = true;
       const deps = Array.from(this._edges.values()).filter(
-        (edge: GraphEdge) => edge.from.nodeId === nodeId
+        (edge: GraphEdge) => edge.from.nodeId === nodeId,
       );
       deps.forEach((edge) => visit(edge.to.nodeId));
       nodeList.push(nodeId);
@@ -160,7 +161,7 @@ export default class ProGraph {
     const inboundEdges = Object.fromEntries(
       Array.from(this._edges.values() as IterableIterator<GraphEdge>)
         .filter((edge) => edge.to.nodeId === nodeId)
-        .map((edge) => [edge.to.busKey, edge])
+        .map((edge) => [edge.to.busKey, edge]),
     );
 
     const inputTypes = this.nodeTypes[node.type].inputs || {};
@@ -183,7 +184,7 @@ export default class ProGraph {
     inputs = create(inputs, object(inputTypes));
 
     for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
-      this.nodeTypes[node.type].sources || {}
+      this.nodeTypes[node.type].sources || {},
     )) {
       try {
         inputs[sourcekey] = create(node.sources[sourcekey], sourceStruct);
@@ -205,12 +206,12 @@ export default class ProGraph {
   updateNodeOutput(
     nodeId: string,
     outputs: Record<string, any>,
-    evaluate = true
+    evaluate = true,
   ) {
     const currentNodeOutputs = this._outputs[nodeId] || {};
     this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs };
     if (evaluate) {
-      this.evaluate();
+      this.evaluate([nodeId]);
     }
   }
 
