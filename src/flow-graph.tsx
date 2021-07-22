@@ -61,8 +61,10 @@ import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 import { create, Struct } from "superstruct";
+import { nanoid } from "nanoid";
+import toaster from "./app-toaster";
 
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
 const initBgColor = "#343434";
 
@@ -170,11 +172,6 @@ function graphToReactFlow(
 }
 
 const proGraph = new ProGraph(GraphNodes);
-console.log("graph", proGraph);
-
-const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
-  map(([nodes, edges]) => graphToReactFlow(nodes, edges))
-);
 
 interface SpreadSheetTableData {
   initialData: Table<any>;
@@ -198,6 +195,32 @@ const FlowGraph = () => {
     defaultOmnibarOptions
   );
 
+  const [graphId, setGraphId] = useState("test1");
+
+  useEffect(() => {
+    // const storedLastGraph = window.localStorage.getItem('lastGraph');
+    // const graphId = storedLastGraph || nanoid();
+    // proGraph.loadGraph(graphId);
+    // if (!storedLastGraph) {
+    //   window.localStorage.setItem("lastGraph", graphId);
+    // }
+    proGraph.loadGraph(graphId);
+
+    const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
+      map(([nodes, edges]) => graphToReactFlow(nodes, edges))
+    );
+
+    const subscription = flowElements$.subscribe((els) => {
+      setElements(els);
+    });
+
+    toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphId}` })
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [graphId])
+
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
 
@@ -213,12 +236,12 @@ const FlowGraph = () => {
         },
         ...(validNumber
           ? [
-              {
-                type: "Number",
-                label: `Number: ${omnibarQuery}`,
-                data: { number: Number(omnibarQuery) },
-              },
-            ]
+            {
+              type: "Number",
+              label: `Number: ${omnibarQuery}`,
+              data: { number: Number(omnibarQuery) },
+            },
+          ]
           : []),
       ]);
     } else {
@@ -228,16 +251,6 @@ const FlowGraph = () => {
 
   // TODO remove in favor of prograph
   const graphRef = useRef<Graph>();
-
-  useEffect(() => {
-    const subscription = flowElements$.subscribe((els) => {
-      setElements(els);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const validateConnection = (
     connection: Connection | Edge<any>,
@@ -863,6 +876,16 @@ const FlowGraph = () => {
         )}
       </div>
 
+      <HotkeysTarget2 hotkeys={[{
+        combo: "o",
+        global: true,
+        label: "Toggle graph",
+        allowInInput: false,
+        onKeyDown: () => {
+          setGraphId(id => id === "test1" ? "test2" : "test1");
+        }
+      }]}><div></div></HotkeysTarget2>
+
       <HotkeysTarget2
         hotkeys={[
           {
@@ -871,7 +894,6 @@ const FlowGraph = () => {
             label: "Show Omnibar",
             allowInInput: false,
             onKeyDown: () => {
-              console.log("hot key pressed");
               setShowNodeOmniBar(true);
             },
             preventDefault: true,

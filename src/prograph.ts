@@ -36,13 +36,18 @@ export default class ProGraph {
   nodeTypes: Record<string, any>;
 
   constructor(nodeTypes: Record<string, any>) {
-    this.ydoc = new Y.Doc();
     this.nodeTypes = nodeTypes;
+  }
+
+  loadGraph(graphId: string) {
+    if (this.ydoc) {
+      this.ydoc.destroy();
+    }
+    this.ydoc = new Y.Doc();
     this._outputs = {};
 
-    // this allows you to instantly get the (cached) documents data
-    const indexeddbProvider = new IndexeddbPersistence("main-graph", this.ydoc);
-    const webRTCProvider = new WebrtcProvider("aspen-demo", this.ydoc, {
+    const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
+    const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
       signaling: ["wss://signaling.yjs.dev"],
       password: "aspen-demo",
       maxConns: 70 + Math.floor(Math.random() * 70),
@@ -51,12 +56,16 @@ export default class ProGraph {
       peerOpts: {},
     });
 
-    indexeddbProvider.whenSynced.then(() => {
-      this.evaluate();
-    });
-
     this._nodes = this.ydoc.getMap("nodes");
     this._edges = this.ydoc.getMap("edges");
+
+    if (this.nodes$) {
+      this.nodes$.complete();
+    }
+    if (this.edges$) {
+      this.edges$.complete();
+    }
+
     this.nodes$ = new BehaviorSubject(this.nodes);
     this.edges$ = new BehaviorSubject(this.edges);
 
@@ -74,6 +83,10 @@ export default class ProGraph {
         this.evaluate();
       }
       this.edges$.next(this.edges);
+    });
+
+    indexeddbProvider.whenSynced.then(() => {
+      this.evaluate();
     });
   }
 
