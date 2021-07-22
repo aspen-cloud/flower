@@ -169,6 +169,8 @@ export default class ProGraph {
 
   getNodeInputs(nodeId: string) {
     const node = this._nodes.get(nodeId);
+    // Note: optimally we'd always be requesting data from a consistent state across edges / nodes and wouldn't need this guard
+    if (!node) return;
     const inboundEdges = Object.fromEntries(
       Array.from(this._edges.values() as IterableIterator<GraphEdge>)
         .filter((edge) => edge.to.nodeId === nodeId)
