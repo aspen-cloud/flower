@@ -531,13 +531,14 @@ const FlowGraph = () => {
   );
 
   // Add listeners for copy and pasting into graph
+  // TODO: don't use _nodes and _edges
   const copyElements = async (els: Elements<any>) => {
     const serializedNodes = els
       .filter((el) => isNode(el))
-      .map((el) => proGraph._nodes.get(el.id));
+      .map((el) => proGraph.getNode(el.id));
     const serializedEdges = els
       .filter((el) => isEdge(el))
-      .map((el) => proGraph._edges.get(el.id));
+      .map((el) => proGraph.getEdge(el.id));
     // @ts-ignore
     await addElementsToClipboard(serializedNodes, serializedEdges);
   };
@@ -792,7 +793,7 @@ const FlowGraph = () => {
             onNodeDoubleClick={(e, node) => {
               if (node.type === "DataTable") {
                 const nodeId = node.id;
-                const graphNode = proGraph._nodes.get(nodeId);
+                const graphNode = proGraph.getNode(nodeId);
                 setSpreadsheetTableData({
                   nodeId,
                   initialData: graphNode.sources.table as Table<any>,

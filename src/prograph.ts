@@ -38,11 +38,15 @@ export interface GraphEdge {
   };
 }
 
+function mapToGraphNode(ymap: Y.Map<any>) {
+  return Object.fromEntries(ymap?.entries() || []) as GraphNode;
+}
+
 export default class ProGraph {
   private ydoc: Y.Doc;
   nodes$: BehaviorSubject<Map<string, GraphNode>>;
   edges$: BehaviorSubject<Map<string, GraphEdge>>;
-  _nodes: Y.Map<GraphNode>;
+  _nodes: Y.Map<Y.Map<any>>; // where inner map should represent a GraphNode TODO: can we enforce typing?
   _edges: Y.Map<GraphEdge>;
   _outputs: Record<string, Record<string, NodeOutput>>;
   nodeTypes: Record<string, any>;
@@ -107,13 +111,18 @@ export default class ProGraph {
 
   getNode(nodeId: string) {
     return {
-      ...this._nodes.get(nodeId),
+      ...mapToGraphNode(this._nodes.get(nodeId)),
       outputs: this._outputs[nodeId],
     };
   }
 
+  getEdge(edgeId: string) {
+    return this._edges.get(edgeId);
+  }
+
   get nodes() {
     const plainMap = new Map(
+      // TODO: need map to node?
       Object.entries(this._nodes.toJSON() as Record<string, GraphNode>),
     );
 
@@ -137,7 +146,7 @@ export default class ProGraph {
 
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    this._nodes.set(id, { id, ...node });
+    this._nodes.set(id, new Y.Map(Object.entries({ id, ...node })));
     if (node.sources) {
       this.updateNodeSources(id, node.sources);
     }
@@ -155,8 +164,8 @@ export default class ProGraph {
   moveNode(nodeId: string, position: { x: number; y: number }) {
     const currNode = this._nodes.get(nodeId);
     // Might need to copy to new node to trigger observer
-    currNode.position = position;
-    this._nodes.set(nodeId, currNode);
+    currNode.set("position", position);
+    // this._nodes.set(nodeId, currNode);
   }
 
   deleteNode(nodeId: string) {
@@ -196,16 +205,22 @@ export default class ProGraph {
     if (seedNodeIds) {
       seedNodeIds.forEach((nodeId) => visit(nodeId));
     } else {
-      Array.from(this._nodes.values()).forEach((node) => visit(node.id));
+      Array.from(this._nodes.values()).forEach((nodeMap) => {
+        const node = mapToGraphNode(nodeMap);
+        visit(node.id);
+      });
     }
 
-    return nodeList.reverse().map((nodeId) => this._nodes.get(nodeId));
+    return nodeList
+      .reverse()
+      .map((nodeId) => mapToGraphNode(this._nodes.get(nodeId)));
   }
 
   getNodeInputs(nodeId: string) {
-    const node = this._nodes.get(nodeId);
+    const nodeMap = this._nodes.get(nodeId);
     // Note: optimally we'd always be requesting data from a consistent state across edges / nodes and wouldn't need this guard
-    if (!node) return;
+    if (!nodeMap) return;
+    const node = mapToGraphNode(nodeMap);
     const inboundEdges = Object.fromEntries(
       Array.from(this._edges.values() as IterableIterator<GraphEdge>)
         .filter((edge) => edge.to.nodeId === nodeId)
@@ -243,7 +258,7 @@ export default class ProGraph {
   }
 
   getNodeSources(nodeId) {
-    const node = this._nodes.get(nodeId);
+    const node = mapToGraphNode(this._nodes.get(nodeId));
     const sources = {};
     for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
       this.nodeTypes[node.type].sources || {},
@@ -259,8 +274,7 @@ export default class ProGraph {
 
   updateNodeSources(nodeId: string, sources: Record<string, any>) {
     const node = this._nodes.get(nodeId);
-    node.sources = { ...node.sources, ...sources };
-    this._nodes.set(node.id, { ...node });
+    node.set("sources", { ...node.get("sources"), ...sources });
     this.evaluate([nodeId]);
   }
 
