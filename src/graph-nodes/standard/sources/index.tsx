@@ -45,11 +45,14 @@ const Number = {
 const DataTable = {
   sources: {
     label: defaulted(string(), ""),
-    table: defaulted(TableStruct, { row: [], columns: [] }),
+    table: defaulted(TableStruct, {}),
   },
-  Component: ({ data: { sources } }) => {
+  outputs: {
+    table: ({ table }) => table,
+  },
+  Component: ({ data: { sources, outputs } }) => {
     return (
-      <BaseNode sources={{}} sinks={{ table: sources.table }}>
+      <BaseNode sources={{}} sinks={outputs}>
         <figure style={{ textAlign: "center" }}>
           <img
             style={{
@@ -82,11 +85,11 @@ const ErrorNode = {
   Component: ({ data }) => {
     const hasError = useMemo(
       () => data.sources.hasError.value,
-      [data.sources.hasError]
+      [data.sources.hasError],
     );
     const setHasError = useCallback(
       (val) => data.sources.hasError.set(val),
-      [data.sources.hasError]
+      [data.sources.hasError],
     );
     return (
       <BaseNode sources={{}} sinks={data.outputs}>

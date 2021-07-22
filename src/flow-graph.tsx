@@ -126,7 +126,10 @@ function getComponentDataForNode(node) {
 
   const inputVals = proGraph.getNodeInputs(node.id);
   const inputs = Object.fromEntries(
-    inputEntries.map(([key, struct]) => [key, inputVals[key].value]),
+    inputEntries.map(([key, struct]) => [
+      key,
+      create(inputVals[key].value, struct),
+    ]),
   );
   const sources = sourceEntries.reduce((acc, curr) => {
     const [key, struct] = curr;
