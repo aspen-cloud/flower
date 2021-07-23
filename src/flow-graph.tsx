@@ -60,7 +60,7 @@ import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
-import { Struct } from "superstruct";
+import { create, Struct } from "superstruct";
 import toaster from "./app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
@@ -246,9 +246,10 @@ const FlowGraph = () => {
       }
     } else {
       const graphId = graphPath.slice(-21);
+      const name = graphPath.slice(0, -21).split("-").join(" ").trim();
       console.log("loading graph", graphId, graphPath);
       window.localStorage.setItem("lastGraph", graphId);
-
+      graphManager.selectGraph(graphId, name);
       proGraph.loadGraph(graphId);
 
       const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(

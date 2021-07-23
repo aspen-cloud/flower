@@ -43,11 +43,21 @@ export class GraphManager extends Dexie {
         return graphId;
     }
 
-    async selectGraph(graphId: string) {
-        // TODO ensure graph exists
-        this.graphs.update(graphId, {
-            lastAccessed: new Date()
-        });
+    async selectGraph(graphId: string, name?: string) {
+        const existingGraph = await this.graphs.get(graphId);
+        if (!existingGraph) {
+            await this.graphs.add({
+                id: graphId,
+                name: name ?? "Untitled",
+                createdAt: new Date(),
+                lastAccessed: new Date(),
+            });
+        } else {
+            await this.graphs.update(graphId, {
+                lastAccessed: new Date()
+            });
+        }
+
     }
 
     async renameGraph(graphId: string, newName: string) {
