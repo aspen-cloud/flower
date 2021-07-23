@@ -13,6 +13,9 @@ export default function DefaultEdge({
   arrowHeadType,
   markerEndId,
 }) {
+  // TODO: Need node output to inform if there is an output error
+  // TODO: May need to determine if there is an input error
+  // TODO: Display error information in sidebar?
   const edgePath = getBezierPath({
     sourceX,
     sourceY,
@@ -34,7 +37,12 @@ export default function DefaultEdge({
       />
       <path
         id={id}
-        style={style}
+        style={{
+          ...(data?.outputs?.error || data?.inputs?.error
+            ? { stroke: "red" }
+            : {}),
+          ...style,
+        }}
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd}
