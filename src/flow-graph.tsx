@@ -213,11 +213,14 @@ const FlowGraph = () => {
 
 
     if (!graphPath) {
+      /**
+       * This can likely all be derived from the 
+       * `lastAccessed` field in the GraphManager
+       */
       const savedLastGraph = window.localStorage.getItem("lastGraph");
       if (savedLastGraph) {
         history.push(`/${savedLastGraph}`);
       } else {
-        // TODO maybe check if there are any local graphs to choose from
         graphManager.createGraph().then(newGraphId => {
           history.push(`/${newGraphId}`);
         });
