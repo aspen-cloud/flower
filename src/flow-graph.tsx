@@ -65,6 +65,7 @@ import toaster from "./app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
 import SelectGraphDialog from "./components/select-graph-dialog";
+import { useHistory, useParams } from "react-router-dom";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
@@ -202,39 +203,41 @@ const FlowGraph = () => {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSelectDialog, setShowSelectDialog] = useState(false);
 
-  // const [graphId, setGraphId] = useState("test1");
+  const { graphPath } = useParams<{ graphPath?: string }>();
+  const history = useHistory();
 
   useEffect(() => {
-    // const storedLastGraph = window.localStorage.getItem('lastGraph');
-    // const graphId = storedLastGraph || nanoid();
-    // proGraph.loadGraph(graphId);
-    // if (!storedLastGraph) {
-    //   window.localStorage.setItem("lastGraph", graphId);
-    // }
-    let elementSubscription;
-    const subscription = graphManager.currentGraph$.subscribe(graphId => {
-      if (elementSubscription) {
-        elementSubscription.unsubscribe();
-      }
-      if (graphId === null) {
-        return graphManager.createGraph();
-      }
+    setShowNewDialog(false);
+    setShowSelectDialog(false);
+
+
+
+    if (!graphPath) {
+      // TODO maybe check if there are any graphs to choose
+      graphManager.createGraph().then(newGraphId => {
+        history.push(`/${newGraphId}`);
+      });
+    } else {
+      const graphId = graphPath.slice(-21);
+      console.log("loading graph", graphId, graphPath);
+
       proGraph.loadGraph(graphId);
+
       const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
         map(([nodes, edges]) => graphToReactFlow(nodes, edges))
       );
 
-      elementSubscription = flowElements$.subscribe((els) => {
+      const elementSubscription = flowElements$.subscribe((els) => {
         setElements(els);
       });
 
       toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphManager.currentGraph$.value}` })
-    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [])
+      return () => {
+        elementSubscription.unsubscribe();
+      };
+    }
+  }, [graphPath])
 
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
