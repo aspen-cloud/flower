@@ -674,7 +674,8 @@ const FlowGraph = () => {
       }}
     >
       <NewSheetDialog isOpen={showNewDialog} onCancel={() => setShowNewDialog(false)} onSubmit={async (name: string) => {
-        await graphManager.createGraph(name);
+        const graphId = await graphManager.createGraph(name);
+        history.push(`/${name.split(" ").join("-")}-${graphId}`);
         setShowNewDialog(false);
       }} />
       <SelectGraphDialog isOpen={showSelectDialog} onClose={() => { setShowSelectDialog(false) }} onNew={() => {
