@@ -15,7 +15,7 @@ export default function SelectGraphDialog({ isOpen, onClose, onNew }) {
     }, [isOpen]);
 
     return (<Dialog isOpen={isOpen} onClose={onClose} title="Open Graph">
-        <Card>
+        <Card style={{ overflow: 'scroll', maxHeight: '80vh' }}>
             <div style={{ display: 'flex', justifyContent: "space-between" }}><H3>Select a graph</H3><Button minimal onClick={onNew}>New</Button></div>
             <Divider />
             {allGraphs.map(({ id, name, lastAccessed }) => (
