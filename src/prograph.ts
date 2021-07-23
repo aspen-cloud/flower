@@ -1,7 +1,9 @@
 import * as Y from "yjs";
+import * as awarenessProtocol from "y-protocols/awareness.js";
+import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject } from "rxjs";
 import { create, object, Struct } from "superstruct";
 
 // Value or error produced by output function
@@ -46,27 +48,57 @@ export default class ProGraph {
   nodeTypes: Record<string, any>;
 
   constructor(nodeTypes: Record<string, any>) {
-    this.ydoc = new Y.Doc();
     this.nodeTypes = nodeTypes;
+  }
+
+  loadGraph(graphId: string) {
+    if (this.ydoc) {
+      this.ydoc.destroy();
+    }
+    this.ydoc = new Y.Doc();
     this._outputs = {};
 
-    // this allows you to instantly get the (cached) documents data
-    const indexeddbProvider = new IndexeddbPersistence("main-graph", this.ydoc);
-    indexeddbProvider.whenSynced.then(() => {
-      this.evaluate();
+    const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
+    const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
+      signaling: ["wss://signaling.yjs.dev"],
+      password: graphId,
+      maxConns: 70 + Math.floor(Math.random() * 70),
+      awareness: new awarenessProtocol.Awareness(this.ydoc),
+      filterBcConns: true,
+      peerOpts: {},
     });
 
     this._nodes = this.ydoc.getMap("nodes");
     this._edges = this.ydoc.getMap("edges");
+
+    if (this.nodes$) {
+      this.nodes$.complete();
+    }
+    if (this.edges$) {
+      this.edges$.complete();
+    }
+
     this.nodes$ = new BehaviorSubject(this.nodes);
     this.edges$ = new BehaviorSubject(this.edges);
 
-    this._nodes.observe((_changeEvent, _transaction) => {
+    this._nodes.observe((_changeEvent, transaction) => {
+      if (!transaction.local) {
+        // TODO pass in affected nodes
+        this.evaluate();
+      }
       this.nodes$.next(this.nodes);
     });
 
-    this._edges.observe((_changeEvent, _transaction) => {
+    this._edges.observe((_changeEvent, transaction) => {
+      if (!transaction.local) {
+        // TODO pass in affected nodes
+        this.evaluate();
+      }
       this.edges$.next(this.edges);
+    });
+
+    indexeddbProvider.whenSynced.then(() => {
+      this.evaluate();
     });
   }
 

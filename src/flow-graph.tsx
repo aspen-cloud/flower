@@ -42,7 +42,7 @@ import {
   Card,
 } from "@blueprintjs/core";
 
-import { Column, OmnibarItem } from "./types";
+import { OmnibarItem } from "./types";
 import Graph from "./graph";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
@@ -61,8 +61,13 @@ import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 import { create, Struct } from "superstruct";
+import toaster from "./app-toaster";
+import NewSheetDialog from "./components/new-sheet-dialog";
+import graphManager from "./graph-manager";
+import SelectGraphDialog from "./components/select-graph-dialog";
+import { useHistory, useParams } from "react-router-dom";
 
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
 const initBgColor = "#343434";
 
@@ -189,11 +194,8 @@ function graphToReactFlow(
 }
 
 const proGraph = new ProGraph(GraphNodes);
-console.log("graph", proGraph);
 
-const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
-  map(([nodes, edges]) => graphToReactFlow(nodes, edges)),
-);
+console.log(graphManager);
 
 interface SpreadSheetTableData {
   initialData: Table<any>;
@@ -217,6 +219,55 @@ const FlowGraph = () => {
     defaultOmnibarOptions,
   );
 
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showSelectDialog, setShowSelectDialog] = useState(false);
+
+  const { graphPath } = useParams<{ graphPath?: string }>();
+  const history = useHistory();
+
+  useEffect(() => {
+    setShowNewDialog(false);
+    setShowSelectDialog(false);
+
+
+
+    if (!graphPath) {
+      /**
+       * This can likely all be derived from the 
+       * `lastAccessed` field in the GraphManager
+       */
+      const savedLastGraph = window.localStorage.getItem("lastGraph");
+      if (savedLastGraph) {
+        history.push(`/${savedLastGraph}`);
+      } else {
+        graphManager.createGraph().then(newGraphId => {
+          history.push(`/${newGraphId}`);
+        });
+      }
+    } else {
+      const graphId = graphPath.slice(-21);
+      const name = graphPath.slice(0, -21).split("-").join(" ").trim();
+      console.log("loading graph", graphId, graphPath);
+      window.localStorage.setItem("lastGraph", graphId);
+      graphManager.selectGraph(graphId, name);
+      proGraph.loadGraph(graphId);
+
+      const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
+        map(([nodes, edges]) => graphToReactFlow(nodes, edges))
+      );
+
+      const elementSubscription = flowElements$.subscribe((els) => {
+        setElements(els);
+      });
+
+      toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphId}` })
+
+      return () => {
+        elementSubscription.unsubscribe();
+      };
+    }
+  }, [graphPath])
+
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
 
@@ -232,12 +283,12 @@ const FlowGraph = () => {
         },
         ...(validNumber
           ? [
-              {
-                type: "Number",
-                label: `Number: ${omnibarQuery}`,
-                data: { number: Number(omnibarQuery) },
-              },
-            ]
+            {
+              type: "Number",
+              label: `Number: ${omnibarQuery}`,
+              data: { number: Number(omnibarQuery) },
+            },
+          ]
           : []),
       ]);
     } else {
@@ -247,16 +298,6 @@ const FlowGraph = () => {
 
   // TODO remove in favor of prograph
   const graphRef = useRef<Graph>();
-
-  useEffect(() => {
-    const subscription = flowElements$.subscribe((els) => {
-      setElements(els);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const validateConnection = (
     connection: Connection | Edge<any>,
@@ -365,7 +406,6 @@ const FlowGraph = () => {
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
-        newFunction()("flow loaded:", rfi);
 
         // zoom to previous state if available
         const canvasPosition = localStorage.getItem("flowgraph-state");
@@ -662,6 +702,15 @@ const FlowGraph = () => {
         height: "100vh",
       }}
     >
+      <NewSheetDialog isOpen={showNewDialog} onCancel={() => setShowNewDialog(false)} onSubmit={async (name: string) => {
+        const graphId = await graphManager.createGraph(name);
+        history.push(`/${name.split(" ").join("-")}-${graphId}`);
+        setShowNewDialog(false);
+      }} />
+      <SelectGraphDialog isOpen={showSelectDialog} onClose={() => { setShowSelectDialog(false) }} onNew={() => {
+        setShowSelectDialog(false);
+        setShowNewDialog(true);
+      }} />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
         {elements && ( // Don't load react flow until elements are ready
           <ReactFlow
@@ -882,6 +931,26 @@ const FlowGraph = () => {
         )}
       </div>
 
+      <HotkeysTarget2 hotkeys={[{
+        combo: "shift+n",
+        global: true,
+        label: "New graph",
+        allowInInput: false,
+        onKeyDown: () => {
+          setShowNewDialog(true);
+        }
+      }]}><div></div></HotkeysTarget2>
+
+      <HotkeysTarget2 hotkeys={[{
+        combo: "shift+o",
+        global: true,
+        label: "Open graph",
+        allowInInput: false,
+        onKeyDown: () => {
+          setShowSelectDialog(true);
+        }
+      }]}><div></div></HotkeysTarget2>
+
       <HotkeysTarget2
         hotkeys={[
           {
@@ -890,7 +959,6 @@ const FlowGraph = () => {
             label: "Show Omnibar",
             allowInInput: false,
             onKeyDown: () => {
-              console.log("hot key pressed");
               setShowNodeOmniBar(true);
             },
             preventDefault: true,
@@ -954,6 +1022,3 @@ const FlowGraph = () => {
 };
 
 export default FlowGraph;
-function newFunction() {
-  return console.log;
-}
