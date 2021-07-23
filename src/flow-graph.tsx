@@ -462,7 +462,11 @@ const FlowGraph = () => {
     reader.readAsArrayBuffer(file);
   }
 
-  async function addFileNode(entry, label: string, position: XYPosition) {
+  async function addFileNode(
+    entry: FileSystemFileHandle,
+    label: string,
+    position: XYPosition,
+  ) {
     const file = await entry.getFile();
     const jsonData = await csvToJson(file);
     const tableData = jsonToTable(jsonData);
@@ -470,6 +474,7 @@ const FlowGraph = () => {
       type: "DataTable",
       data: {
         table: tableData,
+        label: file.name,
       },
       position,
     });
