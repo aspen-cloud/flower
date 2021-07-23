@@ -213,13 +213,19 @@ const FlowGraph = () => {
 
 
     if (!graphPath) {
-      // TODO maybe check if there are any graphs to choose
-      graphManager.createGraph().then(newGraphId => {
-        history.push(`/${newGraphId}`);
-      });
+      const savedLastGraph = window.localStorage.getItem("lastGraph");
+      if (savedLastGraph) {
+        history.push(`/${savedLastGraph}`);
+      } else {
+        // TODO maybe check if there are any local graphs to choose from
+        graphManager.createGraph().then(newGraphId => {
+          history.push(`/${newGraphId}`);
+        });
+      }
     } else {
       const graphId = graphPath.slice(-21);
       console.log("loading graph", graphId, graphPath);
+      window.localStorage.setItem("lastGraph", graphId);
 
       proGraph.loadGraph(graphId);
 
