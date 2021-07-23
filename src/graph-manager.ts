@@ -27,13 +27,6 @@ export class GraphManager extends Dexie {
         });
 
         this.graphs = this.table('graphs');
-
-        const lastGraphId = window.localStorage.getItem("lastGraph");
-        this.currentGraph$ = new BehaviorSubject(lastGraphId || null);
-
-        this.currentGraph$.subscribe((newGraphId) => {
-            window.localStorage.setItem("lastGraph", newGraphId);
-        });
     }
 
     async getAllGraphs() {
@@ -47,13 +40,11 @@ export class GraphManager extends Dexie {
             createdAt: new Date(),
             lastAccessed: new Date(),
         });
-        this.currentGraph$.next(graphId);
         return graphId;
     }
 
     async selectGraph(graphId: string) {
         // TODO ensure graph exists
-        this.currentGraph$.next(graphId);
         this.graphs.update(graphId, {
             lastAccessed: new Date()
         });

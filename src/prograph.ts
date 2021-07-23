@@ -49,7 +49,7 @@ export default class ProGraph {
     const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
     const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
       signaling: ["wss://signaling.yjs.dev"],
-      password: "aspen-demo",
+      password: graphId,
       maxConns: 70 + Math.floor(Math.random() * 70),
       awareness: new awarenessProtocol.Awareness(this.ydoc),
       filterBcConns: true,

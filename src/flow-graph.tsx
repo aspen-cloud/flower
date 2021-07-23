@@ -231,7 +231,7 @@ const FlowGraph = () => {
         setElements(els);
       });
 
-      toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphManager.currentGraph$.value}` })
+      toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphId}` })
 
       return () => {
         elementSubscription.unsubscribe();
