@@ -3,7 +3,7 @@ import * as awarenessProtocol from "y-protocols/awareness.js";
 import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject } from "rxjs";
 import { create, object, Struct } from "superstruct";
 
 export interface GraphNode {

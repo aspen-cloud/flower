@@ -42,7 +42,7 @@ import {
   Card,
 } from "@blueprintjs/core";
 
-import { Column, OmnibarItem } from "./types";
+import { OmnibarItem } from "./types";
 import Graph from "./graph";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
@@ -60,9 +60,11 @@ import Spreadsheet from "./blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
-import { create, Struct } from "superstruct";
-import { nanoid } from "nanoid";
+import { Struct } from "superstruct";
 import toaster from "./app-toaster";
+import NewSheetDialog from "./components/new-sheet-dialog";
+import graphManager from "./graph-manager";
+import SelectGraphDialog from "./components/select-graph-dialog";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
 
@@ -173,6 +175,8 @@ function graphToReactFlow(
 
 const proGraph = new ProGraph(GraphNodes);
 
+console.log(graphManager);
+
 interface SpreadSheetTableData {
   initialData: Table<any>;
   nodeId: string;
@@ -195,7 +199,10 @@ const FlowGraph = () => {
     defaultOmnibarOptions
   );
 
-  const [graphId, setGraphId] = useState("test1");
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showSelectDialog, setShowSelectDialog] = useState(false);
+
+  // const [graphId, setGraphId] = useState("test1");
 
   useEffect(() => {
     // const storedLastGraph = window.localStorage.getItem('lastGraph');
@@ -204,22 +211,30 @@ const FlowGraph = () => {
     // if (!storedLastGraph) {
     //   window.localStorage.setItem("lastGraph", graphId);
     // }
-    proGraph.loadGraph(graphId);
+    let elementSubscription;
+    const subscription = graphManager.currentGraph$.subscribe(graphId => {
+      if (elementSubscription) {
+        elementSubscription.unsubscribe();
+      }
+      if (graphId === null) {
+        return graphManager.createGraph();
+      }
+      proGraph.loadGraph(graphId);
+      const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
+        map(([nodes, edges]) => graphToReactFlow(nodes, edges))
+      );
 
-    const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
-      map(([nodes, edges]) => graphToReactFlow(nodes, edges))
-    );
+      elementSubscription = flowElements$.subscribe((els) => {
+        setElements(els);
+      });
 
-    const subscription = flowElements$.subscribe((els) => {
-      setElements(els);
+      toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphManager.currentGraph$.value}` })
     });
-
-    toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphId}` })
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [graphId])
+  }, [])
 
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
@@ -359,7 +374,6 @@ const FlowGraph = () => {
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
-        newFunction()("flow loaded:", rfi);
 
         // zoom to previous state if available
         const canvasPosition = localStorage.getItem("flowgraph-state");
@@ -656,6 +670,14 @@ const FlowGraph = () => {
         height: "100vh",
       }}
     >
+      <NewSheetDialog isOpen={showNewDialog} onCancel={() => setShowNewDialog(false)} onSubmit={async (name: string) => {
+        await graphManager.createGraph(name);
+        setShowNewDialog(false);
+      }} />
+      <SelectGraphDialog isOpen={showSelectDialog} onClose={() => { setShowSelectDialog(false) }} onNew={() => {
+        setShowSelectDialog(false);
+        setShowNewDialog(true);
+      }} />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
         {elements && ( // Don't load react flow until elements are ready
           <ReactFlow
@@ -877,12 +899,22 @@ const FlowGraph = () => {
       </div>
 
       <HotkeysTarget2 hotkeys={[{
-        combo: "o",
+        combo: "shift+n",
         global: true,
-        label: "Toggle graph",
+        label: "New graph",
         allowInInput: false,
         onKeyDown: () => {
-          setGraphId(id => id === "test1" ? "test2" : "test1");
+          setShowNewDialog(true);
+        }
+      }]}><div></div></HotkeysTarget2>
+
+      <HotkeysTarget2 hotkeys={[{
+        combo: "shift+o",
+        global: true,
+        label: "Open graph",
+        allowInInput: false,
+        onKeyDown: () => {
+          setShowSelectDialog(true);
         }
       }]}><div></div></HotkeysTarget2>
 
@@ -957,6 +989,3 @@ const FlowGraph = () => {
 };
 
 export default FlowGraph;
-function newFunction() {
-  return console.log;
-}
