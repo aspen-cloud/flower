@@ -1,6 +1,7 @@
 import { FormGroup, H5, InputGroup } from "@blueprintjs/core";
 import { any, defaulted, func, string } from "superstruct";
 import BaseNode from "../../../base-node";
+import DirtyInput from "../../../dirty-input";
 
 const GenerateColumn = {
   sources: {
@@ -29,10 +30,10 @@ const GenerateColumn = {
         <div style={{ padding: "10px" }}>
           <H5>Generate Column</H5>
           <FormGroup label="Name">
-            <InputGroup
+            <DirtyInput
               value={columnName.value}
-              onChange={(e) => {
-                columnName.set(e.target.value);
+              onConfirm={(val) => {
+                columnName.set(val);
               }}
             />
           </FormGroup>

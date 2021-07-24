@@ -2,6 +2,7 @@ import { any, array, defaulted, enums, object, string } from "superstruct";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
+import DirtyInput from "../../../dirty-input";
 
 const Join = {
   inputs: {
@@ -69,10 +70,6 @@ const Join = {
   },
   Component: ({ data }) => {
     // TODO: labels could be passed down with table object
-    const labelA = useMemo(
-      () => data.sources.labelA.value,
-      [data.sources.labelA],
-    );
     const setLabelA = useCallback(
       (newLabel) => {
         data.sources.labelA.set(newLabel);
@@ -80,10 +77,6 @@ const Join = {
       [data.sources.labelA],
     );
 
-    const labelB = useMemo(
-      () => data.sources.labelB.value,
-      [data.sources.labelB],
-    );
     const setLabelB = useCallback(
       (newLabel) => {
         data.sources.labelB.set(newLabel);
@@ -128,9 +121,9 @@ const Join = {
             <div>
               <label>
                 Label:
-                <input
-                  value={labelA}
-                  onChange={(e) => setLabelA(e.target.value)}
+                <DirtyInput
+                  onConfirm={(value) => setLabelA(value)}
+                  value={data.sources.labelA.value}
                 />
               </label>
             </div>
@@ -161,9 +154,9 @@ const Join = {
             <div>
               <label>
                 Label:
-                <input
-                  value={labelB}
-                  onChange={(e) => setLabelB(e.target.value)}
+                <DirtyInput
+                  onConfirm={(value) => setLabelB(value)}
+                  value={data.sources.labelB.value}
                 />
               </label>
             </div>

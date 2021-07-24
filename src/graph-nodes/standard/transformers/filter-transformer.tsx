@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
 import filters from "../../nodes/standard/filter-node/filters";
+import DirtyInput from "../../../dirty-input";
 
 const Filter = {
   inputs: {
@@ -49,10 +50,6 @@ const Filter = {
       [data.sources.columnFilter],
     );
 
-    const compareValue: string = useMemo(
-      () => data.sources.compareValue.value,
-      [data.sources.compareValue],
-    );
     const setCompareValue = useCallback(
       (newCompareValue) => {
         data.sources.compareValue.set(newCompareValue);
@@ -105,9 +102,9 @@ const Filter = {
           <div>
             <label>
               Compare value
-              <input
-                onChange={(e) => setCompareValue(e.target.value)}
-                value={compareValue}
+              <DirtyInput
+                onConfirm={(value) => setCompareValue(value)}
+                value={data.sources.compareValue.value}
               />
             </label>
           </div>
