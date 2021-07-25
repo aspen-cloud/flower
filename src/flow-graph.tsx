@@ -286,7 +286,6 @@ const FlowGraph = () => {
       mousePosition: { x: 0, y: 0 },
     });
     proGraph.presence.on("change", () => {
-      console.log(proGraph.presence.getStates().values());
       const collaboratorStates = Array.from(
         proGraph.presence.getStates().entries(),
       ).filter(([key]) => key !== proGraph.presence.clientID);
@@ -296,7 +295,6 @@ const FlowGraph = () => {
         type: "mouse",
         data: { label: state.name },
       }));
-      console.log(mouseElems);
       setMouseElements(mouseElems);
     });
   }, []);
