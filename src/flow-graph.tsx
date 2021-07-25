@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useRef,
   DragEventHandler,
+  useMemo,
 } from "react";
 import XLSX from "xlsx";
 
@@ -66,8 +67,9 @@ import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
 import SelectGraphDialog from "./components/select-graph-dialog";
 import { useHistory, useParams } from "react-router-dom";
+import MouseNode from "./graph-nodes/utils/mouse-node";
 
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => { };
+const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
 const initBgColor = "#343434";
 
@@ -85,6 +87,9 @@ const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => [key, val.Component]),
 );
+
+nodeTypes.mouse = MouseNode;
+
 const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
   type: t,
   label: t,
@@ -195,7 +200,7 @@ function graphToReactFlow(
 
 const proGraph = new ProGraph(GraphNodes);
 
-console.log(graphManager);
+console.log(proGraph, graphManager);
 
 interface SpreadSheetTableData {
   initialData: Table<any>;
@@ -209,7 +214,10 @@ const edgeTypes = {
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
-  const [elements, setElements] = useState<Elements>();
+
+  const [graphElements, setGraphElements] = useState<Elements>([]);
+  const [mouseElements, setMouseElements] = useState<Elements>([]);
+
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
@@ -218,6 +226,8 @@ const FlowGraph = () => {
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
     defaultOmnibarOptions,
   );
+
+  // const { project } = useZoomPanHelper();
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSelectDialog, setShowSelectDialog] = useState(false);
@@ -229,18 +239,16 @@ const FlowGraph = () => {
     setShowNewDialog(false);
     setShowSelectDialog(false);
 
-
-
     if (!graphPath) {
       /**
-       * This can likely all be derived from the 
+       * This can likely all be derived from the
        * `lastAccessed` field in the GraphManager
        */
       const savedLastGraph = window.localStorage.getItem("lastGraph");
       if (savedLastGraph) {
         history.push(`/${savedLastGraph}`);
       } else {
-        graphManager.createGraph().then(newGraphId => {
+        graphManager.createGraph().then((newGraphId) => {
           history.push(`/${newGraphId}`);
         });
       }
@@ -252,21 +260,46 @@ const FlowGraph = () => {
       graphManager.selectGraph(graphId, name);
       proGraph.loadGraph(graphId);
 
-      const flowElements$ = combineLatest(proGraph.nodes$, proGraph.edges$).pipe(
-        map(([nodes, edges]) => graphToReactFlow(nodes, edges))
-      );
+      const flowElements$ = combineLatest(
+        proGraph.nodes$,
+        proGraph.edges$,
+      ).pipe(map(([nodes, edges]) => graphToReactFlow(nodes, edges)));
 
       const elementSubscription = flowElements$.subscribe((els) => {
-        setElements(els);
+        setGraphElements(els);
       });
 
-      toaster.show({ intent: "success", message: `You are now viewing Graph ID:${graphId}` })
+      toaster.show({
+        intent: "success",
+        message: `You are now viewing Graph ID:${graphId}`,
+      });
 
       return () => {
         elementSubscription.unsubscribe();
       };
     }
-  }, [graphPath])
+  }, [graphPath]);
+
+  useEffect(() => {
+    proGraph.presence.setLocalState({
+      name: "Anonymous",
+      mousePosition: { x: 0, y: 0 },
+    });
+    proGraph.presence.on("change", () => {
+      console.log(proGraph.presence.getStates().values());
+      const collaboratorStates = Array.from(
+        proGraph.presence.getStates().entries(),
+      ).filter(([key]) => key !== proGraph.presence.clientID);
+      const mouseElems: Elements = collaboratorStates.map(([key, state]) => ({
+        position: state.mousePosition,
+        id: `${key}-mouse`,
+        type: "mouse",
+        data: { label: state.name },
+      }));
+      console.log(mouseElems);
+      setMouseElements(mouseElems);
+    });
+  }, []);
 
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
@@ -283,12 +316,12 @@ const FlowGraph = () => {
         },
         ...(validNumber
           ? [
-            {
-              type: "Number",
-              label: `Number: ${omnibarQuery}`,
-              data: { number: Number(omnibarQuery) },
-            },
-          ]
+              {
+                type: "Number",
+                label: `Number: ${omnibarQuery}`,
+                data: { number: Number(omnibarQuery) },
+              },
+            ]
           : []),
       ]);
     } else {
@@ -377,7 +410,7 @@ const FlowGraph = () => {
   };
 
   const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
-    setElements((els) => {
+    setGraphElements((els) => {
       if (!validateConnection(newConnection, els)) return els;
       onEdgeDisconnect(oldEdge, els);
       onEdgeConnect(newConnection, els);
@@ -444,15 +477,6 @@ const FlowGraph = () => {
       },
       position,
     });
-    // graphRef.current?.createNode({
-    //   type: "FileSource",
-    //   data: {
-    //     data: tableData,
-    //     entry,
-    //     lastRead: file,
-    //   },
-    //   position,
-    // });
   }
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -692,6 +716,12 @@ const FlowGraph = () => {
     }
   };
 
+  const elements = useMemo(
+    () => graphElements.concat(mouseElements),
+    [graphElements, mouseElements],
+  );
+  console.log(elements);
+
   return (
     <div
       style={{
@@ -702,20 +732,39 @@ const FlowGraph = () => {
         height: "100vh",
       }}
     >
-      <NewSheetDialog isOpen={showNewDialog} onCancel={() => setShowNewDialog(false)} onSubmit={async (name: string) => {
-        const graphId = await graphManager.createGraph(name);
-        history.push(`/${name.split(" ").join("-")}-${graphId}`);
-        setShowNewDialog(false);
-      }} />
-      <SelectGraphDialog isOpen={showSelectDialog} onClose={() => { setShowSelectDialog(false) }} onNew={() => {
-        setShowSelectDialog(false);
-        setShowNewDialog(true);
-      }} />
+      <NewSheetDialog
+        isOpen={showNewDialog}
+        onCancel={() => setShowNewDialog(false)}
+        onSubmit={async (name: string) => {
+          const graphId = await graphManager.createGraph(name);
+          history.push(`/${name.split(" ").join("-")}-${graphId}`);
+          setShowNewDialog(false);
+        }}
+      />
+      <SelectGraphDialog
+        isOpen={showSelectDialog}
+        onClose={() => {
+          setShowSelectDialog(false);
+        }}
+        onNew={() => {
+          setShowSelectDialog(false);
+          setShowNewDialog(true);
+        }}
+      />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
-        {elements && ( // Don't load react flow until elements are ready
+        {graphElements && ( // Don't load react flow until elements are ready
           <ReactFlow
             elements={elements}
             panOnScroll={true}
+            onMouseMove={(e) => {
+              if (!reactflowInstance) return;
+              const absolutePos = { x: e.clientX, y: e.clientY };
+              const coordinates = reactflowInstance.project(absolutePos);
+              proGraph.presence.setLocalStateField(
+                "mousePosition",
+                coordinates,
+              );
+            }}
             panOnScrollMode={PanOnScrollMode.Free}
             onElementClick={onElementClick}
             onElementsRemove={onElementsRemove}
@@ -931,25 +980,37 @@ const FlowGraph = () => {
         )}
       </div>
 
-      <HotkeysTarget2 hotkeys={[{
-        combo: "shift+n",
-        global: true,
-        label: "New graph",
-        allowInInput: false,
-        onKeyDown: () => {
-          setShowNewDialog(true);
-        }
-      }]}><div></div></HotkeysTarget2>
+      <HotkeysTarget2
+        hotkeys={[
+          {
+            combo: "shift+n",
+            global: true,
+            label: "New graph",
+            allowInInput: false,
+            onKeyDown: () => {
+              setShowNewDialog(true);
+            },
+          },
+        ]}
+      >
+        <div></div>
+      </HotkeysTarget2>
 
-      <HotkeysTarget2 hotkeys={[{
-        combo: "shift+o",
-        global: true,
-        label: "Open graph",
-        allowInInput: false,
-        onKeyDown: () => {
-          setShowSelectDialog(true);
-        }
-      }]}><div></div></HotkeysTarget2>
+      <HotkeysTarget2
+        hotkeys={[
+          {
+            combo: "shift+o",
+            global: true,
+            label: "Open graph",
+            allowInInput: false,
+            onKeyDown: () => {
+              setShowSelectDialog(true);
+            },
+          },
+        ]}
+      >
+        <div></div>
+      </HotkeysTarget2>
 
       <HotkeysTarget2
         hotkeys={[

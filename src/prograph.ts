@@ -46,6 +46,7 @@ export default class ProGraph {
   _edges: Y.Map<GraphEdge>;
   _outputs: Record<string, Record<string, NodeOutput>>;
   nodeTypes: Record<string, any>;
+  presence: awarenessProtocol.Awareness;
 
   constructor(nodeTypes: Record<string, any>) {
     this.nodeTypes = nodeTypes;
@@ -59,11 +60,13 @@ export default class ProGraph {
     this._outputs = {};
 
     const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
+    
+    this.presence = new awarenessProtocol.Awareness(this.ydoc);
     const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
       signaling: ["wss://signaling.yjs.dev"],
       password: graphId,
       maxConns: 70 + Math.floor(Math.random() * 70),
-      awareness: new awarenessProtocol.Awareness(this.ydoc),
+      awareness: this.presence,
       filterBcConns: true,
       peerOpts: {},
     });
