@@ -42,7 +42,7 @@ const Join = {
               })),
             );
         },
-        ["labelA", "labelB"],
+        ["labelA", "labelB", "tableA", "tableB"],
       );
 
       const calcRows = flowMemo(
@@ -58,7 +58,7 @@ const Join = {
             ) || {}),
           }));
         },
-        ["joinColumnA", "joinColumnB"],
+        ["joinColumnA", "joinColumnB", "tableA", "tableB"],
       );
 
       return ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
@@ -141,13 +141,13 @@ const Join = {
           {" "}
           -- select a column --{" "}
         </option>,
-        ...data.inputs.tableA.columns.map((c) => (
+        ...data.inputs.tableB.columns.map((c) => (
           <option key={c.accessor} value={c.accessor}>
             {c.Header}
           </option>
         )),
       ],
-      [data.inputs.tableA.columns],
+      [data.inputs.tableB.columns],
     );
 
     return (

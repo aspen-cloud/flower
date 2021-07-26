@@ -70,47 +70,51 @@ const Group = {
     groupColumns: defaulted(array(string()), []),
   },
   outputs: {
-    table: ({ table, columnSelections, groupColumns }) => {
-      const columnNameMap = Object.fromEntries(
-        table.columns.map((c) => [c.accessor, c.Header]),
-      );
-      const columnSelectionName = (columnSelection: GroupSelection) =>
-        `${columnSelection.aggregateFunction}-${
-          columnNameMap[columnSelection.columnAccessor]
-        }`;
-
-      const columns = table.columns
-        .filter((c) => groupColumns.includes(c.accessor))
-        .concat(
-          columnSelections.map((columnSelection) => {
-            const column = table.columns.find(
-              (c) => c.accessor === columnSelection.columnAccessor,
-            );
-            return {
-              ...column,
-              Header: columnSelectionName(columnSelection),
-              accessor: columnSelectionName(columnSelection),
-            };
-          }),
+    table:
+      () =>
+      ({ table, columnSelections, groupColumns }) => {
+        const columnNameMap = Object.fromEntries(
+          table.columns.map((c) => [c.accessor, c.Header]),
         );
+        const columnSelectionName = (columnSelection: GroupSelection) =>
+          `${columnSelection.aggregateFunction}-${
+            columnNameMap[columnSelection.columnAccessor]
+          }`;
 
-      const rows = groupBy(table.rows, groupColumns).map((groupData) => {
-        const obj = {};
-        Object.entries(groupData.key).forEach(
-          ([subKey, value]) => (obj[subKey] = value),
-        );
-        columnSelections.forEach((columnSelection) => {
-          obj[columnSelectionName(columnSelection)] = aggregate(
-            columnSelection.aggregateFunction,
-            groupData.data.map((item) => item[columnSelection.columnAccessor]),
+        const columns = table.columns
+          .filter((c) => groupColumns.includes(c.accessor))
+          .concat(
+            columnSelections.map((columnSelection) => {
+              const column = table.columns.find(
+                (c) => c.accessor === columnSelection.columnAccessor,
+              );
+              return {
+                ...column,
+                Header: columnSelectionName(columnSelection),
+                accessor: columnSelectionName(columnSelection),
+              };
+            }),
           );
+
+        const rows = groupBy(table.rows, groupColumns).map((groupData) => {
+          const obj = {};
+          Object.entries(groupData.key).forEach(
+            ([subKey, value]) => (obj[subKey] = value),
+          );
+          columnSelections.forEach((columnSelection) => {
+            obj[columnSelectionName(columnSelection)] = aggregate(
+              columnSelection.aggregateFunction,
+              groupData.data.map(
+                (item) => item[columnSelection.columnAccessor],
+              ),
+            );
+          });
+
+          return obj;
         });
 
-        return obj;
-      });
-
-      return { columns, rows };
-    },
+        return { columns, rows };
+      },
   },
   Component: ({ data }) => {
     const columnSelections: GroupSelection[] = useMemo(

@@ -16,27 +16,29 @@ const Formula = {
     formulaText: defaulted(string(), () => ""),
   },
   outputs: {
-    function: ({ formulaText, tableSchema }) => {
-      return (record: Record<string, any>) => {
-        const parser = new FormulaParser();
-        parser.on(
-          "callFunction",
-          (name: string, args: any[], done: (result: any) => void) => {
-            done(formulajs[name](...args));
-          }
-        );
+    function:
+      () =>
+      ({ formulaText, tableSchema }) => {
+        return (record: Record<string, any>) => {
+          const parser = new FormulaParser();
+          parser.on(
+            "callFunction",
+            (name: string, args: any[], done: (result: any) => void) => {
+              done(formulajs[name](...args));
+            },
+          );
 
-        for (const prop of tableSchema.columns) {
-          parser.setVariable(prop.Header, record[prop.accessor]);
-        }
-        const { error, result } = parser.parse(formulaText);
-        if (error) {
-          //throw new Error(error);
-          return error;
-        }
-        return result;
-      };
-    },
+          for (const prop of tableSchema.columns) {
+            parser.setVariable(prop.Header, record[prop.accessor]);
+          }
+          const { error, result } = parser.parse(formulaText);
+          if (error) {
+            //throw new Error(error);
+            return error;
+          }
+          return result;
+        };
+      },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {
     // TODO use inputs.tableSchema to create autocomplete

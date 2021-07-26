@@ -7,7 +7,10 @@ const Viewer = {
     value: any(),
   },
   outputs: {
-    value: ({ value }) => value,
+    value:
+      () =>
+      ({ value }) =>
+        value,
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (

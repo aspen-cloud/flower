@@ -29,36 +29,38 @@ const Sort = {
     sortDefinitions: defaulted(array(SortDefinitionStruct), []),
   },
   outputs: {
-    table: ({ table, sortDefinitions }) => {
-      const columns = [...table.columns];
-      const rows = [...table.rows].sort((a, b) =>
-        sortDefinitions.reduce((current, nextSortDef) => {
-          // until we have better typing just supporting string and number compare
-          const isNumber = table.rows.every(
-            (r) => !isNaN(Number(r[nextSortDef.columnAccessor])),
-          );
-          if (isNumber) {
+    table:
+      () =>
+      ({ table, sortDefinitions }) => {
+        const columns = [...table.columns];
+        const rows = [...table.rows].sort((a, b) =>
+          sortDefinitions.reduce((current, nextSortDef) => {
+            // until we have better typing just supporting string and number compare
+            const isNumber = table.rows.every(
+              (r) => !isNaN(Number(r[nextSortDef.columnAccessor])),
+            );
+            if (isNumber) {
+              return (
+                current ||
+                simpleSort(
+                  Number(a[nextSortDef.columnAccessor]),
+                  Number(b[nextSortDef.columnAccessor]),
+                  nextSortDef.direction,
+                )
+              );
+            }
             return (
               current ||
               simpleSort(
-                Number(a[nextSortDef.columnAccessor]),
-                Number(b[nextSortDef.columnAccessor]),
+                a[nextSortDef.columnAccessor]?.toLowerCase(),
+                b[nextSortDef.columnAccessor]?.toLowerCase(),
                 nextSortDef.direction,
               )
             );
-          }
-          return (
-            current ||
-            simpleSort(
-              a[nextSortDef.columnAccessor]?.toLowerCase(),
-              b[nextSortDef.columnAccessor]?.toLowerCase(),
-              nextSortDef.direction,
-            )
-          );
-        }, 0),
-      );
-      return { columns, rows };
-    },
+          }, 0),
+        );
+        return { columns, rows };
+      },
   },
   Component: ({ data }) => {
     const sortDefinitions: SortDefinition[] = useMemo(

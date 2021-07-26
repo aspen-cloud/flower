@@ -42,19 +42,21 @@ const Select = {
     selectedTags: defaulted(array(string()), []),
   },
   outputs: {
-    table: ({ table, selectedTags }) => {
-      const columns = table.columns.filter((col) =>
-        selectedTags.includes(col.accessor),
-      );
-      const rows = table.rows.map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([key, val]) =>
-            selectedTags.includes(key),
+    table:
+      () =>
+      ({ table, selectedTags }) => {
+        const columns = table.columns.filter((col) =>
+          selectedTags.includes(col.accessor),
+        );
+        const rows = table.rows.map((row) =>
+          Object.fromEntries(
+            Object.entries(row).filter(([key, val]) =>
+              selectedTags.includes(key),
+            ),
           ),
-        ),
-      );
-      return { columns, rows };
-    },
+        );
+        return { columns, rows };
+      },
   },
   Component: ({ data }) => {
     const setSelectedTags = useCallback(

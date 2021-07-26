@@ -15,17 +15,19 @@ const Filter = {
     compareValue: defaulted(string(), ""),
   },
   outputs: {
-    table: ({ table, columnAccessor, columnFilter, compareValue }) => {
-      const filter = filters[columnFilter] || (() => true);
-      const newRows = table.rows.filter((row) =>
-        filter(row[columnAccessor], compareValue),
-      );
+    table:
+      () =>
+      ({ table, columnAccessor, columnFilter, compareValue }) => {
+        const filter = filters[columnFilter] || (() => true);
+        const newRows = table.rows.filter((row) =>
+          filter(row[columnAccessor], compareValue),
+        );
 
-      return {
-        rows: newRows,
-        columns: table.columns,
-      };
-    },
+        return {
+          rows: newRows,
+          columns: table.columns,
+        };
+      },
   },
   Component: ({ data }) => {
     const columnAccessor: string = useMemo(

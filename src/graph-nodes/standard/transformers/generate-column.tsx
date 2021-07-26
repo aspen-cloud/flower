@@ -12,16 +12,18 @@ const GenerateColumn = {
     func: defaulted(func(), () => (val) => val),
   },
   outputs: {
-    table: ({ table, func, columnName }) => {
-      if (!func) return table;
-      return {
-        rows: table.rows.map((row) => ({ ...row, [columnName]: func(row) })),
-        columns: [
-          ...table.columns,
-          { accessor: columnName, Header: columnName },
-        ],
-      };
-    },
+    table:
+      () =>
+      ({ table, func, columnName }) => {
+        if (!func) return table;
+        return {
+          rows: table.rows.map((row) => ({ ...row, [columnName]: func(row) })),
+          columns: [
+            ...table.columns,
+            { accessor: columnName, Header: columnName },
+          ],
+        };
+      },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {
     const { columnName } = sources;

@@ -8,7 +8,10 @@ const Text = {
     text: defaulted(string(), ""),
   },
   outputs: {
-    text: ({ text }) => text,
+    text:
+      () =>
+      ({ text }) =>
+        text,
   },
   Component: ({ data: { sources, outputs } }) => {
     return (
@@ -27,7 +30,10 @@ const Number = {
     number: defaulted(number(), 0),
   },
   outputs: {
-    number: ({ number }) => number,
+    number:
+      () =>
+      ({ number }) =>
+        number,
   },
   Component: ({ data: { sources, outputs } }) => {
     return (

@@ -14,7 +14,10 @@ const Add = {
     right: defaulted(number(), 0),
   },
   outputs: {
-    sum: ({ left, right }) => +left + +right,
+    sum:
+      () =>
+      ({ left, right }) =>
+        +left + +right,
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -32,11 +35,13 @@ const Divide = {
     divisor: defaulted(number(), 0),
   },
   outputs: {
-    quotient: ({ numerator, divisor }) => {
-      if (divisor === 0) throw new Error("Cannot divide by 0");
+    quotient:
+      () =>
+      ({ numerator, divisor }) => {
+        if (divisor === 0) throw new Error("Cannot divide by 0");
 
-      return +numerator / +divisor;
-    },
+        return +numerator / +divisor;
+      },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
