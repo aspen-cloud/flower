@@ -141,8 +141,25 @@ const Group = {
     const [newColumnselectionFunc, setNewColumnSelectionFunc] =
       useState<AggregateFunction>();
 
-    const columnNameMap = Object.fromEntries(
-      data.inputs.table.columns.map((c) => [c.accessor, c.Header]),
+    const columnNameMap = useMemo(
+      () =>
+        (data.inputs.table.columns || []).reduce((currVal, nextVal) => {
+          currVal[nextVal.accessor] = nextVal.Header;
+          return currVal;
+        }, {}),
+      [data.inputs.table],
+    );
+
+    const columnOptions = useMemo(
+      () => [
+        <option value={""}> -- select a column -- </option>,
+        ...data.inputs.table.columns.map((c) => (
+          <option key={c.accessor} value={c.accessor}>
+            {c.Header}
+          </option>
+        )),
+      ],
+      [data.inputs.table.columns],
     );
 
     return (
@@ -191,14 +208,7 @@ const Group = {
                     setNewColumnSelectionAccessor(e.target.value)
                   }
                 >
-                  {[
-                    <option value={""}> -- select a column -- </option>,
-                    ...data.inputs.table.columns.map((c) => (
-                      <option key={c.accessor} value={c.accessor}>
-                        {c.Header}
-                      </option>
-                    )),
-                  ]}
+                  {columnOptions}
                 </select>
                 <select
                   value={newColumnselectionFunc}

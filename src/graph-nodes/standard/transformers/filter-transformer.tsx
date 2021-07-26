@@ -57,6 +57,19 @@ const Filter = {
       [data.sources.compareValue],
     );
 
+    const columnOptions = useMemo(
+      () => [
+        <option disabled selected value={""}>
+          {" "}
+          -- select a column --{" "}
+        </option>,
+        ...data.inputs.table.columns.map((c) => (
+          <option value={c.accessor}>{c.Header}</option>
+        )),
+      ],
+      [data.inputs.table.columns],
+    );
+
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
         <div style={{ backgroundColor: "white" }} className="transformer">
@@ -68,15 +81,7 @@ const Filter = {
                 value={columnAccessor}
                 onChange={(e) => setColumnAccessor(e.target.value)}
               >
-                {[
-                  <option disabled selected value={""}>
-                    {" "}
-                    -- select a column --{" "}
-                  </option>,
-                  ...data.inputs.table.columns.map((c) => (
-                    <option value={c.accessor}>{c.Header}</option>
-                  )),
-                ]}
+                {columnOptions}
               </select>
             </label>
           </div>

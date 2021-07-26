@@ -106,6 +106,36 @@ const Join = {
       [data.sources.joinColumnB],
     );
 
+    const tableAColumnsOptions = useMemo(
+      () => [
+        <option disabled selected value={""}>
+          {" "}
+          -- select a column --{" "}
+        </option>,
+        ...data.inputs.tableA.columns.map((c) => (
+          <option key={c.accessor} value={c.accessor}>
+            {c.Header}
+          </option>
+        )),
+      ],
+      [data.inputs.tableA.columns],
+    );
+
+    const tableBColumnsOptions = useMemo(
+      () => [
+        <option disabled selected value={""}>
+          {" "}
+          -- select a column --{" "}
+        </option>,
+        ...data.inputs.tableA.columns.map((c) => (
+          <option key={c.accessor} value={c.accessor}>
+            {c.Header}
+          </option>
+        )),
+      ],
+      [data.inputs.tableA.columns],
+    );
+
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
         <div
@@ -134,17 +164,7 @@ const Join = {
                   value={joinColumnA}
                   onChange={(e) => setJoinColumnA(e.target.value)}
                 >
-                  {[
-                    <option disabled selected value={""}>
-                      {" "}
-                      -- select a column --{" "}
-                    </option>,
-                    ...data.inputs.tableA.columns.map((c) => (
-                      <option key={c.accessor} value={c.accessor}>
-                        {c.Header}
-                      </option>
-                    )),
-                  ]}
+                  {tableAColumnsOptions}
                 </select>
               </label>
             </div>
@@ -167,17 +187,7 @@ const Join = {
                   value={joinColumnB}
                   onChange={(e) => setJoinColumnB(e.target.value)}
                 >
-                  {[
-                    <option disabled selected value={""}>
-                      {" "}
-                      -- select a column --{" "}
-                    </option>,
-                    ...data.inputs.tableB.columns.map((c) => (
-                      <option key={c.accessor} value={c.accessor}>
-                        {c.Header}
-                      </option>
-                    )),
-                  ]}
+                  {tableBColumnsOptions}
                 </select>
               </label>
             </div>

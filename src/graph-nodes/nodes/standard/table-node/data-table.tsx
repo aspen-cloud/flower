@@ -31,8 +31,6 @@ export default function DataTable({ data, columns }) {
     state: { pageIndex, pageSize },
   } = tableInstance;
 
-  console.log(tableInstance);
-
   return (
     <>
       {/* apply the table props */}

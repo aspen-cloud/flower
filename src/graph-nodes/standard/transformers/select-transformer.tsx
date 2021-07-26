@@ -69,19 +69,36 @@ const Select = {
       [data.sources.selectedTags],
     );
 
-    const [columnNameMap, setColumnNameMap] = useState<Record<string, string>>(
-      {},
-    );
-    useEffect(() => {
-      const newNameMap = (data.inputs.table?.columns || []).reduce(
-        (currVal, nextVal) => {
+    const columnNameMap = useMemo(
+      () =>
+        (data.inputs.table.columns || []).reduce((currVal, nextVal) => {
           currVal[nextVal.accessor] = nextVal.Header;
           return currVal;
-        },
-        {},
+        }, {}),
+      [data.inputs.table],
+    );
+
+    const colSuggest = useMemo(() => {
+      const validColumns = data.inputs.table.columns.filter(
+        (c: Column) => !tagSet.has(c.accessor),
       );
-      setColumnNameMap(newNameMap);
-    }, [data.inputs.table]);
+      return (
+        <ColumnSuggest
+          inputValueRenderer={(item: Column) => item.Header}
+          items={validColumns}
+          noResults={<MenuItem disabled={true} text="All columns selected." />}
+          onItemSelect={(item, event) => {
+            const newSet = new Set(tagSet);
+            newSet.add(item.accessor);
+            setSelectedTags(newSet);
+          }}
+          itemRenderer={renderColumnSuggestion}
+          resetOnSelect={true}
+          popoverProps={{ minimal: true }}
+          itemPredicate={columnSuggestPredicate}
+        />
+      );
+    }, [data.inputs.table, tagSet, setSelectedTags]);
 
     const onRemove = (columnAccessor: string) => {
       const newSet = new Set(tagSet);
@@ -114,24 +131,7 @@ const Select = {
               {columnNameMap[tag]}
             </Tag>
           ))}
-          <ColumnSuggest
-            inputValueRenderer={(item: Column) => item.Header}
-            items={data.inputs.table.columns.filter(
-              (c) => !tagSet.has(c.accessor),
-            )}
-            noResults={
-              <MenuItem disabled={true} text="All columns selected." />
-            }
-            onItemSelect={(item, event) => {
-              const newSet = new Set(tagSet);
-              newSet.add(item.accessor);
-              setSelectedTags(newSet);
-            }}
-            itemRenderer={renderColumnSuggestion}
-            resetOnSelect={true}
-            popoverProps={{ minimal: true }}
-            itemPredicate={columnSuggestPredicate}
-          />
+          {colSuggest}
         </div>
       </BaseNode>
     );

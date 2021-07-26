@@ -88,6 +88,22 @@ const Sort = {
       [data.inputs.table],
     );
 
+    const columnOptions = useMemo(
+      () => [
+        <option disabled selected value={""}>
+          {" "}
+          -- select a column --{" "}
+        </option>,
+        ...data.inputs.table.columns
+          .filter(
+            (c) =>
+              !sortDefinitions.some((sd) => c.accessor === sd.columnAccessor),
+          )
+          .map((c) => <option value={c.accessor}>{c.Header}</option>),
+      ],
+      [data.inputs.table.columns, sortDefinitions],
+    );
+
     return (
       <BaseNode sources={data.inputs} sinks={data.outputs}>
         <div
@@ -131,21 +147,7 @@ const Sort = {
                     setNewSortDefinitionColumnAccessor(e.target.value);
                   }}
                 >
-                  {[
-                    <option value={""}> -- select a column -- </option>,
-                    ...(data.inputs.table?.columns || [])
-                      .filter(
-                        (c) =>
-                          !sortDefinitions.some(
-                            (sd) => c.accessor === sd.columnAccessor,
-                          ),
-                      )
-                      .map((c) => (
-                        <option key={c.accessor} value={c.accessor}>
-                          {c.Header}
-                        </option>
-                      )),
-                  ]}
+                  {columnOptions}
                 </select>
                 <select
                   value={newSortDefinitionDirection}
