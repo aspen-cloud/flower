@@ -144,9 +144,9 @@ function getComponentDataForNode(node) {
   const sources = sourceEntries.reduce((acc, curr) => {
     const [key, struct] = curr;
     acc[key] = {
-      value: node.sources[key],
+      value: create(node.sources[key], struct),
       set: (newVal) => {
-        proGraph.updateNodeSource(node.id, key, newVal);
+        proGraph.updateNodeSources(node.id, { [key]: newVal });
       },
     };
     return acc;
@@ -1061,14 +1061,12 @@ const FlowGraph = () => {
                   accessor: c.id,
                 }));
                 const rows = rowData;
-                proGraph.updateNodeSource(
-                  spreadsheetTableData.nodeId,
-                  "table",
-                  {
+                proGraph.updateNodeSources(spreadsheetTableData.nodeId, {
+                  table: {
                     columns,
                     rows,
                   },
-                );
+                });
               }}
             />
           ) : (

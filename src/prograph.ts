@@ -139,7 +139,7 @@ export default class ProGraph {
     const id = nanoid(5);
     this._nodes.set(id, { id, ...node });
     if (node.sources) {
-      this.updateNodeOutput(id, node.sources);
+      this.updateNodeSources(id, node.sources);
     }
     this.evaluate([id]);
     return id;
@@ -257,9 +257,9 @@ export default class ProGraph {
     return sources;
   }
 
-  updateNodeSource(nodeId: string, valueKey: string, newValue: any) {
+  updateNodeSources(nodeId: string, sources: Record<string, any>) {
     const node = this._nodes.get(nodeId);
-    node.sources = { ...node.sources, [valueKey]: newValue };
+    node.sources = { ...node.sources, ...sources };
     this._nodes.set(node.id, { ...node });
     this.evaluate([nodeId]);
   }
