@@ -65,7 +65,7 @@ export default class ProGraph {
     this._outputs = {};
 
     const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
-    
+
     this.presence = new awarenessProtocol.Awareness(this.ydoc);
     const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
       signaling: ["wss://signaling.yjs.dev"],
@@ -247,11 +247,16 @@ export default class ProGraph {
           };
           if (!inboundNodeOutputs) continue;
           inputs[inputKey] = {
-            value: create(inboundNodeOutputs[edge.from.busKey], inputStruct),
+            value:
+              inboundNodeOutputs[edge.from.busKey] ??
+              create(inboundNodeOutputs[edge.from.busKey], inputStruct),
             error: undefined,
           };
         } else {
-          inputs[inputKey] = { value: undefined, error: undefined };
+          inputs[inputKey] = {
+            value: create(undefined, inputStruct),
+            error: undefined,
+          };
         }
       } catch (err) {
         inputs[inputKey] = { value: undefined, error: err };
@@ -268,7 +273,9 @@ export default class ProGraph {
       this.nodeTypes[node.type].sources || {},
     )) {
       try {
-        sources[sourcekey] = create(node.sources[sourcekey], sourceStruct);
+        sources[sourcekey] =
+          node.sources[sourcekey] ??
+          create(node.sources[sourcekey], sourceStruct);
       } catch (e) {
         sources[sourcekey] = undefined;
       }

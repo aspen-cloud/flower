@@ -42,7 +42,7 @@ const Join = {
               })),
             );
         },
-        ["labelA", "labelB", "tableA", "tableB"],
+        ["labelA", "labelB", "tableA.columns", "tableB.columns"],
       );
 
       const calcRows = flowMemo(
@@ -58,7 +58,7 @@ const Join = {
             ) || {}),
           }));
         },
-        ["joinColumnA", "joinColumnB", "tableA", "tableB"],
+        ["joinColumnA", "joinColumnB", "tableA.rows", "tableB.rows"],
       );
 
       return ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
