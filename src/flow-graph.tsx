@@ -304,12 +304,6 @@ const FlowGraph = () => {
     if (omnibarQuery) {
       const validNumber = !isNaN(Number(omnibarQuery));
       setNodeTypeList([
-        ...defaultOmnibarOptions,
-        {
-          type: "Text",
-          label: `Text: ${omnibarQuery}`,
-          data: { text: omnibarQuery },
-        },
         ...(validNumber
           ? [
               {
@@ -319,6 +313,12 @@ const FlowGraph = () => {
               },
             ]
           : []),
+        ...defaultOmnibarOptions,
+        {
+          type: "Text",
+          label: `Text: ${omnibarQuery}`,
+          data: { text: omnibarQuery },
+        },
       ]);
     } else {
       setNodeTypeList([...defaultOmnibarOptions]);
