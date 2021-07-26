@@ -274,30 +274,28 @@ const FlowGraph = () => {
         message: `You are now viewing Graph ID:${graphId}`,
       });
 
+      proGraph.presence.setLocalState({
+        name: "Anonymous",
+        mousePosition: { x: 0, y: 0 },
+      });
+      proGraph.presence.on("change", () => {
+        const collaboratorStates = Array.from(
+          proGraph.presence.getStates().entries(),
+        ).filter(([key]) => key !== proGraph.presence.clientID);
+        const mouseElems: Elements = collaboratorStates.map(([key, state]) => ({
+          position: state.mousePosition,
+          id: `${key}-mouse`,
+          type: "mouse",
+          data: { label: state.name },
+        }));
+        setMouseElements(mouseElems);
+      });
+
       return () => {
         elementSubscription.unsubscribe();
       };
     }
   }, [graphPath]);
-
-  useEffect(() => {
-    proGraph.presence.setLocalState({
-      name: "Anonymous",
-      mousePosition: { x: 0, y: 0 },
-    });
-    proGraph.presence.on("change", () => {
-      const collaboratorStates = Array.from(
-        proGraph.presence.getStates().entries(),
-      ).filter(([key]) => key !== proGraph.presence.clientID);
-      const mouseElems: Elements = collaboratorStates.map(([key, state]) => ({
-        position: state.mousePosition,
-        id: `${key}-mouse`,
-        type: "mouse",
-        data: { label: state.name },
-      }));
-      setMouseElements(mouseElems);
-    });
-  }, []);
 
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
@@ -718,7 +716,6 @@ const FlowGraph = () => {
     () => graphElements.concat(mouseElements),
     [graphElements, mouseElements],
   );
-  console.log(elements);
 
   return (
     <div
