@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { boolean, defaulted, nullable, number, string } from "superstruct";
+import { Card, EditableText, H5, Icon } from "@blueprintjs/core";
+import { css, cx } from "@emotion/css";
+import { useCallback, useMemo, useState } from "react";
+import { boolean, defaulted, number, string } from "superstruct";
 import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
 
@@ -51,22 +53,64 @@ const DataTable = {
     table: ({ table }) => table,
   },
   Component: ({ data: { sources, outputs } }) => {
+    const [draftLabel, setDraftLabel] = useState(sources.label.value);
     return (
       <BaseNode sources={{}} sinks={outputs}>
-        <figure style={{ textAlign: "center" }}>
-          <img
-            style={{
-              userSelect: "none",
-              pointerEvents: "none",
-            }}
-            width="50px"
-            src="/database.svg"
-          />
-          <figcaption style={{ backgroundColor: "#dedede", padding: "0 1em" }}>
-            {/* TODO: make editable */}
-            {sources.label.value}
-          </figcaption>
-        </figure>
+        <div
+          className={css`
+            padding: 10px;
+          `}
+        >
+          <div
+            className={css`
+              text-transform: uppercase;
+              vertical-align: super;
+              font-weight: bold;
+              font-size: 0.5em;
+              line-height: 1em;
+              letter-spacing: 0.1em;
+              color: #5c7080;
+            `}
+          >
+            Data Table
+          </div>
+          <div
+            className={css`
+              margin: 5px 0;
+            `}
+          >
+            <Icon
+              icon="th"
+              className={css`
+                margin-right: 5px;
+                color: #5c7080;
+              `}
+            />
+            <EditableText
+              className={"nodrag"}
+              value={draftLabel}
+              onChange={(val) => setDraftLabel(val)}
+              onConfirm={(newName) => {
+                sources.label.set(newName);
+              }}
+            />
+          </div>
+          <div
+            className={css`
+              font-size: 0.6em;
+              display: flex;
+              align-items: center;
+              color: #5c7080;
+
+              span {
+                margin-right: 5px;
+              }
+            `}
+          >
+            <span>{outputs.table.rows.length} rows</span>
+            <span>{outputs.table.columns.length} columns</span>
+          </div>
+        </div>
       </BaseNode>
     );
   },
