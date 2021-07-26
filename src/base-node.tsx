@@ -13,25 +13,26 @@ function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
     <Tooltip2
       key={i}
       content={sourceName}
-      placement="top"
+      placement="bottom"
       portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{
             position: "absolute",
             top: 0,
-            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
+            left: `${(100 * i + 50) / keys.length}%`,
           }}
           {...tooltipProps}
         >
           <Handle
             style={{
-              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
+              left: `${(100 * i + 50) / keys.length}%`,
             }}
             type="target"
             position={Position.Top}
             id={sourceName}
             key={sourceName}
+            className="semi-circle-drop semi-circle-drop-top"
           />
         </span>
       )}
@@ -41,35 +42,42 @@ function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
     <Tooltip2
       key={i}
       content={sinkName}
-      placement="bottom"
+      placement="top"
       portalClassName="handle-tooltip"
       renderTarget={({ ...tooltipProps }) => (
         <span
           style={{
             position: "absolute",
             bottom: 0,
-            left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
+            left: `${(100 * i + 50) / keys.length}%`,
           }}
           {...tooltipProps}
         >
           <Handle
             style={{
-              left: `${Math.round(((i + 1) / (keys.length + 1)) * 100)}%`,
+              left: `${(100 * i + 50) / keys.length}%`,
             }}
             type="source"
             position={Position.Bottom}
             id={sinkName}
             key={sinkName}
+            className="semi-circle-drop semi-circle-drop-bottom"
           />
         </span>
       )}
     ></Tooltip2>
   ));
 
-  // const childNodes = useMemo(() => children, [sources, sinks]);
+  // Allow for spacing of handle drop zones (half zone width per side of handle)
+  // Though for some reason there's still a touch of space between zones
+  const minWidth =
+    Math.max(Object.keys(sources).length, Object.keys(sinks).length) * 32;
 
   return (
-    <div style={{ backgroundColor: "white" }} className={className}>
+    <div
+      style={{ backgroundColor: "white", minWidth: minWidth }}
+      className={className}
+    >
       {targetHandles}
       <div className="base-node-content">{children}</div>
       {sourceHandles}

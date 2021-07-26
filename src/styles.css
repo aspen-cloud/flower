@@ -40,19 +40,30 @@ body {
 }
 
 /* handle bubble */
-.react-flow__handle:after {
+.semi-circle-drop:after {
   content: "";
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 16px;
   background: transparent;
-  border-radius: 100%;
   position: absolute;
   z-index: -100;
-  top: -16px;
-  left: -16px;
 }
 
-.react-flow__handle:hover:after {
+.semi-circle-drop-top:after {
+  border-top-left-radius: 16px; /* 16px (bubble height) */
+  border-top-right-radius: 16px; /* 16px (bubble height) */
+  top: -14px; /* 14px = 16px (bubble height) - 2px (half handle content) */
+  left: -14px; /* 14px = 32px (bubble width) / 2 - 2px (half handle content) */
+}
+
+.semi-circle-drop-bottom:after {
+  border-bottom-left-radius: 16px; /* 16px (bubble height) */
+  border-bottom-right-radius: 16px; /* 16px (bubble height) */
+  top: 2px; /* 2px (half handle content) */
+  left: -14px; /* 14px = 32px (bubble width) / 2 - 2px (half handle content) */
+}
+
+.semi-circle-drop:hover:after {
   background: rgba(208, 208, 208, 0.2);
 }
 

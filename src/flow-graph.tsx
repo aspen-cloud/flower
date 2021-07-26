@@ -898,7 +898,7 @@ const FlowGraph = () => {
                 top: event.clientY,
               });
             }}
-            edgeUpdaterRadius={35}
+            edgeUpdaterRadius={20} // default is 10
             onMoveEnd={(flowTransform) =>
               localStorage.setItem(
                 "flowgraph-state",
