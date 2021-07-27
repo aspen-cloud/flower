@@ -23,7 +23,7 @@ const Formula = {
           "callFunction",
           (name: string, args: any[], done: (result: any) => void) => {
             done(formulajs[name](...args));
-          }
+          },
         );
 
         for (const prop of tableSchema.columns) {
@@ -47,6 +47,12 @@ const Formula = {
           value={sources.formulaText.value}
           onChange={(e) => {
             sources.formulaText.set(e.target.value);
+            const caret = e.target.selectionStart;
+            const element = e.target;
+            window.requestAnimationFrame(() => {
+              element.selectionStart = caret;
+              element.selectionEnd = caret;
+            });
           }}
         />
       </BaseNode>
