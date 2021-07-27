@@ -38,6 +38,12 @@ export interface GraphEdge {
   };
 }
 
+export interface NodeClass {
+  inputs: Record<string, Struct>;
+  sources: Record<string, Struct>;
+  outputs: Record<string, ({inputs, outputs, sources}: {inputs: any, outputs: any, sources: any}) => any>; 
+}
+
 export default class ProGraph {
   private ydoc: Y.Doc;
   nodes$: BehaviorSubject<Map<string, GraphNode>>;
@@ -45,7 +51,7 @@ export default class ProGraph {
   _nodes: Y.Map<GraphNode>;
   _edges: Y.Map<GraphEdge>;
   _outputs: Record<string, Record<string, NodeOutput>>;
-  nodeTypes: Record<string, any>;
+  nodeTypes: Record<string, NodeClass>;
   presence: awarenessProtocol.Awareness;
 
   constructor(nodeTypes: Record<string, any>) {
@@ -309,6 +315,38 @@ export default class ProGraph {
     }
 
     this._broadcastChanges();
+  }
+
+  getSuggestedEdges(nodeId: string) {
+    const nodeList = Array.from(this.nodes.values());
+    
+    const inputs = nodeList.flatMap(node => {
+      const Type = this.nodeTypes[node.type];
+      return Object.entries(Type.inputs).map(([busKey, struct]) => ({nodeId: node.id, busKey, type: struct.type}));
+    });
+
+    const edgeList = Array.from(this.edges.values());
+
+    const inboundEdgeSet = new Set(edgeList.map(edge =>   `${edge.to.nodeId}-${edge.to.busKey}`));
+
+    const openInputs = inputs.filter(input => !inboundEdgeSet.has(`${input.nodeId}-${input.busKey}`));
+
+    const typeToOutputs = nodeList.flatMap(node => {
+      const Type = this.nodeTypes[node.type];
+      return Object.entries(Type.inputs).map(([busKey, struct]) => ({nodeId: node.id, busKey, type: struct.type}));
+    });
+    
+    // const inboundMap = edgeList.reduce((acc, edge) => {
+    //   if (acc[edge.to.nodeId]) {
+    //     acc[edge.to.nodeId][edge. ]
+    //   } else {
+
+    //   } 
+    //   return acc;
+    // }, {});
+
+
+
   }
 
   _broadcastChanges() {
