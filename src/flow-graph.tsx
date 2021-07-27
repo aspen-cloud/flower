@@ -215,8 +215,12 @@ const proGraph = new ProGraph(GraphNodes);
 
 // Use sparingly, main use case is to add unsupported interactions to nodes (ie resizing)
 // May also be a good way to access react flow instance in the future if nodes need to be aware of graph state (ie zoom level)
-export const GraphInternals = React.createContext({
+export const GraphInternals = React.createContext<{
+  proGraph: ProGraph;
+  reactFlowInstance: OnLoadParams;
+}>({
   proGraph: proGraph,
+  reactFlowInstance: undefined,
 });
 
 console.log(proGraph, graphManager);
@@ -809,7 +813,9 @@ const FlowGraph = () => {
       />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
         {graphElements && ( // Don't load react flow until elements are ready
-          <GraphInternals.Provider value={{ proGraph }}>
+          <GraphInternals.Provider
+            value={{ proGraph, reactFlowInstance: reactflowInstance }}
+          >
             <ReactFlow
               elements={elements}
               panOnScroll={true}

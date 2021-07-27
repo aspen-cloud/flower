@@ -14,6 +14,7 @@ const Text = {
     text: ({ text }) => text,
   },
   Component: ({ selected, data: { sources, outputs }, size, id }) => {
+    // TODO: improve resizing defaults (would be great to take text size or changes into account)
     return (
       <ResizableNode
         sources={{}}

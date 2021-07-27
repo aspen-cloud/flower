@@ -9,6 +9,7 @@ export interface ResizableNodeProps extends BaseNodeProps {
   nodeId: string; // required for updating graph
 }
 
+// TODO: resize in all directions
 function ResizableNode({
   sources,
   sinks,
@@ -18,7 +19,9 @@ function ResizableNode({
   height,
   nodeId,
 }: ResizableNodeProps) {
-  const { proGraph } = useContext(GraphInternals);
+  const { proGraph, reactFlowInstance } = useContext(GraphInternals);
+  const rfiSnapshot = reactFlowInstance?.toObject();
+
   const onResizeStop = (e, direction, ref, d) => {
     proGraph.resizeNode(nodeId, {
       width: width + d.width,
@@ -41,6 +44,7 @@ function ResizableNode({
           bottomLeft: "nodrag",
           topLeft: "nodrag",
         }}
+        scale={rfiSnapshot?.zoom}
       >
         {children}
       </Resizable>
