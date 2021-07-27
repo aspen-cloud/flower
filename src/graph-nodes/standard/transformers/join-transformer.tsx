@@ -127,7 +127,7 @@ const Join = {
           {" "}
           -- select a column --{" "}
         </option>,
-        ...data.inputs.tableA.columns.map((c) => (
+        ...data.inputs.tableB.columns.map((c) => (
           <option key={c.accessor} value={c.accessor}>
             {c.Header}
           </option>
