@@ -86,7 +86,7 @@ const Join = {
 
     const joinColumnA = useMemo(
       () => data.sources.joinColumnA.value,
-      [data.sources.joinColumnA],
+      [data.sources.joinColumnA.value],
     );
     const setJoinColumnA = useCallback(
       (newColumn) => {
@@ -97,7 +97,7 @@ const Join = {
 
     const joinColumnB = useMemo(
       () => data.sources.joinColumnB.value,
-      [data.sources.joinColumnB],
+      [data.sources.joinColumnB.value],
     );
     const setJoinColumnB = useCallback(
       (newColumn) => {
