@@ -27,13 +27,13 @@ const Join = {
       const columnRenameIndexA = Object.fromEntries(
         tableA.columns.map((col) => [
           col.accessor,
-          `${safeLabelA}-${col.Header}`,
+          `${safeLabelA}_${col.Header}`,
         ]),
       );
       const columnRenameIndexB = Object.fromEntries(
         tableB.columns.map((col) => [
           col.accessor,
-          `${safeLabelB}-${col.Header}`,
+          `${safeLabelB}_${col.Header}`,
         ]),
       );
       const columns = tableA.columns
@@ -133,7 +133,7 @@ const Join = {
           </option>
         )),
       ],
-      [data.inputs.tableA.columns],
+      [data.inputs.tableB.columns],
     );
 
     return (
