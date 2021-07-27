@@ -217,6 +217,7 @@ const FlowGraph = () => {
 
   const [graphElements, setGraphElements] = useState<Elements>([]);
   const [mouseElements, setMouseElements] = useState<Elements>([]);
+  const [suggestedEdges, setSuggestedEdges] = useState<Elements>([]);
 
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -351,7 +352,10 @@ const FlowGraph = () => {
         edge.targetHandle === connection.targetHandle,
     );
 
-    if (handleEdges.length >= 1) {
+    if (
+      handleEdges.length >= 1 &&
+      handleEdges.some((edge) => !edge.data.isSuggested)
+    ) {
       console.log("INVALID: ALREADY AN EDGE ON THIS HANDLE");
       return false;
     }
@@ -557,6 +561,36 @@ const FlowGraph = () => {
     };
   }, [selectedElements]);
 
+  useEffect(() => {
+    if (selectedElements.length !== 1) {
+      setSuggestedEdges([]);
+      return;
+    }
+
+    const [{ id }] = selectedElements;
+
+    const suggestedConnections = proGraph
+      .getSuggestedEdges()
+      .filter(({ from, to }) => {
+        return from.nodeId === id || to.nodeId === id;
+      })
+      .map((conn) => ({
+        id: JSON.stringify(conn),
+        source: conn.from.nodeId,
+        sourceHandle: conn.from.busKey,
+        target: conn.to.nodeId,
+        targetHandle: conn.to.busKey,
+        style: {
+          stroke: "orange",
+        },
+        data: {
+          isSuggested: true,
+        },
+      }));
+
+    setSuggestedEdges(suggestedConnections);
+  }, [selectedElements]);
+
   const mousePosition = useRef({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -718,8 +752,8 @@ const FlowGraph = () => {
   };
 
   const elements = useMemo(
-    () => graphElements.concat(mouseElements),
-    [graphElements, mouseElements],
+    () => graphElements.concat(mouseElements).concat(suggestedEdges),
+    [graphElements, mouseElements, suggestedEdges],
   );
 
   return (
@@ -839,6 +873,12 @@ const FlowGraph = () => {
             }}
             onEdgeContextMenu={(event, edge) => {
               event.preventDefault();
+
+              if (edge.data.isSuggested) {
+                onConnect(edge);
+                return;
+              }
+
               const menu = (
                 <Menu>
                   <MenuItem

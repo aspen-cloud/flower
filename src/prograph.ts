@@ -38,6 +38,12 @@ export interface GraphEdge {
   };
 }
 
+export interface NodeClass {
+  inputs: Record<string, Struct>;
+  sources: Record<string, Struct>;
+  outputs: Record<string, (vals: Record<string, any>) => any>; 
+}
+
 export default class ProGraph {
   private ydoc: Y.Doc;
   nodes$: BehaviorSubject<Map<string, GraphNode>>;
@@ -45,7 +51,7 @@ export default class ProGraph {
   _nodes: Y.Map<GraphNode>;
   _edges: Y.Map<GraphEdge>;
   _outputs: Record<string, Record<string, NodeOutput>>;
-  nodeTypes: Record<string, any>;
+  nodeTypes: Record<string, NodeClass>;
   presence: awarenessProtocol.Awareness;
 
   constructor(nodeTypes: Record<string, any>) {
@@ -309,6 +315,60 @@ export default class ProGraph {
     }
 
     this._broadcastChanges();
+  }
+
+  getSuggestedEdges() {
+    const nodeList = Array.from(this.nodes.values());
+    
+    const inputs = nodeList.flatMap(node => {
+      const Type = this.nodeTypes[node.type];
+      if (!Type.inputs) return [];
+      return Object.entries(Type.inputs).map(([busKey, struct]) => ({nodeId: node.id, busKey, type: struct.type}));
+    });
+
+    const edgeList = Array.from(this.edges.values());
+
+    const inboundEdgeSet = new Set(edgeList.map(edge =>   `${edge.to.nodeId}-${edge.to.busKey}`));
+
+    const openInputs = inputs.filter(input => !inboundEdgeSet.has(`${input.nodeId}-${input.busKey}`));
+
+
+    // Going to oversimplify to three types: string, number, function, table
+    const valToType = (val) => {
+      if (typeof val === "string") return "string";
+      if (typeof val === "number") return "number";
+      if (typeof val === "function") return "func"
+      return "table";
+    }
+
+    const outputList = Object.entries(this._outputs).flatMap(([nodeId, outputs]) => Object.entries(outputs).map(([busKey, val]) => ({
+      nodeId,
+      busKey,
+      type: valToType(val.value),
+    })));
+
+    const typeToOutputs: Record<string, {nodeId: string, busKey: string}[]> = outputList.reduce((acc, curr) => {
+      if (!acc[curr.type]) {
+        acc[curr.type] = [];
+      }
+
+      acc[curr.type].push({nodeId: curr.nodeId, busKey: curr.busKey})
+
+      return acc;
+    }, {});
+
+
+    return openInputs.flatMap(input => typeToOutputs[input.type] ? typeToOutputs[input.type].filter(output => output.nodeId != input.nodeId).map((output) => ({
+      from: {
+        nodeId: output.nodeId,
+        busKey: output.busKey
+      },
+      to: {
+        nodeId: input.nodeId,
+        busKey: input.busKey
+      }
+    })) : []);
+
   }
 
   _broadcastChanges() {

@@ -1,5 +1,5 @@
-import { Card, EditableText, H5, Icon } from "@blueprintjs/core";
-import { css, cx } from "@emotion/css";
+import { EditableText, Icon } from "@blueprintjs/core";
+import { css } from "@emotion/css";
 import { useCallback, useMemo, useState } from "react";
 import { boolean, defaulted, number, string } from "superstruct";
 import BaseNode from "../../../base-node";
