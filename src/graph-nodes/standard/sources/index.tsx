@@ -3,6 +3,7 @@ import { css } from "@emotion/css";
 import { useCallback, useMemo, useState } from "react";
 import { boolean, defaulted, number, string } from "superstruct";
 import BaseNode from "../../../base-node";
+import ResizableNode from "../../../resizable-node";
 import { TableStruct } from "../../../structs";
 
 const Text = {
@@ -12,14 +13,27 @@ const Text = {
   outputs: {
     text: ({ text }) => text,
   },
-  Component: ({ data: { sources, outputs } }) => {
+  Component: ({ selected, data: { sources, outputs }, size, id }) => {
     return (
-      <BaseNode sources={{}} sinks={outputs}>
-        <input
+      <ResizableNode
+        sources={{}}
+        sinks={outputs}
+        className={`${selected ? "nowheel nodrag" : ""}`}
+        height={size?.height || 20}
+        width={size?.width || 200}
+        nodeId={id}
+      >
+        <textarea
           value={sources.text.value}
           onChange={(e) => sources.text.set(e.target.value)}
+          placeholder="Enter text..."
+          style={{
+            width: "100%",
+            height: "100%",
+            resize: "none",
+          }}
         />
-      </BaseNode>
+      </ResizableNode>
     );
   },
 };

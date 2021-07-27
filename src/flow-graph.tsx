@@ -85,7 +85,20 @@ function flattenNodes(nodes: Record<string, any>): [string, any][] {
 const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
 
 const nodeTypes = Object.fromEntries(
-  Object.entries(GraphNodes).map(([key, val]) => [key, val.Component]),
+  Object.entries(GraphNodes).map(([key, val]) => {
+    const { Component } = val;
+    // add additional custom props to node types
+    // RF only passes specific documented element props to component func
+    const componentWrapper = ({ ...props }) => {
+      // TODO: hot reload issue
+      const node = proGraph.getNode(props.id);
+      return Component({
+        ...props,
+        size: node.size,
+      });
+    };
+    return [key, componentWrapper];
+  }),
 );
 
 nodeTypes.mouse = MouseNode;
@@ -199,6 +212,12 @@ function graphToReactFlow(
 }
 
 const proGraph = new ProGraph(GraphNodes);
+
+// Use sparingly, main use case is to add unsupported interactions to nodes (ie resizing)
+// May also be a good way to access react flow instance in the future if nodes need to be aware of graph state (ie zoom level)
+export const GraphInternals = React.createContext({
+  proGraph: proGraph,
+});
 
 console.log(proGraph, graphManager);
 
@@ -700,11 +719,14 @@ const FlowGraph = () => {
     };
   }, [getCanvasPosition]);
 
-  // Prevent document zoom from firing (would happen on nowheel nodes), causes full page to zoom
+  // Prevent document pinch zoom from firing (would happen on nowheel nodes), causes full page to zoom
   useEffect(() => {
     const wheelHandler = function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      // Ctrl key true if pinch zooming
+      if (e.ctrlKey) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     };
     document.addEventListener("wheel", wheelHandler, { passive: false });
     return () => {
@@ -787,236 +809,238 @@ const FlowGraph = () => {
       />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
         {graphElements && ( // Don't load react flow until elements are ready
-          <ReactFlow
-            elements={elements}
-            panOnScroll={true}
-            onMouseMove={(e) => {
-              if (!reactflowInstance) return;
-              const absolutePos = { x: e.clientX, y: e.clientY };
-              const coordinates = reactflowInstance.project(absolutePos);
-              proGraph.presence.setLocalStateField(
-                "mousePosition",
-                coordinates,
-              );
-            }}
-            panOnScrollMode={PanOnScrollMode.Free}
-            onElementClick={onElementClick}
-            onElementsRemove={onElementsRemove}
-            onConnect={onConnect}
-            style={{ background: bgColor }}
-            onDoubleClick={() => {
-              console.log("double clicked...");
-            }}
-            onLoad={onLoad}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            connectionLineStyle={connectionLineStyle}
-            snapToGrid={true}
-            snapGrid={snapGrid}
-            defaultZoom={1}
-            onDrop={onDrop}
-            onNodeDragStart={(event, node) => {
-              if (event.altKey) {
-                // Using selected elements because multiselect is tied to onNode events
-                graphRef.current?.replaceElementGroup(
-                  selectedElements.map((el) => el.id),
+          <GraphInternals.Provider value={{ proGraph }}>
+            <ReactFlow
+              elements={elements}
+              panOnScroll={true}
+              panOnScrollMode={PanOnScrollMode.Free}
+              onMouseMove={(e) => {
+                if (!reactflowInstance) return;
+                const absolutePos = { x: e.clientX, y: e.clientY };
+                const coordinates = reactflowInstance.project(absolutePos);
+                proGraph.presence.setLocalStateField(
+                  "mousePosition",
+                  coordinates,
                 );
-              }
-            }}
-            onNodeDoubleClick={(e, node) => {
-              if (node.type === "DataTable") {
-                const nodeId = node.id;
-                const graphNode = proGraph._nodes.get(nodeId);
-                setSpreadsheetTableData({
-                  nodeId,
-                  initialData: graphNode.sources.table as Table<any>,
+              }}
+              onElementClick={onElementClick}
+              onElementsRemove={onElementsRemove}
+              onConnect={onConnect}
+              style={{ background: bgColor }}
+              onDoubleClick={() => {
+                console.log("double clicked...");
+              }}
+              onLoad={onLoad}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              connectionLineStyle={connectionLineStyle}
+              snapToGrid={true}
+              snapGrid={snapGrid}
+              defaultZoom={1}
+              onDrop={onDrop}
+              onNodeDragStart={(event, node) => {
+                if (event.altKey) {
+                  // Using selected elements because multiselect is tied to onNode events
+                  graphRef.current?.replaceElementGroup(
+                    selectedElements.map((el) => el.id),
+                  );
+                }
+              }}
+              onNodeDoubleClick={(e, node) => {
+                if (node.type === "DataTable") {
+                  const nodeId = node.id;
+                  const graphNode = proGraph._nodes.get(nodeId);
+                  setSpreadsheetTableData({
+                    nodeId,
+                    initialData: graphNode.sources.table as Table<any>,
+                  });
+                  setBottomMenuOpen(true);
+                } else {
+                  setSpreadsheetTableData(undefined);
+                }
+              }}
+              onSelectionDragStart={async (event, nodes) => {
+                if (event.altKey) {
+                  // Using selected elements because edges are not included
+                  graphRef.current?.replaceElementGroup(
+                    selectedElements.map((el) => el.id),
+                  );
+                }
+              }}
+              onDragOver={onDragOver}
+              onEdgeUpdate={onEdgeUpdate}
+              onSelectionChange={(elements) => {
+                setSelectedElements(elements || []);
+              }}
+              onNodeContextMenu={(event, node) => {
+                // @ts-ignore
+                if (event.target.closest(".base-node-content")) return;
+
+                event.preventDefault();
+                const menu = (
+                  <Menu>
+                    <MenuItem
+                      onClick={async () => await copyElements([node])}
+                      text="Copy node"
+                    />
+                    <MenuItem
+                      onClick={() => onElementsRemove([node])}
+                      text="Delete node"
+                    />
+                  </Menu>
+                );
+                ContextMenu.show(menu, {
+                  left: event.clientX,
+                  top: event.clientY,
                 });
-                setBottomMenuOpen(true);
-              } else {
-                setSpreadsheetTableData(undefined);
-              }
-            }}
-            onSelectionDragStart={async (event, nodes) => {
-              if (event.altKey) {
-                // Using selected elements because edges are not included
-                graphRef.current?.replaceElementGroup(
-                  selectedElements.map((el) => el.id),
+              }}
+              onEdgeContextMenu={(event, edge) => {
+                event.preventDefault();
+
+                if (edge.data.isSuggested) {
+                  onConnect(edge);
+                  return;
+                }
+
+                const menu = (
+                  <Menu>
+                    <MenuItem
+                      onClick={() => onElementsRemove([edge])}
+                      text="Delete edge"
+                    />
+                  </Menu>
                 );
+                ContextMenu.show(menu, {
+                  left: event.clientX,
+                  top: event.clientY,
+                });
+              }}
+              onSelectionContextMenu={(event, nodes) => {
+                event.preventDefault();
+                const menu = (
+                  <Menu>
+                    <MenuItem
+                      onClick={async () => await copyElements(nodes)}
+                      text="Copy nodes"
+                    />
+                    <MenuItem
+                      onClick={() => onElementsRemove(nodes)}
+                      text="Delete nodes"
+                    />
+                  </Menu>
+                );
+                ContextMenu.show(menu, {
+                  left: event.clientX,
+                  top: event.clientY,
+                });
+              }}
+              onPaneContextMenu={(event) => {
+                event.preventDefault();
+                const menu = (
+                  <Menu>
+                    <MenuItem
+                      onClick={() => reactflowInstance?.fitView()}
+                      text="Zoom to fit"
+                    />
+                    <MenuItem
+                      onClick={async (e: React.MouseEvent) =>
+                        pasteData(
+                          await parseClipboard(null),
+                          getCanvasPosition({
+                            x: event.clientX,
+                            y: event.clientY,
+                          }),
+                        )
+                      }
+                      text="Paste"
+                    />
+                  </Menu>
+                );
+                ContextMenu.show(menu, {
+                  left: event.clientX,
+                  top: event.clientY,
+                });
+              }}
+              edgeUpdaterRadius={20} // default is 10
+              onMoveEnd={(flowTransform) =>
+                localStorage.setItem(
+                  "flowgraph-state",
+                  JSON.stringify(flowTransform),
+                )
               }
-            }}
-            onDragOver={onDragOver}
-            onEdgeUpdate={onEdgeUpdate}
-            onSelectionChange={(elements) => {
-              setSelectedElements(elements || []);
-            }}
-            onNodeContextMenu={(event, node) => {
-              // @ts-ignore
-              if (event.target.closest(".base-node-content")) return;
-
-              event.preventDefault();
-              const menu = (
-                <Menu>
-                  <MenuItem
-                    onClick={async () => await copyElements([node])}
-                    text="Copy node"
-                  />
-                  <MenuItem
-                    onClick={() => onElementsRemove([node])}
-                    text="Delete node"
-                  />
-                </Menu>
-              );
-              ContextMenu.show(menu, {
-                left: event.clientX,
-                top: event.clientY,
-              });
-            }}
-            onEdgeContextMenu={(event, edge) => {
-              event.preventDefault();
-
-              if (edge.data.isSuggested) {
-                onConnect(edge);
-                return;
-              }
-
-              const menu = (
-                <Menu>
-                  <MenuItem
-                    onClick={() => onElementsRemove([edge])}
-                    text="Delete edge"
-                  />
-                </Menu>
-              );
-              ContextMenu.show(menu, {
-                left: event.clientX,
-                top: event.clientY,
-              });
-            }}
-            onSelectionContextMenu={(event, nodes) => {
-              event.preventDefault();
-              const menu = (
-                <Menu>
-                  <MenuItem
-                    onClick={async () => await copyElements(nodes)}
-                    text="Copy nodes"
-                  />
-                  <MenuItem
-                    onClick={() => onElementsRemove(nodes)}
-                    text="Delete nodes"
-                  />
-                </Menu>
-              );
-              ContextMenu.show(menu, {
-                left: event.clientX,
-                top: event.clientY,
-              });
-            }}
-            onPaneContextMenu={(event) => {
-              event.preventDefault();
-              const menu = (
-                <Menu>
-                  <MenuItem
-                    onClick={() => reactflowInstance?.fitView()}
-                    text="Zoom to fit"
-                  />
-                  <MenuItem
-                    onClick={async (e: React.MouseEvent) =>
-                      pasteData(
-                        await parseClipboard(null),
-                        getCanvasPosition({
-                          x: event.clientX,
-                          y: event.clientY,
-                        }),
-                      )
-                    }
-                    text="Paste"
-                  />
-                </Menu>
-              );
-              ContextMenu.show(menu, {
-                left: event.clientX,
-                top: event.clientY,
-              });
-            }}
-            edgeUpdaterRadius={20} // default is 10
-            onMoveEnd={(flowTransform) =>
-              localStorage.setItem(
-                "flowgraph-state",
-                JSON.stringify(flowTransform),
-              )
-            }
-            onNodeDragStop={(e, node) => {
-              proGraph.moveNode(node.id, node.position);
-            }}
-            onSelectionDragStop={(e, nodes) => {
-              for (const node of nodes) {
+              onNodeDragStop={(e, node) => {
                 proGraph.moveNode(node.id, node.position);
-              }
-            }}
-          >
-            <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-            <Controls style={{ bottom: "unset", top: "10px" }} />
-            {!sideMenuOpen ? (
+              }}
+              onSelectionDragStop={(e, nodes) => {
+                for (const node of nodes) {
+                  proGraph.moveNode(node.id, node.position);
+                }
+              }}
+            >
+              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Controls style={{ bottom: "unset", top: "10px" }} />
+              {!sideMenuOpen ? (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    background: "white",
+                    borderRadius: "100%",
+                    zIndex: 1000,
+                  }}
+                  onClick={() => setSideMenuOpen(true)}
+                >
+                  <Icon icon="double-chevron-left" iconSize={20} />
+                </div>
+              ) : (
+                ""
+              )}
               <div
                 style={{
                   position: "absolute",
-                  top: "10px",
-                  right: "10px",
+                  bottom: "10px",
+                  left: "10px",
                   background: "white",
                   borderRadius: "100%",
                   zIndex: 1000,
                 }}
-                onClick={() => setSideMenuOpen(true)}
+                onClick={() => setBottomMenuOpen((prev) => !prev)}
               >
-                <Icon icon="double-chevron-left" iconSize={20} />
+                <Icon
+                  icon={
+                    bottomMenuOpen ? "double-chevron-down" : "double-chevron-up"
+                  }
+                  iconSize={20}
+                />
               </div>
-            ) : (
-              ""
-            )}
-            <div
-              style={{
-                position: "absolute",
-                bottom: "10px",
-                left: "10px",
-                background: "white",
-                borderRadius: "100%",
-                zIndex: 1000,
-              }}
-              onClick={() => setBottomMenuOpen((prev) => !prev)}
-            >
-              <Icon
-                icon={
-                  bottomMenuOpen ? "double-chevron-down" : "double-chevron-up"
-                }
-                iconSize={20}
-              />
-            </div>
 
-            <Drawer
-              icon="multi-select"
-              onClose={() => setSideMenuOpen(false)}
-              title="Selected Elements"
-              isOpen={sideMenuOpen}
-              size={DrawerSize.SMALL}
-              hasBackdrop={false}
-              canOutsideClickClose={false}
-              canEscapeKeyClose={false}
-              enforceFocus={false}
-              portalClassName="info-sidebar"
-            >
-              <div className={Classes.DRAWER_BODY}>
-                <div className={Classes.DIALOG_BODY}>
-                  {selectedElements.length ? (
-                    selectedElements.map((el, i) => (
-                      <ElementInfoMenuItem key={i} element={el} />
-                    ))
-                  ) : (
-                    <div>No elements selected.</div>
-                  )}
+              <Drawer
+                icon="multi-select"
+                onClose={() => setSideMenuOpen(false)}
+                title="Selected Elements"
+                isOpen={sideMenuOpen}
+                size={DrawerSize.SMALL}
+                hasBackdrop={false}
+                canOutsideClickClose={false}
+                canEscapeKeyClose={false}
+                enforceFocus={false}
+                portalClassName="info-sidebar"
+              >
+                <div className={Classes.DRAWER_BODY}>
+                  <div className={Classes.DIALOG_BODY}>
+                    {selectedElements.length ? (
+                      selectedElements.map((el, i) => (
+                        <ElementInfoMenuItem key={i} element={el} />
+                      ))
+                    ) : (
+                      <div>No elements selected.</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Drawer>
-          </ReactFlow>
+              </Drawer>
+            </ReactFlow>
+          </GraphInternals.Provider>
         )}
       </div>
 

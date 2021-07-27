@@ -24,6 +24,7 @@ export interface GraphNode {
   sources?: Record<string, any>;
   outputs?: Record<string, NodeOutput>;
   position: { x: number; y: number };
+  size?: { width: number; height: number };
 }
 
 export interface GraphEdge {
@@ -66,7 +67,7 @@ export default class ProGraph {
     this._outputs = {};
 
     const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
-    
+
     this.presence = new awarenessProtocol.Awareness(this.ydoc);
     const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
       signaling: ["wss://signaling.yjs.dev"],
@@ -162,6 +163,13 @@ export default class ProGraph {
     const currNode = this._nodes.get(nodeId);
     // Might need to copy to new node to trigger observer
     currNode.position = position;
+    this._nodes.set(nodeId, currNode);
+  }
+
+  resizeNode(nodeId: string, size: { width: number; height: number }) {
+    const currNode = this._nodes.get(nodeId);
+    // Might need to copy to new node to trigger observer
+    currNode.size = size;
     this._nodes.set(nodeId, currNode);
   }
 

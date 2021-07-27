@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
 import { NodeIO } from "./types";
 
-interface BaseNodeProps extends NodeIO {
+export interface BaseNodeProps extends NodeIO {
   children: JSX.Element | JSX.Element[];
   className?: string;
 }
