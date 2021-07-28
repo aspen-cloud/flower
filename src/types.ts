@@ -1,13 +1,27 @@
 import { FunctionComponent } from "react";
 import { BehaviorSubject } from "rxjs";
 
+export interface ColumnType {
+  name: string;
+  // metadata: Record<string, any> // Could maybe pass in metadata to parsers (ex Date format, specific currency)
+}
+
 export interface Column {
   Header: string;
   accessor: string;
+  Type: ColumnType;
 }
 
-export interface Table<E extends Record<string, any>> {
-  rows: E[];
+export interface RowValue {
+  readValue: string; // Formatted value
+  readError: Error;
+  writeValue: string; // What I edit in (parsed as read and to underlying value)
+  underlyingValue: any; // Ex JS Date
+  underlyingError: Error;
+}
+
+export interface Table {
+  rows: Record<string, RowValue>[];
   columns: Column[];
 }
 

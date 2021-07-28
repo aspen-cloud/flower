@@ -21,20 +21,20 @@ import FilterForm from "./filter-form";
 
 interface FilterIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
     columnAccessor: BehaviorSubject<string>;
     columnFilter: BehaviorSubject<string>;
     compareValue: BehaviorSubject<string>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
+      table: new BehaviorSubject({ columns: [], rows: [] } as Table),
       columnAccessor: new BehaviorSubject(""),
       columnFilter: new BehaviorSubject(""),
       compareValue: new BehaviorSubject(""),
@@ -59,7 +59,7 @@ export default {
               columns: table.columns,
             };
           }),
-        ) as BehaviorSubject<Table<any>>,
+        ) as BehaviorSubject<Table>,
       },
     };
   },

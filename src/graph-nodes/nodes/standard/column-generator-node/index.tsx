@@ -9,19 +9,19 @@ import { map } from "rxjs/operators";
 
 interface ColumnGeneratorIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
     columnName: BehaviorSubject<string>;
     columnFormula: BehaviorSubject<string>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 
 export default {
   initializeStreams: function () {
     const sources = {
-      table: new BehaviorSubject({ rows: [], columns: [] } as Table<any>),
+      table: new BehaviorSubject({ rows: [], columns: [] } as Table),
       columnName: new BehaviorSubject(nanoid()),
       columnFormula: new BehaviorSubject(""),
     };
@@ -48,7 +48,7 @@ export default {
               columns: newColumns,
             };
           }),
-        ) as BehaviorSubject<Table<any>>,
+        ) as BehaviorSubject<Table>,
       },
     };
   },

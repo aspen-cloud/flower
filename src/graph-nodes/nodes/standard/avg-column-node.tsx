@@ -6,7 +6,7 @@ import { map } from "rxjs/operators";
 
 interface AvgColumnNodeIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
     selectedColumn: BehaviorSubject<string>;
   };
   sinks: {
@@ -16,7 +16,7 @@ interface AvgColumnNodeIO {
 
 const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
   initializeStreams: function () {
-    const table = new BehaviorSubject({ columns: [], rows: [] } as Table<any>);
+    const table = new BehaviorSubject({ columns: [], rows: [] } as Table);
     const selectedColumn = new BehaviorSubject("");
     return {
       sources: {
@@ -28,7 +28,7 @@ const AvgColumnNode: GraphNode<AvgColumnNodeIO> = {
           map(([table, selectedColumn]) => {
             console.log(table, selectedColumn);
             const sum: number = table.rows.reduce(
-              (sum, row) => sum + row[selectedColumn],
+              (sum, row) => sum + row[selectedColumn].underlyingValue,
               0,
             );
             const avg = sum / table.rows.length;

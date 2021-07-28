@@ -7,54 +7,47 @@ import {
   RowHeaderCell,
   EditableName,
 } from "@blueprintjs/table";
-import { Menu, MenuItem } from "@blueprintjs/core";
+import { Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
-import { Table as DataTable } from "./types";
+import { Table as DataTable, Column as DataColumn, RowValue } from "./types";
+import { parseRow } from "./utils/tables";
 
 interface SpreadsheetProps {
   onDataUpdate?: (
-    columnIds: TypedColumn[],
-    rowData: Record<string, string>[],
+    columnIds: DataColumn[],
+    rowData: Record<string, RowValue>[],
   ) => void;
-  initialData?: DataTable<any>;
+  initialData?: DataTable;
 }
 
-enum DataType {
-  Text = "text",
-  Number = "number",
-}
-
-// Cleanup: this is basically a Column ... ported over from a different branch so that's why it wasnt changed
-interface TypedColumn {
-  id: string;
-  label: string;
-  type: DataType;
+interface SpreadsheetCoordinates {
+  columnIndex: number;
+  rowIndex: number;
 }
 
 export default React.memo(function Spreadsheet({
   onDataUpdate,
   initialData,
 }: SpreadsheetProps) {
-  const [columnData, setColumnData] = useState<TypedColumn[]>([newColumn()]);
-  const [rowData, setRowData] = useState<Record<string, string>[]>([{}]);
+  const [columnData, setColumnData] = useState<DataColumn[]>([newColumn()]);
+  const [rowData, setRowData] = useState<Record<string, RowValue>[]>([{}]);
+  const [editCoordinates, setEditCoordinates] = useState<
+    SpreadsheetCoordinates | undefined
+  >();
 
-  function newColumn(accessor?: string, label?: string): TypedColumn {
+  function newColumn(accessor?: string, label?: string): DataColumn {
     return {
-      id: accessor || nanoid(),
-      label: label || "",
-      type: DataType.Text,
+      accessor: accessor || nanoid(),
+      Header: label || "",
+      Type: { name: "Text" },
     };
   }
 
   useEffect(() => {
     if (!initialData) return;
-    const columns = initialData.columns.map((c) =>
-      newColumn(c.accessor, c.Header),
-    );
-    const rows = initialData.rows;
 
-    setColumnData(columns);
-    setRowData(rows);
+    setColumnData(initialData.columns);
+    setRowData(initialData.rows);
   }, [initialData]);
 
   useEffect(() => {
@@ -92,11 +85,11 @@ export default React.memo(function Spreadsheet({
 
   const cellSetter = useCallback(
     (rowIndex: number, columnIndex: number, type: string) => {
-      return (value) => {
+      return (value: string) => {
         setRowData((prevRowData) => {
           const newRows = [...prevRowData];
-          const colId = columnData[columnIndex].id;
-          newRows[rowIndex][colId] = value;
+          const { accessor: colId, Type: colType } = columnData[columnIndex];
+          newRows[rowIndex][colId] = parseRow(value, colType);
           return newRows;
         });
       };
@@ -105,11 +98,26 @@ export default React.memo(function Spreadsheet({
   );
 
   const cellRenderer = (rowIndex: number, columnIndex: number) => {
-    const colId = columnData[columnIndex].id;
-    const value = rowData[rowIndex] ? rowData[rowIndex][colId] : null;
+    const colId = columnData[columnIndex].accessor;
+    const rowValue = rowData[rowIndex] ? rowData[rowIndex][colId] : null;
     return (
       <EditableCell
-        value={value == null ? "" : value}
+        value={
+          (editCoordinates?.rowIndex === rowIndex &&
+          editCoordinates?.columnIndex === columnIndex
+            ? rowValue?.writeValue
+            : rowValue?.readValue) ?? ""
+        }
+        intent={
+          rowValue?.readError || rowValue?.underlyingError
+            ? Intent.DANGER
+            : Intent.NONE
+        }
+        onEditChange={(isEditing) =>
+          isEditing
+            ? setEditCoordinates({ columnIndex, rowIndex })
+            : setEditCoordinates(undefined)
+        }
         onCancel={cellSetter(rowIndex, columnIndex, "CANCEL")}
         onConfirm={cellSetter(rowIndex, columnIndex, "CONFIRM")}
         onKeyDown={async (e) => {
@@ -139,10 +147,14 @@ export default React.memo(function Spreadsheet({
                 const newRows = [...prevRowData];
                 matrixData.forEach((row, i) => {
                   row.forEach((cellValue, j) => {
-                    const columnId = newColumnData[columnIndex + j].id;
+                    const { accessor: columnId, Type: columnType } =
+                      newColumnData[columnIndex + j];
                     if (rowIndex + i === newRows.length)
                       newRows.splice(newRows.length, 0, {});
-                    newRows[rowIndex + i][columnId] = cellValue;
+                    newRows[rowIndex + i][columnId] = parseRow(
+                      cellValue,
+                      columnType,
+                    );
                   });
                 });
                 return newRows;
@@ -181,10 +193,10 @@ export default React.memo(function Spreadsheet({
   };
 
   const columnNameSetter = (columnIndex: number, type: string) => {
-    return (value) => {
+    return (value: string) => {
       setColumnData((prevColumnData) => {
         const newColumnData = [...prevColumnData];
-        newColumnData[columnIndex].label = value;
+        newColumnData[columnIndex].Header = value;
         return newColumnData;
       });
     };
@@ -213,23 +225,38 @@ export default React.memo(function Spreadsheet({
                 deleteColumn(columnIndex);
               }}
             />
-            {/* <MenuItem text="Select type">
-              {Object.keys(DataType).map((k) => (
-                <MenuItem
-                  key={k}
-                  active={columnData[columnIndex].type === DataType[k]}
-                  text={k}
-                  onClick={() =>
-                    // TODO: change underlying data or always parse as string?
-                    setColumnData((prevColumnData) => {
-                      const newColumnData = [...prevColumnData];
-                      newColumnData[columnIndex].type = DataType[k];
-                      return newColumnData;
-                    })
-                  }
-                />
-              ))}
-            </MenuItem> */}
+            <MenuItem text="Select type">
+              {
+                // TODO: hard coded
+                ["Text", "Number"].map((t) => (
+                  <MenuItem
+                    key={t}
+                    active={columnData[columnIndex].Type.name === t}
+                    text={t}
+                    onClick={() =>
+                      // TODO: change underlying data or always parse as string?
+                      setColumnData((prevColumnData) => {
+                        const newColumnData = [...prevColumnData];
+                        const column = newColumnData[columnIndex];
+                        column.Type = { name: t }; // TODO: hard coded
+                        setRowData((prevRowData) => {
+                          const newRowData = [...prevRowData];
+                          newRowData.forEach(
+                            (row) =>
+                              (row[column.accessor] = parseRow(
+                                row[column.accessor].writeValue,
+                                { name: t }, // TODO: hard coded
+                              )),
+                          );
+                          return newRowData;
+                        });
+                        return newColumnData;
+                      })
+                    }
+                  />
+                ))
+              }
+            </MenuItem>
           </Menu>
         );
       };
@@ -248,7 +275,7 @@ export default React.memo(function Spreadsheet({
       const column = columnData[columnIndex];
       return (
         <ColumnHeaderCell
-          name={column.label}
+          name={column.Header}
           menuRenderer={menuRenderer}
           nameRenderer={nameRenderer}
         />
@@ -258,7 +285,7 @@ export default React.memo(function Spreadsheet({
       <Column
         cellRenderer={cellRenderer}
         columnHeaderCellRenderer={columnHeaderCellRenderer}
-        id={columnData[columnIndex].id}
+        id={columnData[columnIndex].accessor}
       />
     );
   };
@@ -327,7 +354,7 @@ export default React.memo(function Spreadsheet({
           });
         }}
         getCellClipboardData={(rowIndex, columnIndex) => {
-          const columnId = columnData[columnIndex].id;
+          const columnId = columnData[columnIndex].accessor;
           const cellData = rowData[rowIndex][columnId];
           return cellData;
         }}

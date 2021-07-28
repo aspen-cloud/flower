@@ -15,7 +15,7 @@ import { nanoid } from "nanoid";
 interface SpreadsheetNodeIO {
   sources: {};
   sinks: {
-    output: BehaviorSubject<DataTable<any>>;
+    output: BehaviorSubject<DataTable>;
   };
 }
 
