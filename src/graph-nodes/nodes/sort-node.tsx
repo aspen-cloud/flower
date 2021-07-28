@@ -6,10 +6,10 @@ import { BehaviorSubject } from "rxjs";
 
 interface GroupNodeIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 
@@ -32,10 +32,10 @@ export default {
   initializeStreams: function () {
     return {
       sources: {
-        table: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
+        table: new BehaviorSubject({ columns: [], rows: [] } as Table),
       },
       sinks: {
-        output: new BehaviorSubject({ columns: [], rows: [] } as Table<any>),
+        output: new BehaviorSubject({ columns: [], rows: [] } as Table),
       },
     };
   },
@@ -91,8 +91,8 @@ export default {
               return (
                 current ||
                 simpleSort(
-                  a[nextSortDef.columnAccessor].toLowerCase(),
-                  b[nextSortDef.columnAccessor].toLowerCase(),
+                  a[nextSortDef.columnAccessor].underlyingValue.toLowerCase(),
+                  b[nextSortDef.columnAccessor].underlyingValue.toLowerCase(),
                   nextSortDef.direction,
                 )
               );

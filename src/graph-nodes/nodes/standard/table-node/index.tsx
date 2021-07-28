@@ -6,10 +6,10 @@ import { BehaviorSubject } from "rxjs";
 
 interface TableNodeIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 

@@ -7,10 +7,10 @@ import DataTable from "./standard/table-node/data-table";
 
 interface WriterNodeIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 

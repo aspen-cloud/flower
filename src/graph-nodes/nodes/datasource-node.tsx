@@ -9,7 +9,7 @@ interface DatasourceNodeIO {
     label: BehaviorSubject<string>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 

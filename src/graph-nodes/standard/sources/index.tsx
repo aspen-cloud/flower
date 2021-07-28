@@ -122,8 +122,9 @@ const DataTable = {
               }
             `}
           >
-            <span>{outputs.table.rows.length} rows</span>
-            <span>{outputs.table.columns.length} columns</span>
+            {/* TODO Fails on paste */}
+            <span>{outputs.table?.rows.length} rows</span>
+            <span>{outputs.table?.columns.length} columns</span>
           </div>
         </div>
       </BaseNode>

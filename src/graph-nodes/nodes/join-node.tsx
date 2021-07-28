@@ -5,11 +5,11 @@ import { BehaviorSubject } from "rxjs";
 
 interface JoinNodeIO {
   sources: {
-    tableA: BehaviorSubject<Table<any>>;
-    tableB: BehaviorSubject<Table<any>>;
+    tableA: BehaviorSubject<Table>;
+    tableB: BehaviorSubject<Table>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 
@@ -92,11 +92,13 @@ const JoinNode: GraphNode<JoinNodeIO> = {
         .map((col) => ({
           accessor: columnRenameIndexA[col.accessor],
           Header: columnRenameIndexA[col.accessor],
+          Type: { name: "Text" },
         }))
         .concat(
           tableB.columns.map((col) => ({
             accessor: columnRenameIndexB[col.accessor],
             Header: columnRenameIndexB[col.accessor],
+            Type: { name: "Text" },
           })),
         );
 

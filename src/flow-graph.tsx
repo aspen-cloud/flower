@@ -226,7 +226,7 @@ export const GraphInternals = React.createContext<{
 console.log(proGraph, graphManager);
 
 interface SpreadSheetTableData {
-  initialData: Table<any>;
+  initialData: Table;
   nodeId: string;
 }
 
@@ -858,7 +858,7 @@ const FlowGraph = () => {
                   const graphNode = proGraph._nodes.get(nodeId);
                   setSpreadsheetTableData({
                     nodeId,
-                    initialData: graphNode.sources.table as Table<any>,
+                    initialData: graphNode.sources.table as Table,
                   });
                   setBottomMenuOpen(true);
                 } else {
@@ -1126,10 +1126,7 @@ const FlowGraph = () => {
             <Spreadsheet
               initialData={spreadsheetTableData.initialData}
               onDataUpdate={async (columnData, rowData) => {
-                const columns = columnData.map((c) => ({
-                  Header: c.label,
-                  accessor: c.id,
-                }));
+                const columns = columnData;
                 const rows = rowData;
                 proGraph.updateNodeSources(spreadsheetTableData.nodeId, {
                   table: {

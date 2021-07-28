@@ -7,10 +7,10 @@ import { Suggest, ItemRenderer } from "@blueprintjs/select";
 
 interface SelectNodeIO {
   sources: {
-    table: BehaviorSubject<Table<any>>;
+    table: BehaviorSubject<Table>;
   };
   sinks: {
-    output: BehaviorSubject<Table<any>>;
+    output: BehaviorSubject<Table>;
   };
 }
 
