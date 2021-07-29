@@ -30,7 +30,7 @@ const Filter = {
   Component: ({ data }) => {
     const columnAccessor: string = useMemo(
       () => data.sources.columnAccessor.value,
-      [data.sources.columnAccessor],
+      [data.sources.columnAccessor.value],
     );
     const setColumnAccessor = useCallback(
       (newColumnAccessor) => {
@@ -41,7 +41,7 @@ const Filter = {
 
     const columnFilter: string = useMemo(
       () => data.sources.columnFilter.value,
-      [data.sources.columnFilter],
+      [data.sources.columnFilter.value],
     );
     const setColumnFilter = useCallback(
       (newColumnFilter) => {
