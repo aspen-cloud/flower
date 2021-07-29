@@ -1,15 +1,10 @@
 import { FunctionComponent } from "react";
 import { BehaviorSubject } from "rxjs";
 
-export interface ColumnType {
-  name: string;
-  // metadata: Record<string, any> // Could maybe pass in metadata to parsers (ex Date format, specific currency)
-}
-
 export interface Column {
   Header: string;
   accessor: string;
-  Type: ColumnType;
+  Type: string;
 }
 
 export interface RowValue {

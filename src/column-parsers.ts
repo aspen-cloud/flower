@@ -1,15 +1,16 @@
 interface ParseResult {
-  readValue: string;
-  writeValue: string;
-  underlyingValue: any;
+  readValue: string; // How data is displayed statically
+  writeValue: string; // How data is displayed in inputs
+  underlyingValue: any; // How data is used under the hood
 }
 
-interface ColumnParser {
+interface ColumnTypeDefinition {
   name: string;
+  // Parsers take in a user value and output
   parse: (value: string) => ParseResult;
 }
 
-const columnParsers: ColumnParser[] = [
+const typeDefinitions: ColumnTypeDefinition[] = [
   {
     name: "Text",
     parse: (value) => ({
@@ -102,13 +103,15 @@ const columnParsers: ColumnParser[] = [
   },
 ];
 
-export default Object.fromEntries(
-  columnParsers.map((type) => [type.name, type]),
-);
-
-export function parseNumber(value: string): number {
+function parseNumber(value: string): number {
   if (value.match(/^-?(\d+|\d{1,3}(,\d{3})*)(\.\d+)?$/)) {
     return Number(value.replaceAll(",", ""));
   }
   return NaN;
 }
+
+const columnTypes: Record<string, ColumnTypeDefinition> = Object.fromEntries(
+  typeDefinitions.map((type) => [type.name, type]),
+);
+
+export { columnTypes, parseNumber };

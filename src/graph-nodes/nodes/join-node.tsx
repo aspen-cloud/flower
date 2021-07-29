@@ -92,13 +92,13 @@ const JoinNode: GraphNode<JoinNodeIO> = {
         .map((col) => ({
           accessor: columnRenameIndexA[col.accessor],
           Header: columnRenameIndexA[col.accessor],
-          Type: { name: "Text" },
+          Type: "Text",
         }))
         .concat(
           tableB.columns.map((col) => ({
             accessor: columnRenameIndexB[col.accessor],
             Header: columnRenameIndexB[col.accessor],
-            Type: { name: "Text" },
+            Type: "Text",
           })),
         );
 

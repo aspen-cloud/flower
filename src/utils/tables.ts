@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
-import { Column, ColumnType, RowValue, Table } from "../types";
-import columnParsers, { parseNumber } from "../column-parsers";
+import { Column, RowValue, Table } from "../types";
+import { parseNumber, columnTypes } from "../column-parsers";
 
 export function jsonToTable(json_data: Record<string, any>[]): Table {
   const columns: Column[] = Object.entries(
@@ -8,7 +8,7 @@ export function jsonToTable(json_data: Record<string, any>[]): Table {
   ).map(([col, value]) => ({
     Header: col,
     accessor: nanoid(),
-    Type: { name: inferType(value) },
+    Type: inferType(value),
   }));
 
   const columnIndex = Object.fromEntries(columns.map((c, i) => [c.Header, c]));
@@ -38,7 +38,7 @@ export function matrixToTable(matrix_data: string[][]): Table {
   const columns = colData.map((col, i) => ({
     Header: col,
     accessor: nanoid(),
-    Type: { name: types[i] },
+    Type: types[i],
   }));
 
   const rows = rowData.map((row) =>
@@ -56,14 +56,14 @@ export function matrixToTable(matrix_data: string[][]): Table {
   };
 }
 
-export function parseRow(value: string, typeDef: ColumnType): RowValue {
-  const parser = columnParsers[typeDef.name];
+export function parseRow(value: string, typeKey: string): RowValue {
+  const columnType = columnTypes[typeKey];
   let readValue: string;
   let writeValue: string;
   let underlyingValue: any;
   let error: Error;
   try {
-    const result = parser.parse(value);
+    const result = columnType.parse(value);
     readValue = result.readValue;
     writeValue = result.writeValue;
     underlyingValue = result.underlyingValue;
@@ -82,7 +82,7 @@ export function parseRow(value: string, typeDef: ColumnType): RowValue {
   };
 }
 
-export function inferType(val: string) {
+function inferType(val: string) {
   if (val) {
     if (val.startsWith("$")) {
       const parsedNumber = parseNumber(val.substring(1));

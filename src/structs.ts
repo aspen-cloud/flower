@@ -9,14 +9,10 @@ import {
   define,
   optional,
 } from "superstruct";
-import { Column, ColumnType, RowValue, Table } from "./types";
+import { Column, RowValue, Table } from "./types";
 
 const ErrorStruct = () =>
   define<Error>("error", (value) => value instanceof Error);
-
-const ColumnTypeStruct: Describe<ColumnType> = object({
-  name: string(),
-});
 
 const RowValueStruct: Describe<RowValue> = object({
   readValue: string(),
@@ -29,7 +25,7 @@ const RowValueStruct: Describe<RowValue> = object({
 const ColumnStruct: Describe<Column> = object({
   Header: string(),
   accessor: string(),
-  Type: ColumnTypeStruct,
+  Type: string(),
 });
 
 export const TableStruct: Describe<Table> = object({

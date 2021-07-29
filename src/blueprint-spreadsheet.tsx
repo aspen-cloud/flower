@@ -11,6 +11,7 @@ import { Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
 import { Table as DataTable, Column as DataColumn, RowValue } from "./types";
 import { parseRow } from "./utils/tables";
+import { columnTypes } from "./column-parsers";
 
 interface SpreadsheetProps {
   onDataUpdate?: (
@@ -39,7 +40,7 @@ export default React.memo(function Spreadsheet({
     return {
       accessor: accessor || nanoid(),
       Header: label || "",
-      Type: { name: "Text" },
+      Type: "Text",
     };
   }
 
@@ -222,36 +223,32 @@ export default React.memo(function Spreadsheet({
               }}
             />
             <MenuItem text="Select type">
-              {
-                // TODO: hard coded
-                ["Text", "Number", "Percentage", "Currency"].map((t) => (
-                  <MenuItem
-                    key={t}
-                    active={columnData[columnIndex].Type.name === t}
-                    text={t}
-                    onClick={() =>
-                      // TODO: change underlying data or always parse as string?
-                      setColumnData((prevColumnData) => {
-                        const newColumnData = [...prevColumnData];
-                        const column = newColumnData[columnIndex];
-                        column.Type = { name: t }; // TODO: hard coded
-                        setRowData((prevRowData) => {
-                          const newRowData = [...prevRowData];
-                          newRowData.forEach(
-                            (row) =>
-                              (row[column.accessor] = parseRow(
-                                row[column.accessor].writeValue,
-                                { name: t }, // TODO: hard coded
-                              )),
-                          );
-                          return newRowData;
-                        });
-                        return newColumnData;
-                      })
-                    }
-                  />
-                ))
-              }
+              {Object.keys(columnTypes).map((t) => (
+                <MenuItem
+                  key={t}
+                  active={columnData[columnIndex].Type === t}
+                  text={t}
+                  onClick={() =>
+                    setColumnData((prevColumnData) => {
+                      const newColumnData = [...prevColumnData];
+                      const column = newColumnData[columnIndex];
+                      column.Type = t;
+                      setRowData((prevRowData) => {
+                        const newRowData = [...prevRowData];
+                        newRowData.forEach(
+                          (row) =>
+                            (row[column.accessor] = parseRow(
+                              row[column.accessor].writeValue,
+                              t,
+                            )),
+                        );
+                        return newRowData;
+                      });
+                      return newColumnData;
+                    })
+                  }
+                />
+              ))}
             </MenuItem>
           </Menu>
         );
