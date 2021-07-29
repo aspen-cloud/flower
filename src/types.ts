@@ -14,10 +14,9 @@ export interface Column {
 
 export interface RowValue {
   readValue: string; // Formatted value
-  readError: Error;
   writeValue: string; // What I edit in (parsed as read and to underlying value)
   underlyingValue: any; // Ex JS Date
-  underlyingError: Error;
+  error: Error;
 }
 
 export interface Table {

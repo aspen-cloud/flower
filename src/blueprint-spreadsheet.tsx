@@ -108,11 +108,7 @@ export default React.memo(function Spreadsheet({
             ? rowValue?.writeValue
             : rowValue?.readValue) ?? ""
         }
-        intent={
-          rowValue?.readError || rowValue?.underlyingError
-            ? Intent.DANGER
-            : Intent.NONE
-        }
+        intent={rowValue?.error ? Intent.DANGER : Intent.NONE}
         onEditChange={(isEditing) =>
           isEditing
             ? setEditCoordinates({ columnIndex, rowIndex })
@@ -228,7 +224,7 @@ export default React.memo(function Spreadsheet({
             <MenuItem text="Select type">
               {
                 // TODO: hard coded
-                ["Text", "Number"].map((t) => (
+                ["Text", "Number", "Percentage", "Currency"].map((t) => (
                   <MenuItem
                     key={t}
                     active={columnData[columnIndex].Type.name === t}
