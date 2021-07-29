@@ -1,6 +1,6 @@
 import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import { RowValue, Table } from "../../../types";
 import { parseRow } from "../../../utils/tables";
@@ -191,7 +191,11 @@ const Group = {
     );
 
     return (
-      <BaseNode sources={data.inputs} sinks={data.outputs}>
+      <BaseNode
+        label="Column Aggregator"
+        sources={data.inputs}
+        sinks={data.outputs}
+      >
         <div
           style={{
             backgroundColor: "white",

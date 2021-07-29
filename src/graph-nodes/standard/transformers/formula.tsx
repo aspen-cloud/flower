@@ -1,6 +1,6 @@
 import { InputGroup } from "@blueprintjs/core";
 import { array, string, defaulted, object } from "superstruct";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import formulajs from "@formulajs/formulajs";
 
 const FormulaParser = require("hot-formula-parser").Parser;
@@ -44,7 +44,7 @@ const Formula = {
   Component: ({ data: { sources, inputs, outputs } }) => {
     // TODO use inputs.tableSchema to create autocomplete
     return (
-      <BaseNode sources={inputs} sinks={outputs}>
+      <BaseNode label="Formula" sources={inputs} sinks={outputs}>
         <InputGroup
           leftIcon="function"
           value={sources.formulaText.value}

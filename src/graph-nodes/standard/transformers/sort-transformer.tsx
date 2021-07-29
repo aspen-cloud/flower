@@ -1,6 +1,6 @@
 import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 
 // TODO: what's the best way to converge struct and enum values
@@ -105,7 +105,7 @@ const Sort = {
     );
 
     return (
-      <BaseNode sources={data.inputs} sinks={data.outputs}>
+      <BaseNode label="Sort" sources={data.inputs} sinks={data.outputs}>
         <div
           style={{
             backgroundColor: "white",

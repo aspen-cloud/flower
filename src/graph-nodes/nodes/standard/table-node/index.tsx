@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import BaseNode from "../../../../base-node";
+import BaseNode from "../../../../components/base-node";
 import { GraphNode, Table } from "../../../../types";
 import DataTable from "./data-table";
 import { BehaviorSubject } from "rxjs";

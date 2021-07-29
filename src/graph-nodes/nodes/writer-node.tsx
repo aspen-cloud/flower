@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import XLSX from "xlsx";
 import { BehaviorSubject } from "rxjs";
-import BaseNode from "../../base-node";
+import BaseNode from "../../components/base-node";
 import { GraphNode, Table } from "../../types";
 import DataTable from "./standard/table-node/data-table";
 

@@ -2,7 +2,7 @@ import { any, string, set, defaulted, array } from "superstruct";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Tag, MenuItem } from "@blueprintjs/core";
 import { Suggest, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { Column } from "../../../types";
 import { TableStruct } from "../../../structs";
 
@@ -107,7 +107,11 @@ const Select = {
     };
 
     return (
-      <BaseNode sources={data.inputs} sinks={data.outputs}>
+      <BaseNode
+        label="Column Selector"
+        sources={data.inputs}
+        sinks={data.outputs}
+      >
         <div
           style={{
             backgroundColor: "white",

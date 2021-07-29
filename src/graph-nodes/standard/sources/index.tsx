@@ -2,8 +2,8 @@ import { EditableText, Icon } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useCallback, useMemo, useState } from "react";
 import { boolean, defaulted, number, string } from "superstruct";
-import BaseNode from "../../../base-node";
-import ResizableNode from "../../../resizable-node";
+import BaseNode from "../../../components/base-node";
+import ResizableNode from "../../../components/resizable-node";
 import { TableStruct } from "../../../structs";
 
 const Text = {
@@ -23,6 +23,7 @@ const Text = {
         height={size?.height || 20}
         width={size?.width || 200}
         nodeId={id}
+        label="Text"
       >
         <textarea
           value={sources.text.value}
@@ -48,7 +49,7 @@ const Number = {
   },
   Component: ({ data: { sources, outputs } }) => {
     return (
-      <BaseNode sources={{}} sinks={outputs}>
+      <BaseNode label="Number" sources={{}} sinks={outputs}>
         <input
           type="number"
           value={sources.number.value}
@@ -70,25 +71,8 @@ const DataTable = {
   Component: ({ data: { sources, outputs } }) => {
     const [draftLabel, setDraftLabel] = useState(sources.label.value);
     return (
-      <BaseNode sources={{}} sinks={outputs}>
-        <div
-          className={css`
-            padding: 10px;
-          `}
-        >
-          <div
-            className={css`
-              text-transform: uppercase;
-              vertical-align: super;
-              font-weight: bold;
-              font-size: 0.5em;
-              line-height: 1em;
-              letter-spacing: 0.1em;
-              color: #5c7080;
-            `}
-          >
-            Data Table
-          </div>
+      <BaseNode label="Data Table" sources={{}} sinks={outputs}>
+        <div>
           <div
             className={css`
               margin: 5px 0;
@@ -152,7 +136,7 @@ const ErrorNode = {
       [data.sources.hasError],
     );
     return (
-      <BaseNode sources={{}} sinks={data.outputs}>
+      <BaseNode label="Error" sources={{}} sinks={data.outputs}>
         <div>I will {hasError ? "" : "not"} throw an error</div>
         <button onClick={() => setHasError(!hasError)}>Toggle</button>
       </BaseNode>

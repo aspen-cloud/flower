@@ -1,7 +1,7 @@
 import { Resizable } from "re-resizable";
 import { useContext, memo } from "react";
 import BaseNode, { BaseNodeProps } from "./base-node";
-import { GraphInternals } from "./flow-graph";
+import { GraphInternals } from "../flow-graph";
 
 export interface ResizableNodeProps extends BaseNodeProps {
   width: number;
@@ -18,6 +18,7 @@ function ResizableNode({
   width,
   height,
   nodeId,
+  label,
 }: ResizableNodeProps) {
   const { proGraph, reactFlowInstance } = useContext(GraphInternals);
   const rfiSnapshot = reactFlowInstance?.toObject();
@@ -30,7 +31,12 @@ function ResizableNode({
   };
 
   return (
-    <BaseNode sources={sources} sinks={sinks} className={className}>
+    <BaseNode
+      label={label}
+      sources={sources}
+      sinks={sinks}
+      className={className}
+    >
       <Resizable
         size={{ width: `${width}px`, height: `${height}px` }}
         onResizeStop={onResizeStop}

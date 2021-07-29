@@ -2,7 +2,7 @@ import React from "react";
 
 import { GraphNode, Table } from "../../../../types";
 import ColumnGeneratorForm from "./column-generator-form";
-import BaseNode from "../../../../base-node";
+import BaseNode from "../../../../components/base-node";
 import { nanoid } from "nanoid";
 import { combineLatest, BehaviorSubject } from "rxjs";
 import { map } from "rxjs/operators";

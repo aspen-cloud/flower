@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Column, GraphNode, Table } from "../../../types";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { BehaviorSubject, combineLatest } from "rxjs";
 import { map } from "rxjs/operators";
 

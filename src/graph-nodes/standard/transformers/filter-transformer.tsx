@@ -1,6 +1,6 @@
 import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import filters from "../../nodes/standard/filter-node/filters";
 import DirtyInput from "../../../dirty-input";
@@ -72,10 +72,9 @@ const Filter = {
     );
 
     return (
-      <BaseNode sources={data.inputs} sinks={data.outputs}>
-        <div style={{ backgroundColor: "white" }} className="transformer">
+      <BaseNode label="Filter" sources={data.inputs} sinks={data.outputs}>
+        <div className="transformer">
           <div>
-            <h3>Filter</h3>
             <label>
               Column Name
               <select

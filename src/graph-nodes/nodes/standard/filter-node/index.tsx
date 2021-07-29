@@ -1,7 +1,7 @@
 import React from "react";
 
 import { GraphNode, Table } from "../../../../types";
-import BaseNode from "../../../../base-node";
+import BaseNode from "../../../../components/base-node";
 import filters from "./filters";
 import { BehaviorSubject, combineLatest } from "rxjs";
 import { map } from "rxjs/operators";

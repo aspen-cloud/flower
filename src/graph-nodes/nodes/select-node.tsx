@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Column, GraphNode, Table } from "../../types";
-import BaseNode from "../../base-node";
+import BaseNode from "../../components/base-node";
 import { BehaviorSubject } from "rxjs";
 import { Tag, MenuItem } from "@blueprintjs/core";
 import { Suggest, ItemRenderer } from "@blueprintjs/select";

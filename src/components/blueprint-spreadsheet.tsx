@@ -9,9 +9,9 @@ import {
 } from "@blueprintjs/table";
 import { Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
-import { Table as DataTable, Column as DataColumn, RowValue } from "./types";
-import { parseRow } from "./utils/tables";
-import { columnTypes } from "./column-parsers";
+import { Table as DataTable, Column as DataColumn, RowValue } from "../types";
+import { parseRow } from "../utils/tables";
+import { columnTypes } from "../column-parsers";
 
 interface SpreadsheetProps {
   onDataUpdate?: (

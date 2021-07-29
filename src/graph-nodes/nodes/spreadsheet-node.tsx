@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import BaseNode from "../../base-node";
+import BaseNode from "../../components/base-node";
 import {
   GraphNode,
   Table as DataTable,
   Column as DataColumn,
 } from "../../types";
 import { BehaviorSubject } from "rxjs";
-import Spreadsheet from "../../blueprint-spreadsheet";
+import Spreadsheet from "../../components/blueprint-spreadsheet";
 import { Resizable } from "re-resizable";
 import { csvToJson } from "../../utils/files";
 import { jsonToTable } from "../../utils/tables";

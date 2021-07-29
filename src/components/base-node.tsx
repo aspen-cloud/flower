@@ -1,14 +1,34 @@
 import { Tooltip2 } from "@blueprintjs/popover2";
 import React, { memo } from "react";
 import { Handle, Position } from "react-flow-renderer";
-import { NodeIO } from "./types";
+import { NodeIO } from "../types";
+import styled from "@emotion/styled";
+import { css, cx } from "@emotion/css";
 
 export interface BaseNodeProps extends NodeIO {
   children: JSX.Element | JSX.Element[];
   className?: string;
+  label?: string;
 }
 
-function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
+const Label = styled.div`
+  text-transform: uppercase;
+  vertical-align: super;
+  font-weight: bold;
+  font-size: 0.6em;
+  line-height: 1em;
+  letter-spacing: 0.1em;
+  color: #5c7080;
+  margin-bottom: 5px;
+`;
+
+function BaseNode({
+  sources,
+  sinks,
+  label = "",
+  children,
+  className,
+}: BaseNodeProps) {
   const targetHandles = Object.keys(sources).map((sourceName, i, keys) => (
     <Tooltip2
       key={i}
@@ -75,9 +95,16 @@ function BaseNode({ sources, sinks, children, className }: BaseNodeProps) {
 
   return (
     <div
-      style={{ backgroundColor: "white", minWidth: minWidth }}
-      className={className}
+      className={cx(
+        css`
+          background-color: white;
+          min-width: ${minWidth};
+          padding: 10px;
+        `,
+        className,
+      )}
     >
+      <Label>{label}</Label>
       {targetHandles}
       <div className="base-node-content">{children}</div>
       {sourceHandles}

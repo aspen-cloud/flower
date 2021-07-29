@@ -1,6 +1,6 @@
 import { any, array, defaulted, enums, object, string } from "superstruct";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import DirtyInput from "../../../dirty-input";
 
@@ -141,7 +141,7 @@ const Join = {
     );
 
     return (
-      <BaseNode sources={data.inputs} sinks={data.outputs}>
+      <BaseNode label="Table Join" sources={data.inputs} sinks={data.outputs}>
         <div
           style={{
             backgroundColor: "white",

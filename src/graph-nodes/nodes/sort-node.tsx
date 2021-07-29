@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { GraphNode, Table } from "../../types";
-import BaseNode from "../../base-node";
+import BaseNode from "../../components/base-node";
 import { BehaviorSubject } from "rxjs";
 
 interface GroupNodeIO {

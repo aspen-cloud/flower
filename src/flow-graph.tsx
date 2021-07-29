@@ -59,12 +59,12 @@ import {
 import { combineLatest } from "rxjs";
 import ProGraph, { GraphEdge, GraphNode } from "./prograph";
 import { map } from "rxjs/operators";
-import Spreadsheet from "./blueprint-spreadsheet";
+import Spreadsheet from "./components/blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 import { create, Struct } from "superstruct";
-import toaster from "./app-toaster";
+import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
 import SelectGraphDialog from "./components/select-graph-dialog";
@@ -991,7 +991,7 @@ const FlowGraph = () => {
                 }
               }}
             >
-              <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+              <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
               <Controls style={{ bottom: "unset", top: "10px" }} />
               {!sideMenuOpen ? (
                 <div

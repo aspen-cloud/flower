@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Handle, Position } from "react-flow-renderer";
-import BaseNode from "../../base-node";
+import BaseNode from "../../components/base-node";
 import { GraphNode, Table } from "../../types";
 import { BehaviorSubject } from "rxjs";
 

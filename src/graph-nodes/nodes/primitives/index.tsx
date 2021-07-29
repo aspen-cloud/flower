@@ -1,4 +1,4 @@
-import BaseNode from "../../../base-node";
+import BaseNode from "../../../components/base-node";
 import { BehaviorSubject, combineLatest, EMPTY, from } from "rxjs";
 import { catchError, map, retry, switchMap } from "rxjs/operators";
 
