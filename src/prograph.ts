@@ -6,6 +6,10 @@ import { nanoid } from "nanoid";
 import { BehaviorSubject } from "rxjs";
 import { create, object, Struct } from "superstruct";
 
+if (process.env.NODE_ENV === "development") {
+  localStorage.setItem("log", 'true');
+}
+
 // Value or error produced by output function
 interface NodeOutput {
   value: any;

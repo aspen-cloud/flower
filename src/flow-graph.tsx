@@ -29,6 +29,8 @@ import ReactFlow, {
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
+import * as Y from "yjs";
+
 import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
 import {
   HotkeysTarget2,
@@ -224,6 +226,12 @@ export const GraphInternals = React.createContext<{
 });
 
 console.log(proGraph, graphManager);
+if (process.env.NODE_ENV === "development") {
+  // @ts-ignore
+  window.Y = Y;
+  // @ts-ignore
+  window.prograph = proGraph;
+}
 
 interface SpreadSheetTableData {
   initialData: Table<any>;
