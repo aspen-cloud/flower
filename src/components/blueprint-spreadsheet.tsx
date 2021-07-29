@@ -7,7 +7,7 @@ import {
   RowHeaderCell,
   EditableName,
 } from "@blueprintjs/table";
-import { Intent, Menu, MenuItem } from "@blueprintjs/core";
+import { EditableText, Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
 import { Table as DataTable, Column as DataColumn, RowValue } from "../types";
 import { parseRow } from "../utils/tables";
@@ -201,6 +201,8 @@ export default React.memo(function Spreadsheet({
 
   const columnRenderer = (columnIndex: number) => {
     const columnHeaderCellRenderer = () => {
+      const column = columnData[columnIndex];
+
       const menuRenderer = () => {
         return (
           <Menu>
@@ -228,6 +230,7 @@ export default React.memo(function Spreadsheet({
                   key={t}
                   active={columnData[columnIndex].Type === t}
                   text={t}
+                  icon={columnTypes[t].icon}
                   onClick={() =>
                     setColumnData((prevColumnData) => {
                       const newColumnData = [...prevColumnData];
@@ -256,16 +259,21 @@ export default React.memo(function Spreadsheet({
 
       const nameRenderer = (name: string) => {
         return (
-          <EditableName
-            name={name}
-            onCancel={columnNameSetter(columnIndex, "CANCEL")}
-            onConfirm={columnNameSetter(columnIndex, "CONFIRM")}
-            placeholder={(columnIndex + 1).toString()}
-          />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Icon
+              icon={columnTypes[column.Type].icon}
+              style={{ marginRight: "1em" }}
+              iconSize={10}
+            />
+            <EditableName
+              name={name}
+              onCancel={columnNameSetter(columnIndex, "CANCEL")}
+              onConfirm={columnNameSetter(columnIndex, "CONFIRM")}
+            />
+          </div>
         );
       };
 
-      const column = columnData[columnIndex];
       return (
         <ColumnHeaderCell
           name={column.Header}

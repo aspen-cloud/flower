@@ -1,3 +1,5 @@
+import { IconName } from "@blueprintjs/core";
+
 interface ParseResult {
   readValue: string; // How data is displayed statically
   writeValue: string; // How data is displayed in inputs
@@ -8,6 +10,7 @@ interface ColumnTypeDefinition {
   name: string;
   // Parsers take in a user value and output
   parse: (value: string) => ParseResult;
+  icon: IconName;
 }
 
 const typeDefinitions: ColumnTypeDefinition[] = [
@@ -18,6 +21,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
       writeValue: value ?? "",
       underlyingValue: value,
     }),
+    icon: "font",
   },
   {
     name: "Number",
@@ -40,6 +44,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
         underlyingValue: parsedNumber,
       };
     },
+    icon: "numerical",
   },
   {
     name: "Percentage",
@@ -76,6 +81,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
         };
       }
     },
+    icon: "percentage",
   },
   {
     name: "Currency",
@@ -100,6 +106,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
         underlyingValue: parsedNumber,
       };
     },
+    icon: "dollar",
   },
 ];
 
