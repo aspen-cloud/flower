@@ -1,5 +1,6 @@
 interface ParseResult {
   readValue: string;
+  writeValue: string;
   underlyingValue: any;
 }
 
@@ -8,12 +9,12 @@ interface ColumnParser {
   parse: (value: string) => ParseResult;
 }
 
-// TODO: should we combine logic to one function that outputs {read, underlying}?
 const columnParsers: ColumnParser[] = [
   {
     name: "Text",
     parse: (value) => ({
       readValue: value ?? "",
+      writeValue: value ?? "",
       underlyingValue: value,
     }),
   },
@@ -23,16 +24,18 @@ const columnParsers: ColumnParser[] = [
       if (!value)
         return {
           readValue: "",
+          writeValue: "",
           underlyingValue: undefined,
         };
 
-      const parsedNumber = Number(value);
+      const parsedNumber = parseNumber(value);
       if (isNaN(parsedNumber)) {
         throw new Error(`"${value}" is not a valid number`);
       }
 
       return {
         readValue: parsedNumber.toString(),
+        writeValue: parsedNumber.toString(),
         underlyingValue: parsedNumber,
       };
     },
@@ -43,18 +46,34 @@ const columnParsers: ColumnParser[] = [
       if (!value)
         return {
           readValue: "",
+          writeValue: "",
           underlyingValue: undefined,
         };
 
-      const parsedNumber = Number(value);
-      if (isNaN(parsedNumber)) {
-        throw new Error(`"${value}" is not a valid number`);
-      }
+      if (value[value.length - 1] === "%") {
+        value = value.substring(0, value.length - 1);
+        const parsedNumber = parseNumber(value);
+        if (isNaN(parsedNumber)) {
+          throw new Error(`"${value}" is not a valid number`);
+        }
 
-      return {
-        readValue: `${parsedNumber * 100}%`,
-        underlyingValue: parsedNumber,
-      };
+        return {
+          readValue: `${parsedNumber}%`,
+          writeValue: (parsedNumber / 100).toString(),
+          underlyingValue: parsedNumber / 100,
+        };
+      } else {
+        const parsedNumber = parseNumber(value);
+        if (isNaN(parsedNumber)) {
+          throw new Error(`"${value}" is not a valid number`);
+        }
+
+        return {
+          readValue: `${parsedNumber * 100}%`,
+          writeValue: parsedNumber.toString(),
+          underlyingValue: parsedNumber,
+        };
+      }
     },
   },
   {
@@ -63,16 +82,20 @@ const columnParsers: ColumnParser[] = [
       if (!value)
         return {
           readValue: "",
+          writeValue: "",
           underlyingValue: undefined,
         };
 
-      const parsedNumber = Number(value);
+      if (value[0] === "$") value = value.substring(1);
+
+      const parsedNumber = parseNumber(value);
       if (isNaN(parsedNumber)) {
         throw new Error(`"${value}" is not a valid number`);
       }
 
       return {
         readValue: `$${parsedNumber}`,
+        writeValue: parsedNumber.toString(),
         underlyingValue: parsedNumber,
       };
     },
@@ -82,3 +105,12 @@ const columnParsers: ColumnParser[] = [
 export default Object.fromEntries(
   columnParsers.map((type) => [type.name, type]),
 );
+
+export function parseNumber(value: string): number {
+  // TODO: negatives not working
+  // TODO: single match
+  if (value.match(/^(\d+|\d{1,3}(,\d{3})*)(\.\d+)?$/)) {
+    return Number(value.replaceAll(",", ""));
+  }
+  return NaN;
+}
