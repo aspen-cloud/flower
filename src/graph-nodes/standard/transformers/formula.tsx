@@ -27,7 +27,10 @@ const Formula = {
         );
 
         for (const prop of tableSchema.columns) {
-          parser.setVariable(prop.Header, record[prop.accessor]);
+          parser.setVariable(
+            prop.Header,
+            record[prop.accessor].underlyingValue,
+          );
         }
         const { error, result } = parser.parse(formulaText);
         if (error) {

@@ -4,6 +4,7 @@ import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
 import filters from "../../nodes/standard/filter-node/filters";
 import DirtyInput from "../../../dirty-input";
+import { Table } from "../../../types";
 
 const Filter = {
   inputs: {
@@ -18,7 +19,7 @@ const Filter = {
     table: ({ table, columnAccessor, columnFilter, compareValue }) => {
       const filter = filters[columnFilter] || (() => true);
       const newRows = table.rows.filter((row) =>
-        filter(row[columnAccessor], compareValue),
+        filter(row[columnAccessor].underlyingValue, compareValue),
       );
 
       return {

@@ -60,7 +60,11 @@ const Join = {
         ),
         ...Object.fromEntries(
           Object.entries(
-            rowsB.find((rowB) => rowA[joinColumnA] === rowB[joinColumnB]) || {},
+            rowsB.find(
+              (rowB) =>
+                rowA[joinColumnA].underlyingValue ===
+                rowB[joinColumnB].underlyingValue,
+            ) || {},
           ).map(([key, val]) => [columnRenameIndexB[key], val]),
         ),
       }));

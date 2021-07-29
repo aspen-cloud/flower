@@ -2,6 +2,8 @@ import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../base-node";
 import { TableStruct } from "../../../structs";
+import { RowValue, Table } from "../../../types";
+import { parseRow } from "../../../utils/tables";
 
 enum AggregateFunction {
   SUM = "SUM",
@@ -15,8 +17,9 @@ const ColumnSelectionStruct = object({
 });
 type GroupSelection = Infer<typeof ColumnSelectionStruct>;
 
-function groupBy(data: any[], groupKeys: string[]) {
-  const groupDict: Record<string, any[]> = {};
+// Returns rows (data) that have a specific value of some column (key)
+function groupBy(data: Record<string, RowValue>[], groupKeys: string[]) {
+  const groupDict: Record<string, Record<string, RowValue>[]> = {};
   for (const item of data) {
     const dictKey = JSON.stringify(
       groupKeys.reduce((currentObj, key) => {
@@ -31,28 +34,30 @@ function groupBy(data: any[], groupKeys: string[]) {
   }
 
   return Object.entries(groupDict).map(([key, val]) => ({
-    key: JSON.parse(key) as Record<string, string>,
+    key: JSON.parse(key) as Record<string, RowValue>,
     data: val,
   }));
 }
 
-function aggregate(func: AggregateFunction, values: string[]) {
+function aggregate(func: AggregateFunction, values: RowValue[]) {
   if (func === AggregateFunction.SUM) {
     return values.reduce(
-      (currentAggregate, nextItem) => currentAggregate + +nextItem,
+      (currentAggregate, nextItem) =>
+        currentAggregate + +nextItem.underlyingValue,
       0,
     );
   }
   if (func === AggregateFunction.AVG) {
     return values.reduce(
       (currentAggregate, nextItem, _, arr) =>
-        currentAggregate + +nextItem / arr.length,
+        currentAggregate + +nextItem.underlyingValue / arr.length,
       0,
     );
   }
   if (func === AggregateFunction.COUNT) {
     return values.reduce(
-      (currentAggregate, nextItem) => currentAggregate + (!!nextItem ? 1 : 0),
+      (currentAggregate, nextItem) =>
+        currentAggregate + (!!nextItem.underlyingValue ? 1 : 0),
       0,
     );
   }
@@ -70,13 +75,21 @@ const Group = {
     groupColumns: defaulted(array(string()), []),
   },
   outputs: {
-    table: ({ table, columnSelections, groupColumns }) => {
-      const columnNameMap = Object.fromEntries(
-        table.columns.map((c) => [c.accessor, c.Header]),
+    table: ({
+      table,
+      columnSelections,
+      groupColumns,
+    }: {
+      table: Table;
+      columnSelections: GroupSelection[];
+      groupColumns: string[];
+    }) => {
+      const columnMap = Object.fromEntries(
+        table.columns.map((c) => [c.accessor, c]),
       );
       const columnSelectionName = (columnSelection: GroupSelection) =>
         `${columnSelection.aggregateFunction}-${
-          columnNameMap[columnSelection.columnAccessor]
+          columnMap[columnSelection.columnAccessor].Header
         }`;
 
       const columns = table.columns
@@ -89,24 +102,39 @@ const Group = {
             return {
               ...column,
               Header: columnSelectionName(columnSelection),
-              accessor: columnSelectionName(columnSelection),
+              accessor: columnSelectionName(columnSelection), // todo: nanoid or hash?
             };
           }),
         );
 
       const rows = groupBy(table.rows, groupColumns).map((groupData) => {
-        const obj = {};
-        Object.entries(groupData.key).forEach(
-          ([subKey, value]) => (obj[subKey] = value),
+        const groupByColumnsFilled = Object.entries(groupData.key).reduce(
+          (rowData, nextGroupByValue) => {
+            const [colId, value] = nextGroupByValue;
+            rowData[colId] = value;
+            return rowData;
+          },
+          {},
         );
-        columnSelections.forEach((columnSelection) => {
-          obj[columnSelectionName(columnSelection)] = aggregate(
-            columnSelection.aggregateFunction,
-            groupData.data.map((item) => item[columnSelection.columnAccessor]),
-          );
-        });
 
-        return obj;
+        const fullRows = columnSelections.reduce(
+          (rowData, nextAggregateValue) => {
+            const column = columnMap[nextAggregateValue.columnAccessor];
+            rowData[columnSelectionName(nextAggregateValue)] = parseRow(
+              aggregate(
+                AggregateFunction[nextAggregateValue.aggregateFunction],
+                groupData.data.map(
+                  (item) => item[nextAggregateValue.columnAccessor],
+                ),
+              ).toString(),
+              column.Type,
+            );
+            return rowData;
+          },
+          groupByColumnsFilled,
+        );
+
+        return fullRows;
       });
 
       return { columns, rows };

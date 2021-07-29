@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { any, object, array, defaulted } from "superstruct";
 import BaseNode from "../../../base-node";
+import { RowValue } from "../../../types";
 import DataTable from "../../nodes/standard/table-node/data-table";
 
 const Viewer = {
@@ -25,7 +27,7 @@ const TableViewer = {
         rows: array(),
         columns: array(),
       }),
-      () => ({ rows: [], columns: [] })
+      () => ({ rows: [], columns: [] }),
     ),
   },
   outputs: {
@@ -33,10 +35,25 @@ const TableViewer = {
   },
   Component: ({ data }) => {
     const { inputs, outputs } = data;
-    const table = outputs.table || { rows: [], columns: [] };
+
+    // Docs say to memoize these values
+    const columnsMemo = useMemo(
+      () => inputs.table.columns ?? [],
+      [inputs.table.columns],
+    );
+    const dataMemo = useMemo(
+      () =>
+        (inputs.table.rows ?? []).map((row: Record<string, RowValue>) =>
+          Object.fromEntries(
+            Object.entries(row).map(([key, val]) => [key, val.readValue]),
+          ),
+        ),
+      [inputs.table.rows],
+    );
+
     return (
       <BaseNode sources={inputs} sinks={outputs}>
-        <DataTable data={table.rows} columns={table.columns} />
+        <DataTable data={dataMemo} columns={columnsMemo} />
       </BaseNode>
     );
   },

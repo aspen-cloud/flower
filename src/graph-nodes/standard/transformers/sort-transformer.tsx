@@ -31,18 +31,18 @@ const Sort = {
   outputs: {
     table: ({ table, sortDefinitions }) => {
       const columns = [...table.columns];
+      const columnMap = Object.fromEntries(columns.map((c) => [c.accessor, c]));
       const rows = [...table.rows].sort((a, b) =>
         sortDefinitions.reduce((current, nextSortDef) => {
-          // until we have better typing just supporting string and number compare
-          const isNumber = table.rows.every(
-            (r) => !isNaN(Number(r[nextSortDef.columnAccessor])),
-          );
+          // TODO: Declare compare type in Type definition (or something like that)...this is rigid
+          const isNumber =
+            columnMap[nextSortDef.columnAccessor].Type.name !== "Text";
           if (isNumber) {
             return (
               current ||
               simpleSort(
-                Number(a[nextSortDef.columnAccessor]),
-                Number(b[nextSortDef.columnAccessor]),
+                a[nextSortDef.columnAccessor].underlyingValue,
+                b[nextSortDef.columnAccessor].underlyingValue,
                 nextSortDef.direction,
               )
             );
@@ -50,8 +50,8 @@ const Sort = {
           return (
             current ||
             simpleSort(
-              a[nextSortDef.columnAccessor]?.toLowerCase(),
-              b[nextSortDef.columnAccessor]?.toLowerCase(),
+              a[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
+              b[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
               nextSortDef.direction,
             )
           );

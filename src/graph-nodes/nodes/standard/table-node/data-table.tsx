@@ -1,6 +1,12 @@
 import { useTable, usePagination } from "react-table";
+import { Column } from "../../../../types";
 
-export default function DataTable({ data, columns }) {
+interface DataTableProps {
+  data: Record<string, string>[];
+  columns: Column[];
+}
+
+export default function DataTable({ data, columns }: DataTableProps) {
   const tableInstance = useTable({ columns, data }, usePagination);
 
   // @ts-ignore
