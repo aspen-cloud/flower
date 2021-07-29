@@ -55,28 +55,22 @@ export function matrixToTable(matrix_data: string[][]): Table {
 export function parseRow(value: string, typeDef: ColumnType): RowValue {
   const parser = columnParsers[typeDef.name];
   let readValue: string;
-  let readError: Error;
+  let underlyingValue: any;
+  let error: Error;
   try {
-    readValue = parser.readParser(value);
+    const result = parser.parse(value);
+    readValue = result.readValue;
+    underlyingValue = result.underlyingValue;
   } catch (err) {
-    readError = err;
+    error = err;
     readValue = value;
     console.log(err);
   }
 
-  let underlyingValue;
-  let underlyingError;
-  try {
-    underlyingValue = parser.underlyingParser(value);
-  } catch (err) {
-    underlyingError = err;
-    console.log(err);
-  }
   return {
     readValue,
-    readError,
     writeValue: value,
     underlyingValue,
-    underlyingError,
+    error,
   };
 }

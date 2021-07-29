@@ -20,10 +20,9 @@ const ColumnTypeStruct: Describe<ColumnType> = object({
 
 const RowValueStruct: Describe<RowValue> = object({
   readValue: string(),
-  readError: optional(ErrorStruct()),
   writeValue: string(),
   underlyingValue: unknown(),
-  underlyingError: optional(ErrorStruct()),
+  error: optional(ErrorStruct()),
 });
 
 // TODO: determine if we would like to "Describe" or "Infer" types

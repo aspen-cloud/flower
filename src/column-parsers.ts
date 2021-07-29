@@ -1,35 +1,80 @@
+interface ParseResult {
+  readValue: string;
+  underlyingValue: any;
+}
+
 interface ColumnParser {
   name: string;
-  readParser: (value: string) => string;
-  underlyingParser: (value: string) => any;
+  parse: (value: string) => ParseResult;
 }
 
 // TODO: should we combine logic to one function that outputs {read, underlying}?
 const columnParsers: ColumnParser[] = [
   {
     name: "Text",
-    readParser: (value) => value,
-    underlyingParser: (value) => value,
+    parse: (value) => ({
+      readValue: value ?? "",
+      underlyingValue: value,
+    }),
   },
   {
     name: "Number",
-    readParser: (value) => {
-      if (!value) return "";
+    parse: (value) => {
+      if (!value)
+        return {
+          readValue: "",
+          underlyingValue: undefined,
+        };
 
       const parsedNumber = Number(value);
       if (isNaN(parsedNumber)) {
         throw new Error(`"${value}" is not a valid number`);
       }
-      return parsedNumber.toString();
+
+      return {
+        readValue: parsedNumber.toString(),
+        underlyingValue: parsedNumber,
+      };
     },
-    underlyingParser: (value) => {
-      if (!value) return undefined;
+  },
+  {
+    name: "Percentage",
+    parse: (value) => {
+      if (!value)
+        return {
+          readValue: "",
+          underlyingValue: undefined,
+        };
 
       const parsedNumber = Number(value);
       if (isNaN(parsedNumber)) {
         throw new Error(`"${value}" is not a valid number`);
       }
-      return parsedNumber;
+
+      return {
+        readValue: `${parsedNumber * 100}%`,
+        underlyingValue: parsedNumber,
+      };
+    },
+  },
+  {
+    name: "Currency",
+    parse: (value) => {
+      if (!value)
+        return {
+          readValue: "",
+          underlyingValue: undefined,
+        };
+
+      const parsedNumber = Number(value);
+      if (isNaN(parsedNumber)) {
+        throw new Error(`"${value}" is not a valid number`);
+      }
+
+      return {
+        readValue: `$${parsedNumber}`,
+        underlyingValue: parsedNumber,
+      };
     },
   },
 ];
