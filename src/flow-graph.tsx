@@ -259,7 +259,7 @@ const FlowGraph = () => {
     defaultOmnibarOptions,
   );
 
-  // const { project } = useZoomPanHelper();
+  const [newGraphLoaded, setNewGraphLoaded] = useState(false);
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSelectDialog, setShowSelectDialog] = useState(false);
@@ -267,9 +267,39 @@ const FlowGraph = () => {
   const { graphPath } = useParams<{ graphPath?: string }>();
   const history = useHistory();
 
+  const graphId: string | null = useMemo(
+    () => (graphPath ? graphPath.slice(-21) : null),
+    [graphPath],
+  );
+
+  const graphName: string | null = useMemo(
+    () =>
+      graphPath ? graphPath.slice(0, -21).split("-").join(" ").trim() : null,
+    [graphPath],
+  );
+
+  useEffect(() => {
+    if (!newGraphLoaded || graphElements.length === 0 || !reactflowInstance)
+      return;
+
+    // zoom to previous state if available
+    const canvasPosition = localStorage.getItem(`flowgraph-state-${graphId}`);
+    if (canvasPosition) {
+      reactflowInstance.setTransform(JSON.parse(canvasPosition));
+    } else {
+      reactflowInstance.fitView();
+    }
+
+    setNewGraphLoaded(false);
+  }, [newGraphLoaded, graphElements, reactflowInstance]);
+
   useEffect(() => {
     setShowNewDialog(false);
     setShowSelectDialog(false);
+
+    const loadedGraphSub = proGraph.loadedGraph$.subscribe(() => {
+      setNewGraphLoaded(true);
+    });
 
     if (!graphPath) {
       /**
@@ -285,11 +315,8 @@ const FlowGraph = () => {
         });
       }
     } else {
-      const graphId = graphPath.slice(-21);
-      const name = graphPath.slice(0, -21).split("-").join(" ").trim();
-      console.log("loading graph", graphId, graphPath);
       window.localStorage.setItem("lastGraph", graphId);
-      graphManager.selectGraph(graphId, name);
+      graphManager.selectGraph(graphId, graphName);
       proGraph.loadGraph(graphId);
 
       const flowElements$ = combineLatest(
@@ -325,6 +352,7 @@ const FlowGraph = () => {
 
       return () => {
         elementSubscription.unsubscribe();
+        loadedGraphSub.unsubscribe();
       };
     }
   }, [graphPath]);
@@ -470,14 +498,6 @@ const FlowGraph = () => {
     (rfi) => {
       if (!reactflowInstance) {
         setReactflowInstance(rfi);
-
-        // zoom to previous state if available
-        const canvasPosition = localStorage.getItem("flowgraph-state");
-        if (canvasPosition) {
-          rfi.setTransform(JSON.parse(canvasPosition));
-        } else {
-          rfi?.fitView();
-        }
       }
     },
     [reactflowInstance],
@@ -978,7 +998,7 @@ const FlowGraph = () => {
               edgeUpdaterRadius={20} // default is 10
               onMoveEnd={(flowTransform) =>
                 localStorage.setItem(
-                  "flowgraph-state",
+                  `flowgraph-state-${graphId}`,
                   JSON.stringify(flowTransform),
                 )
               }

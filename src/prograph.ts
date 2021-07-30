@@ -3,12 +3,8 @@ import * as awarenessProtocol from "y-protocols/awareness.js";
 import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
-import { BehaviorSubject } from "rxjs";
-import { create, object, Struct } from "superstruct";
-
-if (process.env.NODE_ENV === "development") {
-  localStorage.setItem("log", 'true');
-}
+import { BehaviorSubject, Subject } from "rxjs";
+import { create, Struct } from "superstruct";
 
 // Value or error produced by output function
 interface NodeOutput {
@@ -59,8 +55,11 @@ export default class ProGraph {
   nodeTypes: Record<string, NodeClass>;
   presence: awarenessProtocol.Awareness;
 
+  loadedGraph$: Subject<string>;
+
   constructor(nodeTypes: Record<string, any>) {
     this.nodeTypes = nodeTypes;
+    this.loadedGraph$ = new Subject();
   }
 
   loadGraph(graphId: string) {
@@ -112,6 +111,7 @@ export default class ProGraph {
     });
 
     indexeddbProvider.whenSynced.then(() => {
+      this.loadedGraph$.next(graphId);
       this.evaluate();
     });
   }
