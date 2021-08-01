@@ -694,16 +694,15 @@ const FlowGraph = () => {
         (clipboardElement) => !clipboardElement.element.position,
       );
 
-      const newNodes = clipboardNodes.map((clipboardNode) => {
-        console.log(clipboardNode);
-        return proGraph.addNode({
+      const newNodes = clipboardNodes.map((clipboardNode) =>
+        proGraph.addNode({
           ...clipboardNode.element,
           position: {
             x: position.x + clipboardNode.xOffset,
             y: position.y + clipboardNode.yOffset,
           },
-        });
-      });
+        }),
+      );
 
       const newNodesMap = new Map(
         newNodes.map((newNodeId, i) => [
