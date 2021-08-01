@@ -356,7 +356,7 @@ export default React.memo(function Spreadsheet({
         }}
         getCellClipboardData={(rowIndex, columnIndex) => {
           const columnId = columnData[columnIndex].accessor;
-          const cellData = rowData[rowIndex][columnId];
+          const cellData = rowData[rowIndex][columnId].writeValue;
           return cellData;
         }}
         rowHeaderCellRenderer={rowHeaderCellRenderer}
