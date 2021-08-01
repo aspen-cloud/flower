@@ -148,7 +148,7 @@ export default class ProGraph {
 
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    this._nodes.set(id, { id, ...node });
+    this._nodes.set(id, { ...node, id });
     if (node.sources) {
       this.updateNodeSources(id, node.sources);
     }
@@ -158,7 +158,7 @@ export default class ProGraph {
 
   addEdge(edge: Omit<GraphEdge, "id">) {
     const id = nanoid(5);
-    const newEdge = this._edges.set(id, { id, ...edge });
+    const newEdge = this._edges.set(id, { ...edge, id });
     this.evaluate([newEdge.from.nodeId]);
     return id;
   }

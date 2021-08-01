@@ -686,6 +686,7 @@ const FlowGraph = () => {
     // TODO: less logic in flowgraph
     if (type === "nodes") {
       const clipboardElements = data as ElementClipboardContext[];
+      // TODO: better typing here
       const clipboardNodes = clipboardElements.filter(
         (clipboardElement) => clipboardElement.element.position,
       );
@@ -693,18 +694,16 @@ const FlowGraph = () => {
         (clipboardElement) => !clipboardElement.element.position,
       );
 
-      const newNodes = await Promise.all(
-        clipboardNodes.map((clipboardNode) =>
-          proGraph.addNode({
-            type: clipboardNode.element.type,
-            sources: clipboardNode.element.values,
-            position: {
-              x: position.x + clipboardNode.xOffset,
-              y: position.y + clipboardNode.yOffset,
-            },
-          }),
-        ),
-      );
+      const newNodes = clipboardNodes.map((clipboardNode) => {
+        console.log(clipboardNode);
+        return proGraph.addNode({
+          ...clipboardNode.element,
+          position: {
+            x: position.x + clipboardNode.xOffset,
+            y: position.y + clipboardNode.yOffset,
+          },
+        });
+      });
 
       const newNodesMap = new Map(
         newNodes.map((newNodeId, i) => [
