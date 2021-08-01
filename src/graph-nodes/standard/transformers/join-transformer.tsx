@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import DirtyInput from "../../../dirty-input";
+import { NodeClass } from "../../../prograph";
 
-const Join = {
+const Join: NodeClass = {
   inputs: {
     tableA: defaulted(TableStruct, {}),
     tableB: defaulted(TableStruct, {}),
@@ -16,60 +17,63 @@ const Join = {
     joinColumnB: defaulted(string(), ""),
   },
   outputs: {
-    table: ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
-      const safeLabelA = labelA || "A";
-      const safeLabelB = labelB || "B";
+    table: {
+      func: ({ tableA, tableB, labelA, labelB, joinColumnA, joinColumnB }) => {
+        const safeLabelA = labelA || "A";
+        const safeLabelB = labelB || "B";
 
-      if (safeLabelA === safeLabelB) {
-        return { columns: [], rows: [] };
-      }
+        if (safeLabelA === safeLabelB) {
+          return { columns: [], rows: [] };
+        }
 
-      const columnRenameIndexA = Object.fromEntries(
-        tableA.columns.map((col) => [
-          col.accessor,
-          `${safeLabelA}_${col.Header}`,
-        ]),
-      );
-      const columnRenameIndexB = Object.fromEntries(
-        tableB.columns.map((col) => [
-          col.accessor,
-          `${safeLabelB}_${col.Header}`,
-        ]),
-      );
-      const columns = tableA.columns
-        .map((col) => ({
-          accessor: columnRenameIndexA[col.accessor],
-          Header: columnRenameIndexA[col.accessor],
-        }))
-        .concat(
-          tableB.columns.map((col) => ({
-            accessor: columnRenameIndexB[col.accessor],
-            Header: columnRenameIndexB[col.accessor],
-          })),
-        );
-
-      const rowsA = joinColumnA ? tableA.rows : [];
-      const rowsB = joinColumnB ? tableB.rows : [];
-
-      const rows = rowsA.map((rowA) => ({
-        ...Object.fromEntries(
-          Object.entries(rowA).map(([key, val]) => [
-            columnRenameIndexA[key],
-            val,
+        const columnRenameIndexA = Object.fromEntries(
+          tableA.columns.map((col) => [
+            col.accessor,
+            `${safeLabelA}_${col.Header}`,
           ]),
-        ),
-        ...Object.fromEntries(
-          Object.entries(
-            rowsB.find(
-              (rowB) =>
-                rowA[joinColumnA].underlyingValue ===
-                rowB[joinColumnB].underlyingValue,
-            ) || {},
-          ).map(([key, val]) => [columnRenameIndexB[key], val]),
-        ),
-      }));
+        );
+        const columnRenameIndexB = Object.fromEntries(
+          tableB.columns.map((col) => [
+            col.accessor,
+            `${safeLabelB}_${col.Header}`,
+          ]),
+        );
+        const columns = tableA.columns
+          .map((col) => ({
+            accessor: columnRenameIndexA[col.accessor],
+            Header: columnRenameIndexA[col.accessor],
+          }))
+          .concat(
+            tableB.columns.map((col) => ({
+              accessor: columnRenameIndexB[col.accessor],
+              Header: columnRenameIndexB[col.accessor],
+            })),
+          );
 
-      return { columns, rows };
+        const rowsA = joinColumnA ? tableA.rows : [];
+        const rowsB = joinColumnB ? tableB.rows : [];
+
+        const rows = rowsA.map((rowA) => ({
+          ...Object.fromEntries(
+            Object.entries(rowA).map(([key, val]) => [
+              columnRenameIndexA[key],
+              val,
+            ]),
+          ),
+          ...Object.fromEntries(
+            Object.entries(
+              rowsB.find(
+                (rowB) =>
+                  rowA[joinColumnA].underlyingValue ===
+                  rowB[joinColumnB].underlyingValue,
+              ) || {},
+            ).map(([key, val]) => [columnRenameIndexB[key], val]),
+          ),
+        }));
+
+        return { columns, rows };
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data }) => {

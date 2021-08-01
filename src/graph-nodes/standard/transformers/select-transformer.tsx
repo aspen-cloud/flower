@@ -5,6 +5,7 @@ import { Suggest, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
 import BaseNode from "../../../components/base-node";
 import { Column } from "../../../types";
 import { TableStruct } from "../../../structs";
+import { NodeClass } from "../../../prograph";
 
 const ColumnSuggest = Suggest.ofType<Column>();
 
@@ -33,7 +34,7 @@ const columnSuggestPredicate: ItemPredicate<Column> = (
   return item.Header.includes(query);
 };
 
-const Select = {
+const Select: NodeClass = {
   inputs: {
     table: defaulted(TableStruct, {}),
   },
@@ -42,18 +43,21 @@ const Select = {
     selectedTags: defaulted(array(string()), []),
   },
   outputs: {
-    table: ({ table, selectedTags }) => {
-      const columns = table.columns.filter((col) =>
-        selectedTags.includes(col.accessor),
-      );
-      const rows = table.rows.map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([key, val]) =>
-            selectedTags.includes(key),
+    table: {
+      func: ({ table, selectedTags }) => {
+        const columns = table.columns.filter((col) =>
+          selectedTags.includes(col.accessor),
+        );
+        const rows = table.rows.map((row) =>
+          Object.fromEntries(
+            Object.entries(row).filter(([key, val]) =>
+              selectedTags.includes(key),
+            ),
           ),
-        ),
-      );
-      return { columns, rows };
+        );
+        return { columns, rows };
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data }) => {

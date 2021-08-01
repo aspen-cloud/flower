@@ -26,6 +26,7 @@ import ReactFlow, {
   OnLoadFunc,
   OnLoadParams,
   isNode,
+  EdgeProps,
 } from "react-flow-renderer";
 import * as AllNodes from "./graph-nodes/index";
 
@@ -57,19 +58,20 @@ import {
   parseClipboard,
 } from "./utils/clipboard";
 import { combineLatest } from "rxjs";
-import ProGraph, { GraphEdge, GraphNode } from "./prograph";
+import ProGraph, { GraphEdge, GraphNode, NodeClass } from "./prograph";
 import { map } from "rxjs/operators";
 import Spreadsheet from "./components/blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
-import { create, Struct } from "superstruct";
+import { create, object, Struct } from "superstruct";
 import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
 import SelectGraphDialog from "./components/select-graph-dialog";
 import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
+import GraphOmnibar from "./graph-omnibar";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -78,7 +80,7 @@ const initBgColor = "#343434";
 const connectionLineStyle = { stroke: "#fff" };
 const snapGrid: [number, number] = [20, 20];
 
-function flattenNodes(nodes: Record<string, any>): [string, any][] {
+function flattenNodes(nodes: Record<string, any>): [string, NodeClass][] {
   return Object.entries(nodes).flatMap(([key, val]) =>
     val.Component ? [[key, val]] : flattenNodes(val),
   );
@@ -238,9 +240,27 @@ interface SpreadSheetTableData {
   nodeId: string;
 }
 
-const edgeTypes = {
-  default: DefaultEdge,
-};
+function addNode({ type, data, position }) {
+  // @ts-ignore
+  const { outputs, sources } = GraphNodes[type];
+  const values =
+    data ||
+    Object.fromEntries(
+      [
+        ...(outputs ? Object.keys(outputs) : []),
+        ...(sources ? Object.keys(sources) : []),
+      ].map((key) => [
+        key,
+        null, // TODO use default value from Node definition
+      ]),
+    );
+  return proGraph.addNode({ type, position, sources: values });
+}
+
+interface OmnibarContext {
+  type: string;
+  metadata: any;
+}
 
 const FlowGraph = () => {
   const [reactflowInstance, setReactflowInstance] =
@@ -255,6 +275,7 @@ const FlowGraph = () => {
   const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
   const [selectedElements, setSelectedElements] = useState<Elements>([]);
   const [omnibarQuery, setOmnibarQuery] = useState("");
+  const [omnibarTags, setOmnibarTags] = useState<string[]>([]);
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
     defaultOmnibarOptions,
   );
@@ -476,23 +497,6 @@ const FlowGraph = () => {
       return updateEdge(oldEdge, newConnection, els);
     });
   };
-
-  const addNode = useCallback(({ type, data, position }) => {
-    // @ts-ignore
-    const { outputs, sources } = GraphNodes[type];
-    const values =
-      data ||
-      Object.fromEntries(
-        [
-          ...(outputs ? Object.keys(outputs) : []),
-          ...(sources ? Object.keys(sources) : []),
-        ].map((key) => [
-          key,
-          null, // TODO use default value from Node definition
-        ]),
-      );
-    proGraph.addNode({ type, position, sources: values });
-  }, []);
 
   const onLoad: OnLoadFunc<any> = useCallback(
     (rfi) => {
@@ -764,9 +768,11 @@ const FlowGraph = () => {
     };
   }, []);
 
-  const NodeOmnibar = Omnibar.ofType<OmnibarItem>();
-
+  // Would be nice to move omnibar stuff out of flowgraph
   const [showNodeOmniBar, setShowNodeOmniBar] = useState(false);
+  const [nodeOmnibarContext, setNodeOmnibarContext] = useState<
+    OmnibarContext | undefined
+  >();
 
   const renderNodeType: ItemRenderer<OmnibarItem> = (
     item,
@@ -787,20 +793,108 @@ const FlowGraph = () => {
     );
   };
 
-  const filterNodeTypes: ItemPredicate<OmnibarItem> = (
-    query,
-    item,
-    _index,
-    exactMatch,
+  function nodeInsertHandler(
+    event,
+    edgeId: string,
+    nodeType: string,
+    position: XYPosition,
+  ) {
+    if (!Object.keys(nodeTypes).includes(nodeType)) {
+      console.log(nodeType, "IS NOT A NODE TYPE");
+      return;
+    }
+
+    const {
+      from: { nodeId: fromNodeId, busKey: fromBusKey },
+      to: { nodeId: toNodeId, busKey: toBusKey },
+    } = proGraph.getEdge(edgeId);
+    const newNodeId = addNode({
+      type: nodeType,
+      data: {},
+      position,
+    });
+
+    proGraph.deleteEdge(edgeId);
+
+    const suggestedEdges = proGraph.getSuggestedEdges();
+    const [firstPossibleIncomingEdge] = suggestedEdges.filter(
+      (edge) =>
+        edge.to.nodeId === newNodeId &&
+        edge.from.nodeId === fromNodeId &&
+        edge.from.busKey === fromBusKey,
+    );
+    const [firstPossibleOutgoingEdge] = suggestedEdges.filter(
+      (edge) =>
+        edge.to.nodeId === toNodeId &&
+        edge.to.busKey === toBusKey &&
+        edge.from.nodeId === newNodeId,
+    );
+
+    if (firstPossibleIncomingEdge) proGraph.addEdge(firstPossibleIncomingEdge);
+    if (firstPossibleOutgoingEdge) proGraph.addEdge(firstPossibleOutgoingEdge);
+  }
+
+  const edgeTypes = {
+    default: ({ ...props }: EdgeProps) => {
+      // TODO: hot reload issue
+      return DefaultEdge({
+        ...props,
+        nodeInsertHandler: nodeInsertHandler,
+        addClickHandler: (edgeId: string, position: XYPosition) => {
+          setNodeOmnibarContext({
+            type: "insert",
+            metadata: { edgeId, position },
+          });
+          const edge = proGraph.getEdge(edgeId);
+          // TODO: hard coded
+          const inputType =
+            GraphNodes[proGraph.getNode(edge.from.nodeId).type].outputs[
+              edge.from.busKey
+            ].struct.type;
+          const outputType =
+            GraphNodes[proGraph.getNode(edge.to.nodeId).type].inputs[
+              edge.to.busKey
+            ].type;
+          setOmnibarTags([`input:${inputType}`, `output:${outputType}`]);
+          setShowNodeOmniBar(true);
+        },
+      });
+    },
+  };
+
+  const filterNodeTypes = (
+    query: string,
+    filters: string[],
+    item: OmnibarItem,
+    _index?: number,
+    exactMatch?: boolean,
   ) => {
+    if (!query || query.length === 0) return true;
+
     const normalizedTitle = item.label.toLowerCase();
     const normalizedQuery = query.toLowerCase();
-    if (!query || query.length === 0) return true;
-    if (exactMatch) {
-      return normalizedTitle === normalizedQuery;
-    } else {
-      return normalizedTitle.indexOf(normalizedQuery) >= 0;
-    }
+    const normalizedFilters = Object.fromEntries(
+      filters.map((filter) => filter.split(":")),
+    );
+    const itemType = GraphNodes[item.type];
+
+    const queryFilter = exactMatch
+      ? normalizedTitle === normalizedQuery
+      : normalizedTitle.indexOf(normalizedQuery) >= 0;
+
+    const inputFilter =
+      !normalizedFilters.input ||
+      Object.values(itemType?.inputs || {}).some(
+        (struct) => struct.type === normalizedFilters.input,
+      );
+
+    const outputFilter =
+      !normalizedFilters.output ||
+      Object.values(itemType?.outputs || {}).some(
+        (outputObj) => outputObj.struct.type === normalizedFilters.output,
+      );
+
+    return queryFilter && inputFilter && outputFilter;
   };
 
   const elements = useMemo(
@@ -1127,24 +1221,55 @@ const FlowGraph = () => {
           },
         ]}
       >
-        <NodeOmnibar
+        <GraphOmnibar
           noResults={<MenuItem disabled={true} text="No results." />}
           items={nodeTypeList}
           query={omnibarQuery}
-          onQueryChange={(q, _event) => setOmnibarQuery(q)}
+          onQueryChange={(q, event) => {
+            // TODO: why is event empty sometimes and not empty when setting tags?
+            if (event) return;
+            if (q.startsWith("[") && q.endsWith("]")) {
+              const [tagKey, tagValue] = q.slice(1, q.length - 1).split(":");
+              if (tagKey && tagValue && ["input", "output"].includes(tagKey)) {
+                setOmnibarTags((prevTags) => [
+                  ...prevTags,
+                  `${tagKey}:${tagValue}`,
+                ]);
+              }
+              setOmnibarQuery("");
+            } else {
+              setOmnibarQuery(q);
+            }
+          }}
+          filters={omnibarTags}
+          onFiltersChange={(filters) => setOmnibarTags(filters)}
           itemRenderer={renderNodeType}
-          itemPredicate={filterNodeTypes}
+          itemPredicateWithFilters={filterNodeTypes}
           onItemSelect={(item) => {
             const { type, data } = item;
-            addNode({
-              type,
-              data,
-              position: getCanvasPosition(mousePosition.current),
-            });
+            if (nodeOmnibarContext?.type === "insert") {
+              nodeInsertHandler(
+                null,
+                nodeOmnibarContext?.metadata.edgeId,
+                type,
+                nodeOmnibarContext?.metadata.position,
+              );
+            } else {
+              addNode({
+                type,
+                data,
+                position: getCanvasPosition(mousePosition.current),
+              });
+            }
+
             setShowNodeOmniBar(false);
+            setNodeOmnibarContext(undefined);
+            setOmnibarTags([]);
           }}
           onClose={() => {
             setShowNodeOmniBar(false);
+            setNodeOmnibarContext(undefined);
+            setOmnibarTags([]);
           }}
           isOpen={showNodeOmniBar}
           resetOnSelect={true}

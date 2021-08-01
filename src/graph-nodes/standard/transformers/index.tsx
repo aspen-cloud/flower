@@ -8,14 +8,19 @@ import Formula from "./formula";
 import GenerateColumn from "./generate-column";
 import Filter from "./filter-transformer";
 import { Icon } from "@blueprintjs/core";
+import { NodeClass } from "../../../prograph";
 
-const Add = {
+const Add: NodeClass = {
   inputs: {
     left: defaulted(number(), 0),
     right: defaulted(number(), 0),
   },
+  sources: {},
   outputs: {
-    sum: ({ left, right }) => +left + +right,
+    sum: {
+      func: ({ left, right }) => +left + +right,
+      struct: number(),
+    },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -26,13 +31,14 @@ const Add = {
   },
 };
 
-const Subtract = {
+const Subtract: NodeClass = {
   inputs: {
     left: defaulted(number(), 0),
     right: defaulted(number(), 0),
   },
+  sources: {},
   outputs: {
-    difference: ({ left, right }) => +left - +right,
+    difference: { func: ({ left, right }) => +left - +right, struct: number() },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -43,13 +49,14 @@ const Subtract = {
   },
 };
 
-const Multiply = {
+const Multiply: NodeClass = {
   inputs: {
     left: defaulted(number(), 0),
     right: defaulted(number(), 0),
   },
+  sources: {},
   outputs: {
-    product: ({ left, right }) => +left * +right,
+    product: { func: ({ left, right }) => +left * +right, struct: number() },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -61,16 +68,20 @@ const Multiply = {
 };
 
 // Example of error thrown in output
-const Divide = {
+const Divide: NodeClass = {
   inputs: {
     numerator: defaulted(number(), 0),
     divisor: defaulted(number(), 0),
   },
+  sources: {},
   outputs: {
-    quotient: ({ numerator, divisor }) => {
-      if (divisor === 0) throw new Error("Cannot divide by 0");
+    quotient: {
+      func: ({ numerator, divisor }) => {
+        if (divisor === 0) throw new Error("Cannot divide by 0");
 
-      return +numerator / +divisor;
+        return +numerator / +divisor;
+      },
+      struct: number(),
     },
   },
   Component: ({ data: { inputs, outputs } }) => {

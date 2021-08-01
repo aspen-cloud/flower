@@ -4,6 +4,7 @@ import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import { RowValue, Table } from "../../../types";
 import { parseRow } from "../../../utils/tables";
+import { NodeClass } from "../../../prograph";
 
 enum AggregateFunction {
   SUM = "SUM",
@@ -66,7 +67,7 @@ function aggregate(func: AggregateFunction, values: RowValue[]) {
 }
 
 // TODO: custom aggregate functions
-const Group = {
+const Group: NodeClass = {
   inputs: {
     table: defaulted(TableStruct, {}),
   },
@@ -75,69 +76,72 @@ const Group = {
     groupColumns: defaulted(array(string()), []),
   },
   outputs: {
-    table: ({
-      table,
-      columnSelections,
-      groupColumns,
-    }: {
-      table: Table;
-      columnSelections: GroupSelection[];
-      groupColumns: string[];
-    }) => {
-      const columnMap = Object.fromEntries(
-        table.columns.map((c) => [c.accessor, c]),
-      );
-      const columnSelectionName = (columnSelection: GroupSelection) =>
-        `${columnSelection.aggregateFunction}-${
-          columnMap[columnSelection.columnAccessor].Header
-        }`;
-
-      const columns = table.columns
-        .filter((c) => groupColumns.includes(c.accessor))
-        .concat(
-          columnSelections.map((columnSelection) => {
-            const column = table.columns.find(
-              (c) => c.accessor === columnSelection.columnAccessor,
-            );
-            return {
-              ...column,
-              Header: columnSelectionName(columnSelection),
-              accessor: columnSelectionName(columnSelection), // todo: nanoid or hash?
-            };
-          }),
+    table: {
+      func: ({
+        table,
+        columnSelections,
+        groupColumns,
+      }: {
+        table: Table;
+        columnSelections: GroupSelection[];
+        groupColumns: string[];
+      }) => {
+        const columnMap = Object.fromEntries(
+          table.columns.map((c) => [c.accessor, c]),
         );
+        const columnSelectionName = (columnSelection: GroupSelection) =>
+          `${columnSelection.aggregateFunction}-${
+            columnMap[columnSelection.columnAccessor].Header
+          }`;
 
-      const rows = groupBy(table.rows, groupColumns).map((groupData) => {
-        const groupByColumnsFilled = Object.entries(groupData.key).reduce(
-          (rowData, nextGroupByValue) => {
-            const [colId, value] = nextGroupByValue;
-            rowData[colId] = value;
-            return rowData;
-          },
-          {},
-        );
+        const columns = table.columns
+          .filter((c) => groupColumns.includes(c.accessor))
+          .concat(
+            columnSelections.map((columnSelection) => {
+              const column = table.columns.find(
+                (c) => c.accessor === columnSelection.columnAccessor,
+              );
+              return {
+                ...column,
+                Header: columnSelectionName(columnSelection),
+                accessor: columnSelectionName(columnSelection), // todo: nanoid or hash?
+              };
+            }),
+          );
 
-        const fullRows = columnSelections.reduce(
-          (rowData, nextAggregateValue) => {
-            const column = columnMap[nextAggregateValue.columnAccessor];
-            rowData[columnSelectionName(nextAggregateValue)] = parseRow(
-              aggregate(
-                AggregateFunction[nextAggregateValue.aggregateFunction],
-                groupData.data.map(
-                  (item) => item[nextAggregateValue.columnAccessor],
-                ),
-              ).toString(),
-              column.Type,
-            );
-            return rowData;
-          },
-          groupByColumnsFilled,
-        );
+        const rows = groupBy(table.rows, groupColumns).map((groupData) => {
+          const groupByColumnsFilled = Object.entries(groupData.key).reduce(
+            (rowData, nextGroupByValue) => {
+              const [colId, value] = nextGroupByValue;
+              rowData[colId] = value;
+              return rowData;
+            },
+            {},
+          );
 
-        return fullRows;
-      });
+          const fullRows = columnSelections.reduce(
+            (rowData, nextAggregateValue) => {
+              const column = columnMap[nextAggregateValue.columnAccessor];
+              rowData[columnSelectionName(nextAggregateValue)] = parseRow(
+                aggregate(
+                  AggregateFunction[nextAggregateValue.aggregateFunction],
+                  groupData.data.map(
+                    (item) => item[nextAggregateValue.columnAccessor],
+                  ),
+                ).toString(),
+                column.Type,
+              );
+              return rowData;
+            },
+            groupByColumnsFilled,
+          );
 
-      return { columns, rows };
+          return fullRows;
+        });
+
+        return { columns, rows };
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data }) => {

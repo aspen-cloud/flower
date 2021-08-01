@@ -5,8 +5,9 @@ import { TableStruct } from "../../../structs";
 import filters from "../../nodes/standard/filter-node/filters";
 import DirtyInput from "../../../dirty-input";
 import { Table } from "../../../types";
+import { NodeClass } from "../../../prograph";
 
-const Filter = {
+const Filter: NodeClass = {
   inputs: {
     table: defaulted(TableStruct, {}),
   },
@@ -16,16 +17,19 @@ const Filter = {
     compareValue: defaulted(string(), ""),
   },
   outputs: {
-    table: ({ table, columnAccessor, columnFilter, compareValue }) => {
-      const filter = filters[columnFilter] || (() => true);
-      const newRows = table.rows.filter((row) =>
-        filter(row[columnAccessor].underlyingValue, compareValue),
-      );
+    table: {
+      func: ({ table, columnAccessor, columnFilter, compareValue }) => {
+        const filter = filters[columnFilter] || (() => true);
+        const newRows = table.rows.filter((row) =>
+          filter(row[columnAccessor].underlyingValue, compareValue),
+        );
 
-      return {
-        rows: newRows,
-        columns: table.columns,
-      };
+        return {
+          rows: newRows,
+          columns: table.columns,
+        };
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data }) => {

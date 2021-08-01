@@ -3,8 +3,10 @@ import { nanoid } from "nanoid";
 import { any, defaulted, func, string } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import DirtyInput from "../../../dirty-input";
+import { NodeClass } from "../../../prograph";
+import { TableStruct } from "../../../structs";
 
-const GenerateColumn = {
+const GenerateColumn: NodeClass = {
   sources: {
     columnName: defaulted(string(), () => ""),
   },
@@ -13,26 +15,29 @@ const GenerateColumn = {
     func: defaulted(func(), () => (val) => val),
   },
   outputs: {
-    table: ({ table, func, columnName }) => {
-      if (!func) return table;
-      const accessor = `user-col-${columnName || nanoid()}`;
+    table: {
+      func: ({ table, func, columnName }) => {
+        if (!func) return table;
+        const accessor = `user-col-${columnName || nanoid()}`;
 
-      const newTable = {
-        rows: table.rows.map((row) => {
-          const newCellVal = func(row);
-          return {
-            ...row,
-            [accessor]: {
-              underlyingValue: newCellVal,
-              readValue: newCellVal,
-              writeValue: newCellVal,
-            },
-          };
-        }),
-        columns: [...table.columns, { accessor, Header: columnName }],
-      };
+        const newTable = {
+          rows: table.rows.map((row) => {
+            const newCellVal = func(row);
+            return {
+              ...row,
+              [accessor]: {
+                underlyingValue: newCellVal,
+                readValue: newCellVal,
+                writeValue: newCellVal,
+              },
+            };
+          }),
+          columns: [...table.columns, { accessor, Header: columnName }],
+        };
 
-      return newTable;
+        return newTable;
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {

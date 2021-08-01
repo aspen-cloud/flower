@@ -2,6 +2,7 @@ import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
+import { NodeClass } from "../../../prograph";
 
 // TODO: what's the best way to converge struct and enum values
 enum SortDirection {
@@ -21,7 +22,7 @@ function simpleSort(a: any, b: any, direction: SortDirection) {
   return a < b ? 1 : a > b ? -1 : 0;
 }
 
-const Sort = {
+const Sort: NodeClass = {
   inputs: {
     table: defaulted(TableStruct, {}),
   },
@@ -29,35 +30,40 @@ const Sort = {
     sortDefinitions: defaulted(array(SortDefinitionStruct), []),
   },
   outputs: {
-    table: ({ table, sortDefinitions }) => {
-      const columns = [...table.columns];
-      const columnMap = Object.fromEntries(columns.map((c) => [c.accessor, c]));
-      const rows = [...table.rows].sort((a, b) =>
-        sortDefinitions.reduce((current, nextSortDef) => {
-          // TODO: Declare compare type in Type definition (or something like that)...this is rigid
-          const isNumber =
-            columnMap[nextSortDef.columnAccessor].Type.name !== "Text";
-          if (isNumber) {
+    table: {
+      func: ({ table, sortDefinitions }) => {
+        const columns = [...table.columns];
+        const columnMap = Object.fromEntries(
+          columns.map((c) => [c.accessor, c]),
+        );
+        const rows = [...table.rows].sort((a, b) =>
+          sortDefinitions.reduce((current, nextSortDef) => {
+            // TODO: Declare compare type in Type definition (or something like that)...this is rigid
+            const isNumber =
+              columnMap[nextSortDef.columnAccessor].Type.name !== "Text";
+            if (isNumber) {
+              return (
+                current ||
+                simpleSort(
+                  a[nextSortDef.columnAccessor].underlyingValue,
+                  b[nextSortDef.columnAccessor].underlyingValue,
+                  nextSortDef.direction,
+                )
+              );
+            }
             return (
               current ||
               simpleSort(
-                a[nextSortDef.columnAccessor].underlyingValue,
-                b[nextSortDef.columnAccessor].underlyingValue,
+                a[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
+                b[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
                 nextSortDef.direction,
               )
             );
-          }
-          return (
-            current ||
-            simpleSort(
-              a[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
-              b[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
-              nextSortDef.direction,
-            )
-          );
-        }, 0),
-      );
-      return { columns, rows };
+          }, 0),
+        );
+        return { columns, rows };
+      },
+      struct: TableStruct,
     },
   },
   Component: ({ data }) => {

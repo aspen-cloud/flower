@@ -5,6 +5,15 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
 import { create, Struct } from "superstruct";
+import { FunctionComponent } from "react";
+
+if (process.env.NODE_ENV === "development") {
+  if (process.argv.includes("log")) {
+    localStorage.setItem("log", "true");
+  }
+} else {
+  localStorage.removeItem("log");
+}
 
 // Value or error produced by output function
 interface NodeOutput {
@@ -39,10 +48,15 @@ export interface GraphEdge {
   };
 }
 
+// TODO: move to types
 export interface NodeClass {
   inputs: Record<string, Struct>;
   sources: Record<string, Struct>;
-  outputs: Record<string, (vals: Record<string, any>) => any>;
+  outputs: Record<
+    string,
+    { func: (vals: Record<string, any>) => any; struct: Struct }
+  >;
+  Component: FunctionComponent<any>;
 }
 
 export default class ProGraph {
@@ -57,7 +71,7 @@ export default class ProGraph {
 
   loadedGraph$: Subject<string>;
 
-  constructor(nodeTypes: Record<string, any>) {
+  constructor(nodeTypes: Record<string, NodeClass>) {
     this.nodeTypes = nodeTypes;
     this.loadedGraph$ = new Subject();
   }
@@ -154,6 +168,10 @@ export default class ProGraph {
     }
     this.evaluate([id]);
     return id;
+  }
+
+  getEdge(edgeId: string) {
+    return this._edges.get(edgeId);
   }
 
   addEdge(edge: Omit<GraphEdge, "id">) {
@@ -311,7 +329,7 @@ export default class ProGraph {
         let outputValue;
         let outputError;
         try {
-          outputValue = nodeClass.outputs[outputKey]({
+          outputValue = nodeClass.outputs[outputKey].func({
             ...inputVals,
             ...sourceVals,
           });
@@ -330,7 +348,7 @@ export default class ProGraph {
   }
 
   getSuggestedEdges() {
-    const nodeList = Array.from(this.nodes.values());
+    const nodeList = Array.from(this._nodes.values());
     const inputs = nodeList.flatMap((node) => {
       const Type = this.nodeTypes[node.type];
       if (!Type.inputs) return [];
@@ -341,7 +359,7 @@ export default class ProGraph {
       }));
     });
 
-    const edgeList = Array.from(this.edges.values());
+    const edgeList = Array.from(this._edges.values());
 
     const inboundEdgeSet = new Set(
       edgeList.map((edge) => `${edge.to.nodeId}-${edge.to.busKey}`),
@@ -351,50 +369,52 @@ export default class ProGraph {
       (input) => !inboundEdgeSet.has(`${input.nodeId}-${input.busKey}`),
     );
 
-    // Going to oversimplify to three types: string, number, function, table
-    const valToType = (val) => {
-      if (typeof val === "string") return "string";
-      if (typeof val === "number") return "number";
-      if (typeof val === "function") return "func";
-      return "table";
-    };
+    const outputList = nodeList.flatMap((node) => {
+      const Type = this.nodeTypes[node.type];
+      if (!Type.outputs) return [];
+      return Object.entries(Type.outputs).map(([busKey, { func, struct }]) => ({
+        nodeId: node.id,
+        busKey,
+        type: struct.type,
+      }));
+    });
 
-    const outputList = Object.entries(this._outputs).flatMap(
-      ([nodeId, outputs]) =>
-        Object.entries(outputs).map(([busKey, val]) => ({
-          nodeId,
-          busKey,
-          type: valToType(val.value),
-        })),
-    );
+    const typeToOutputs: Record<
+      string,
+      { nodeId: string; busKey: string; type: string }[]
+    > = outputList.reduce((acc, curr) => {
+      if (!acc[curr.type]) {
+        acc[curr.type] = [];
+      }
 
-    const typeToOutputs: Record<string, { nodeId: string; busKey: string }[]> =
-      outputList.reduce((acc, curr) => {
-        if (!acc[curr.type]) {
-          acc[curr.type] = [];
-        }
+      acc[curr.type].push({
+        nodeId: curr.nodeId,
+        busKey: curr.busKey,
+        type: curr.type,
+      });
 
-        acc[curr.type].push({ nodeId: curr.nodeId, busKey: curr.busKey });
+      return acc;
+    }, {});
 
-        return acc;
-      }, {});
+    return openInputs.flatMap((input) => {
+      const possibleOutputs =
+        input.type === "any"
+          ? Object.values(typeToOutputs).flatMap((outputs) => outputs)
+          : typeToOutputs[input.type];
 
-    return openInputs.flatMap((input) =>
-      typeToOutputs[input.type]
-        ? typeToOutputs[input.type]
-            .filter((output) => output.nodeId != input.nodeId)
-            .map((output) => ({
-              from: {
-                nodeId: output.nodeId,
-                busKey: output.busKey,
-              },
-              to: {
-                nodeId: input.nodeId,
-                busKey: input.busKey,
-              },
-            }))
-        : [],
-    );
+      return possibleOutputs
+        .filter((output) => output.nodeId !== input.nodeId)
+        .map((output) => ({
+          from: {
+            nodeId: output.nodeId,
+            busKey: output.busKey,
+          },
+          to: {
+            nodeId: input.nodeId,
+            busKey: input.busKey,
+          },
+        }));
+    });
   }
 
   _broadcastChanges() {

@@ -1,11 +1,12 @@
 import { InputGroup } from "@blueprintjs/core";
-import { array, string, defaulted, object } from "superstruct";
+import { array, string, defaulted, object, any } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import formulajs from "@formulajs/formulajs";
+import { NodeClass } from "../../../prograph";
 
 const FormulaParser = require("hot-formula-parser").Parser;
 
-const Formula = {
+const Formula: NodeClass = {
   inputs: {
     tableSchema: defaulted(object({ rows: array(), columns: array() }), () => ({
       rows: [],
@@ -16,32 +17,35 @@ const Formula = {
     formulaText: defaulted(string(), () => ""),
   },
   outputs: {
-    function: ({ formulaText, tableSchema }) => {
-      return (record: Record<string, any>) => {
-        const parser = new FormulaParser();
-        parser.on(
-          "callFunction",
-          (name: string, args: any[], done: (result: any) => void) => {
-            done(formulajs[name](...args));
-          },
-        );
+    function: {
+      func: ({ formulaText, tableSchema }) => {
+        return (record: Record<string, any>) => {
+          const parser = new FormulaParser();
+          parser.on(
+            "callFunction",
+            (name: string, args: any[], done: (result: any) => void) => {
+              done(formulajs[name](...args));
+            },
+          );
 
-        for (const prop of tableSchema.columns) {
-          if (record[prop.accessor]) {
-            parser.setVariable(
-              prop.Header.split(" ").join("_"),
-              record[prop.accessor].underlyingValue,
-            );
+          for (const prop of tableSchema.columns) {
+            if (record[prop.accessor]) {
+              parser.setVariable(
+                prop.Header.split(" ").join("_"),
+                record[prop.accessor].underlyingValue,
+              );
+            }
           }
-        }
-        const { error, result } = parser.parse(formulaText);
-        if (error) {
-          console.error("formula", error);
-          //throw new Error(error);
-          return error;
-        }
-        return result;
-      };
+          const { error, result } = parser.parse(formulaText);
+          if (error) {
+            console.error("formula", error);
+            //throw new Error(error);
+            return error;
+          }
+          return result;
+        };
+      },
+      struct: any(),
     },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {

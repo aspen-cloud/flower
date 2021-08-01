@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import { BehaviorSubject } from "rxjs";
+import { NodeClass } from "./prograph";
 
 export interface Column {
   Header: string;

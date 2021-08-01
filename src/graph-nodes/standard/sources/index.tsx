@@ -4,14 +4,16 @@ import { useCallback, useMemo, useState } from "react";
 import { boolean, defaulted, number, string } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
+import { NodeClass } from "../../../prograph";
 import { TableStruct } from "../../../structs";
 
-const Text = {
+const Text: NodeClass = {
+  inputs: {},
   sources: {
     text: defaulted(string(), ""),
   },
   outputs: {
-    text: ({ text }) => text,
+    text: { func: ({ text }) => text, struct: defaulted(string(), "") },
   },
   Component: ({ selected, data: { sources, outputs }, size, id }) => {
     // TODO: improve resizing defaults (would be great to take text size or changes into account)
@@ -40,12 +42,13 @@ const Text = {
   },
 };
 
-const Number = {
+const Number: NodeClass = {
+  inputs: {},
   sources: {
     number: defaulted(number(), 0),
   },
   outputs: {
-    number: ({ number }) => number,
+    number: { func: ({ number }) => number, struct: defaulted(number(), 0) },
   },
   Component: ({ data: { sources, outputs } }) => {
     return (
@@ -60,13 +63,14 @@ const Number = {
   },
 };
 
-const DataTable = {
+const DataTable: NodeClass = {
+  inputs: {},
   sources: {
     label: defaulted(string(), ""),
     table: defaulted(TableStruct, {}),
   },
   outputs: {
-    table: ({ table }) => table,
+    table: { func: ({ table }) => table, struct: defaulted(TableStruct, {}) },
   },
   Component: ({ data: { sources, outputs } }) => {
     const [draftLabel, setDraftLabel] = useState(sources.label.value);
@@ -116,14 +120,18 @@ const DataTable = {
   },
 };
 
-const ErrorNode = {
+const ErrorNode: NodeClass = {
+  inputs: {},
   sources: {
     hasError: defaulted(boolean(), false),
   },
   outputs: {
-    result: ({ hasError }) => {
-      if (hasError) throw new Error("GAH!");
-      return "foo";
+    result: {
+      func: ({ hasError }) => {
+        if (hasError) throw new Error("GAH!");
+        return "foo";
+      },
+      struct: string(),
     },
   },
   Component: ({ data }) => {

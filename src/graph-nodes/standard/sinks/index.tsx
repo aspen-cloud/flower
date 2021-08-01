@@ -1,15 +1,18 @@
 import { useMemo } from "react";
 import { any, object, array, defaulted } from "superstruct";
 import BaseNode from "../../../components/base-node";
+import { NodeClass } from "../../../prograph";
+import { TableStruct } from "../../../structs";
 import { RowValue } from "../../../types";
 import DataTable from "../../nodes/standard/table-node/data-table";
 
-const Viewer = {
+const Viewer: NodeClass = {
   inputs: {
     value: any(),
   },
+  sources: {},
   outputs: {
-    value: ({ value }) => value,
+    value: { func: ({ value }) => value, struct: any() },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -20,18 +23,13 @@ const Viewer = {
   },
 };
 
-const TableViewer = {
+const TableViewer: NodeClass = {
   inputs: {
-    table: defaulted(
-      object({
-        rows: array(),
-        columns: array(),
-      }),
-      () => ({ rows: [], columns: [] }),
-    ),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
+  sources: {},
   outputs: {
-    table: ({ table }) => table,
+    table: { func: ({ table }) => table, struct: TableStruct },
   },
   Component: ({ data }) => {
     const { inputs, outputs } = data;

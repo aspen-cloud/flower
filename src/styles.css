@@ -87,3 +87,51 @@ body {
   left: unset;
   width: 360px;
 }
+
+.edge-menu-container * {
+  pointer-events: all;
+}
+
+.edge-menu-unselected {
+  background: #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  height: 20px;
+  line-height: 1;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.edge-menu-index {
+  display: flex;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.edge-menu-index-item {
+  background: #fff;
+  border-radius: 50%;
+  margin-right: 0.1em;
+  margin-left: 0.1em;
+}
+
+.edge-menu-index-item:hover {
+  background: #ddd;
+}
+
+.edge-menu-index-item:first-child {
+  margin-right: 0.1em;
+  margin-left: 0;
+}
+
+.edge-menu-index-item:last-child {
+  margin-right: 0;
+  margin-left: 0.1em;
+}
+
+.edge-menu-index-close {
+  background: #ddd;
+}
