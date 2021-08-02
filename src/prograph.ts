@@ -331,7 +331,6 @@ export default class ProGraph {
 
   getSuggestedEdges() {
     const nodeList = Array.from(this.nodes.values());
-
     const inputs = nodeList.flatMap((node) => {
       const Type = this.nodeTypes[node.type];
       if (!Type.inputs) return [];
