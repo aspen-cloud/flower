@@ -53,9 +53,14 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
+    "test": "react-scripts test --env=jsdom --transformIgnorePatterns \"node_modules/(?!y-protocols|lib0)\"",
     "eject": "react-scripts eject",
     "postinstall": "yarn patch-package"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!y-protocols)"
+    ]
   },
   "browserslist": [
     ">0.2%",

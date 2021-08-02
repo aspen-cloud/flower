@@ -1,7 +1,17 @@
+/* eslint-disable import/first */
+import crypto from "crypto";
+
+Object.defineProperty(global.self, "crypto", {
+  value: {
+    subtle: crypto.webcrypto.subtle,
+  },
+});
+
 global.indexedDB = require("fake-indexeddb");
 global.IDBKeyRange = require("fake-indexeddb/lib/FDBKeyRange");
 import ProGraph from "../prograph";
-import { any, number } from "superstruct";
+import { any, defaulted, number } from "superstruct";
+import { nanoid } from "nanoid";
 
 describe("basic CRUD", () => {
   const graph = new ProGraph({
@@ -16,6 +26,7 @@ describe("basic CRUD", () => {
   });
 
   beforeEach(() => {
+    graph.loadGraph(nanoid());
     graph.wipeAll();
   });
 
@@ -53,7 +64,6 @@ describe("basic CRUD", () => {
     });
 
     expect(resp).not.toBeNull();
-    ;
     expect(graph._edges.size).toBe(1);
   });
 
@@ -98,6 +108,9 @@ describe("topological sorting", () => {
       },
     },
   });
+
+  graph.loadGraph(nanoid());
+  graph.wipeAll();
 
   beforeEach(() => {
     graph.wipeAll();
@@ -348,8 +361,8 @@ describe("Basic calculations", () => {
     const NodeTypes = {
       Add: {
         inputs: {
-          left: { type: number() },
-          right: { type: number() },
+          left: { type: defaulted(number(), 0) },
+          right: { type: defaulted(number(), 0) },
         },
         outputs: {
           sum: ({ left, right }) => left + right,
@@ -357,8 +370,8 @@ describe("Basic calculations", () => {
       },
       Subtract: {
         inputs: {
-          left: { type: number() },
-          right: { type: number() },
+          left: { type: defaulted(number(), 0) },
+          right: { type: defaulted(number(), 0) },
         },
         outputs: {
           difference: ({ left, right }) => left - right,
@@ -366,7 +379,7 @@ describe("Basic calculations", () => {
       },
       Number: {
         sources: {
-          number: { type: number() },
+          number: { type: defaulted(number(), 0) },
         },
       },
       Output: {
@@ -380,6 +393,7 @@ describe("Basic calculations", () => {
     };
 
     graph = new ProGraph(NodeTypes);
+    graph.loadGraph(nanoid());
     graph.wipeAll();
 
     /**
@@ -393,19 +407,19 @@ describe("Basic calculations", () => {
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: 10 },
+      sources: { number: "10" },
     });
     nodeBKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: 5 },
+      sources: { number: "5" },
     });
     nodeCKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: 50 },
+      sources: { number: "50" },
     });
 
     const addNodeKey = graph.addNode({
@@ -486,19 +500,21 @@ describe("Basic calculations", () => {
 
   it("can produce the correct output", () => {
     // D = A  B - C
-    // 10  5 - 50 => -35
+    // 10 + 5 - 50 => -35
     graph.evaluate();
+    console.log(graph._outputs, Array.from(graph.nodes.entries()));
 
-    const result = graph._nodes.get(nodeDKey);
+    const result = graph.nodes.get(nodeDKey);
+    console.log(result);
 
     expect(graph._outputs[nodeDKey].value).toBe(-35);
   });
 
   it("will react to changes", () => {
     // D = A  B - C
-    // 10  *15* - 50 => *-25*
+    // 10 +  *15* - 50 => *-25*
 
-    graph.updateNodeSource(nodeBKey, "number", 15);
+    graph.updateNodeSources(nodeBKey, { number: 15 });
 
     graph.evaluate();
     const result = graph._nodes.get(nodeDKey);
@@ -510,7 +526,7 @@ describe("Basic calculations", () => {
     // D = A  B - C
     // 10  *-100* - 50 => *-140*
 
-    graph.updateNodeSource(nodeBKey, "number", -100);
+    graph.updateNodeSources(nodeBKey, { number: -100 });
 
     graph.evaluate([nodeBKey]);
     const result = graph._nodes.get(nodeDKey);
