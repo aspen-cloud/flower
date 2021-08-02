@@ -1,4 +1,5 @@
-import { FormGroup, H5, InputGroup } from "@blueprintjs/core";
+import { FormGroup } from "@blueprintjs/core";
+import { nanoid } from "nanoid";
 import { any, defaulted, func, string } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import DirtyInput from "../../../dirty-input";
@@ -14,13 +15,24 @@ const GenerateColumn = {
   outputs: {
     table: ({ table, func, columnName }) => {
       if (!func) return table;
-      return {
-        rows: table.rows.map((row) => ({ ...row, [columnName]: func(row) })),
-        columns: [
-          ...table.columns,
-          { accessor: columnName, Header: columnName },
-        ],
+      const accessor = `user-col-${columnName || nanoid()}`;
+
+      const newTable = {
+        rows: table.rows.map((row) => {
+          const newCellVal = func(row);
+          return {
+            ...row,
+            [accessor]: {
+              underlyingValue: newCellVal,
+              readValue: newCellVal,
+              writeValue: newCellVal,
+            },
+          };
+        }),
+        columns: [...table.columns, { accessor, Header: columnName }],
       };
+
+      return newTable;
     },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {
