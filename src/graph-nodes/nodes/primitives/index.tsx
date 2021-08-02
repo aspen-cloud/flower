@@ -4,14 +4,12 @@ import { catchError, map, retry, switchMap } from "rxjs/operators";
 
 import * as NumberFuncs from "./number";
 import * as StringFuncs from "./string";
-import * as FormulaFuncs from "./formula";
 import * as TableFuncs from "./table";
 import * as DateFuncs from "./date";
 import * as CodeFuncs from "./code";
 
 export const String = funcsToNodes(StringFuncs);
 export const Number = funcsToNodes(NumberFuncs);
-export const Formula = funcsToNodes(FormulaFuncs);
 export const TableOps = funcsToNodes(TableFuncs);
 export const Date = funcsToNodes(DateFuncs);
 export const Code = funcsToNodes(CodeFuncs);
