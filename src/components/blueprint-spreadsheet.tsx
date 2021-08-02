@@ -101,14 +101,12 @@ export default React.memo(function Spreadsheet({
   const cellRenderer = (rowIndex: number, columnIndex: number) => {
     const colId = columnData[columnIndex].accessor;
     const rowValue = rowData[rowIndex] ? rowData[rowIndex][colId] : null;
+    const isEditing =
+      editCoordinates?.rowIndex === rowIndex &&
+      editCoordinates?.columnIndex === columnIndex;
     return (
       <EditableCell
-        value={
-          (editCoordinates?.rowIndex === rowIndex &&
-          editCoordinates?.columnIndex === columnIndex
-            ? rowValue?.writeValue
-            : rowValue?.readValue) ?? ""
-        }
+        value={(isEditing ? rowValue?.writeValue : rowValue?.readValue) ?? ""}
         intent={rowValue?.error ? Intent.DANGER : Intent.NONE}
         onEditChange={(isEditing) =>
           isEditing
@@ -174,16 +172,17 @@ export default React.memo(function Spreadsheet({
             insertRow(rowIndex + 1);
           }
 
-          // TODO: monitor if in edit mode
-          // if (e.key === "Backspace") {
-          //   e.stopPropagation();
-          //   setRowData((prevRowData) => {
-          //     const newRows = [...prevRowData];
-          //     const colId = columnIds[columnIndex];
-          //     delete newRows[rowIndex][colId];
-          //     return newRows;
-          //   });
-          // }
+          if (e.key === "Backspace") {
+            if (!isEditing) {
+              e.stopPropagation();
+              setRowData((prevRowData) => {
+                const newRows = [...prevRowData];
+                const colId = columnData[columnIndex].accessor;
+                delete newRows[rowIndex][colId];
+                return newRows;
+              });
+            }
+          }
         }}
       />
     );
