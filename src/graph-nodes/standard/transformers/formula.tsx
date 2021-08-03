@@ -27,13 +27,16 @@ const Formula = {
         );
 
         for (const prop of tableSchema.columns) {
-          parser.setVariable(
-            prop.Header,
-            record[prop.accessor].underlyingValue,
-          );
+          if (record[prop.accessor]) {
+            parser.setVariable(
+              prop.Header.split(" ").join("_"),
+              record[prop.accessor].underlyingValue,
+            );
+          }
         }
         const { error, result } = parser.parse(formulaText);
         if (error) {
+          console.error("formula", error);
           //throw new Error(error);
           return error;
         }
