@@ -12,7 +12,7 @@ export interface RowValue {
   readValue: string; // Formatted value
   writeValue: string; // What I edit in (parsed as read and to underlying value)
   underlyingValue: any; // Ex JS Date
-  error: Error;
+  error: string; // Error message (had trouble serializing entire error)
 }
 
 export interface Table {

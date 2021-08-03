@@ -78,7 +78,7 @@ export function parseRow(value: string, typeKey: string): RowValue {
     readValue,
     writeValue,
     underlyingValue,
-    error,
+    error: error?.message,
   };
 }
 

@@ -12,14 +12,14 @@ import {
 } from "superstruct";
 import { Column, RowValue, Table } from "./types";
 
-const ErrorStruct = () =>
-  define<Error>("error", (value) => value instanceof Error);
+// const ErrorStruct = () =>
+//   define<Error>("error", (value) => value instanceof Error);
 
 const RowValueStruct: Describe<RowValue> = object({
   readValue: string(),
   writeValue: string(),
   underlyingValue: unknown(),
-  error: optional(ErrorStruct()),
+  error: optional(string()),
 });
 
 // TODO: determine if we would like to "Describe" or "Infer" types
