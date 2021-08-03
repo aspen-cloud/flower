@@ -7,8 +7,8 @@ import { NodeClass } from "../../../prograph";
 
 const Join: NodeClass = {
   inputs: {
-    tableA: defaulted(TableStruct, {}),
-    tableB: defaulted(TableStruct, {}),
+    tableA: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    tableB: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   sources: {
     labelA: defaulted(string(), ""),

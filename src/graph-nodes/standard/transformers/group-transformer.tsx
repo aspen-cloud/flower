@@ -69,7 +69,7 @@ function aggregate(func: AggregateFunction, values: RowValue[]) {
 // TODO: custom aggregate functions
 const Group: NodeClass = {
   inputs: {
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   sources: {
     columnSelections: defaulted(array(ColumnSelectionStruct), []),

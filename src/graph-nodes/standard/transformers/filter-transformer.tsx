@@ -9,7 +9,7 @@ import { NodeClass } from "../../../prograph";
 
 const Filter: NodeClass = {
   inputs: {
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   sources: {
     columnAccessor: defaulted(string(), ""),

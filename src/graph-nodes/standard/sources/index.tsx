@@ -67,10 +67,13 @@ const DataTable: NodeClass = {
   inputs: {},
   sources: {
     label: defaulted(string(), ""),
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   outputs: {
-    table: { func: ({ table }) => table, struct: defaulted(TableStruct, {}) },
+    table: {
+      func: ({ table }) => table,
+      struct: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    },
   },
   Component: ({ data: { sources, outputs } }) => {
     const [draftLabel, setDraftLabel] = useState(sources.label.value);

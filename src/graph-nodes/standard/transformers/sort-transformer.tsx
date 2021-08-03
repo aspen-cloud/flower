@@ -24,7 +24,7 @@ function simpleSort(a: any, b: any, direction: SortDirection) {
 
 const Sort: NodeClass = {
   inputs: {
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   sources: {
     sortDefinitions: defaulted(array(SortDefinitionStruct), []),

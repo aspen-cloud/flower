@@ -36,7 +36,7 @@ const columnSuggestPredicate: ItemPredicate<Column> = (
 
 const Select: NodeClass = {
   inputs: {
-    table: defaulted(TableStruct, {}),
+    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
   },
   sources: {
     // TODO: can we use set? Can set be serialized?
