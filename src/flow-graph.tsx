@@ -64,7 +64,8 @@ import Spreadsheet from "./components/blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
-import { create, object, Struct } from "superstruct";
+import SuggestedEdge from "./graph-nodes/edges/suggested-edge";
+import { create, Struct } from "superstruct";
 import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import graphManager from "./graph-manager";
@@ -434,7 +435,7 @@ const FlowGraph = () => {
 
     if (
       handleEdges.length >= 1 &&
-      handleEdges.some((edge) => !edge.data.isSuggested)
+      handleEdges.some((edge) => edge.type !== "suggested")
     ) {
       console.log("INVALID: ALREADY AN EDGE ON THIS HANDLE");
       return false;
@@ -624,7 +625,7 @@ const FlowGraph = () => {
 
     const [{ id }] = selectedElements;
 
-    const suggestedConnections = proGraph
+    const suggestedConnections: Edge[] = proGraph
       .getSuggestedEdges()
       .filter(({ from, to }) => {
         return from.nodeId === id || to.nodeId === id;
@@ -635,12 +636,7 @@ const FlowGraph = () => {
         sourceHandle: conn.from.busKey,
         target: conn.to.nodeId,
         targetHandle: conn.to.busKey,
-        style: {
-          stroke: "orange",
-        },
-        data: {
-          isSuggested: true,
-        },
+        type: "suggested",
       }));
 
     setSuggestedEdges(suggestedConnections);
@@ -860,6 +856,7 @@ const FlowGraph = () => {
         },
       });
     },
+    suggested: SuggestedEdge,
   };
 
   const filterNodeTypes = (
@@ -1024,7 +1021,7 @@ const FlowGraph = () => {
               onEdgeContextMenu={(event, edge) => {
                 event.preventDefault();
 
-                if (edge.data.isSuggested) {
+                if (edge.type === "suggested") {
                   onConnect(edge);
                   return;
                 }
