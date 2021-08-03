@@ -45,8 +45,8 @@ const Sort: NodeClass = {
               return (
                 current ||
                 simpleSort(
-                  a[nextSortDef.columnAccessor].underlyingValue,
-                  b[nextSortDef.columnAccessor].underlyingValue,
+                  a[nextSortDef.columnAccessor]?.underlyingValue,
+                  b[nextSortDef.columnAccessor]?.underlyingValue,
                   nextSortDef.direction,
                 )
               );
@@ -54,8 +54,8 @@ const Sort: NodeClass = {
             return (
               current ||
               simpleSort(
-                a[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
-                b[nextSortDef.columnAccessor].underlyingValue?.toLowerCase(),
+                a[nextSortDef.columnAccessor]?.underlyingValue?.toLowerCase(),
+                b[nextSortDef.columnAccessor]?.underlyingValue?.toLowerCase(),
                 nextSortDef.direction,
               )
             );

@@ -21,7 +21,7 @@ const Filter: NodeClass = {
       func: ({ table, columnAccessor, columnFilter, compareValue }) => {
         const filter = filters[columnFilter] || (() => true);
         const newRows = table.rows.filter((row) =>
-          filter(row[columnAccessor].underlyingValue, compareValue),
+          filter(row[columnAccessor]?.underlyingValue, compareValue),
         );
 
         return {

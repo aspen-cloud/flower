@@ -91,8 +91,8 @@ export default {
               return (
                 current ||
                 simpleSort(
-                  a[nextSortDef.columnAccessor].underlyingValue.toLowerCase(),
-                  b[nextSortDef.columnAccessor].underlyingValue.toLowerCase(),
+                  a[nextSortDef.columnAccessor]?.underlyingValue.toLowerCase(),
+                  b[nextSortDef.columnAccessor]?.underlyingValue.toLowerCase(),
                   nextSortDef.direction,
                 )
               );

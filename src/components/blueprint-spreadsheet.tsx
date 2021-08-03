@@ -240,7 +240,7 @@ export default React.memo(function Spreadsheet({
                         newRowData.forEach(
                           (row) =>
                             (row[column.accessor] = parseRow(
-                              row[column.accessor].writeValue,
+                              row[column.accessor]?.writeValue,
                               t,
                             )),
                         );

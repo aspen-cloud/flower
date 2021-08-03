@@ -32,7 +32,7 @@ const Formula: NodeClass = {
             if (record[prop.accessor]) {
               parser.setVariable(
                 prop.Header.split(" ").join("_"),
-                record[prop.accessor].underlyingValue,
+                record[prop.accessor]?.underlyingValue,
               );
             }
           }
