@@ -8,6 +8,7 @@ import {
   unknown,
   define,
   optional,
+  is,
 } from "superstruct";
 import { Column, RowValue, Table } from "./types";
 
@@ -28,7 +29,11 @@ const ColumnStruct: Describe<Column> = object({
   Type: string(),
 });
 
-export const TableStruct: Describe<Table> = object({
+const TableStructInternal: Describe<Table> = object({
   columns: defaulted(array(ColumnStruct), []),
   rows: defaulted(array(record(string(), RowValueStruct)), []),
 });
+
+export const TableStruct = define<Table>("table", (value) =>
+  is(value, TableStructInternal),
+);
