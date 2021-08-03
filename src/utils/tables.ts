@@ -3,24 +3,29 @@ import { Column, RowValue, Table } from "../types";
 import { parseNumber, columnTypes } from "../column-parsers";
 
 export function jsonToTable(json_data: Record<string, any>[]): Table {
-  const columns: Column[] = Object.entries(
-    json_data.length ? json_data[0] : {},
-  ).map(([col, value]) => ({
-    Header: col,
+  const newColumn = (colName: string, colValue: any): Column => ({
+    Header: colName,
     accessor: nanoid(),
-    Type: inferType(value),
-  }));
+    Type: inferType(colValue),
+  });
 
-  const columnIndex = Object.fromEntries(columns.map((c, i) => [c.Header, c]));
+  // Build columns as we read rows since rows may come in sparse
+  const columnIndex: Record<string, Column> = {};
+  const rows: Record<string, RowValue>[] = [];
+  json_data.forEach((r) => {
+    const row: Record<string, RowValue> = {};
+    Object.entries(r).forEach(([header, val]) => {
+      if (!(header in columnIndex))
+        columnIndex[header] = newColumn(header, val);
+      row[columnIndex[header].accessor] = parseRow(
+        val.toString(),
+        columnIndex[header].Type,
+      );
+    });
+    rows.push(row);
+  });
 
-  const rows = json_data.map((r) =>
-    Object.fromEntries(
-      Object.entries(r).map(([header, val]) => [
-        columnIndex[header].accessor,
-        parseRow(val.toString(), columnIndex[header].Type),
-      ]),
-    ),
-  );
+  const columns = Object.values(columnIndex);
 
   return {
     columns,
