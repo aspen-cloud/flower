@@ -73,6 +73,7 @@ import SelectGraphDialog from "./components/select-graph-dialog";
 import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
 import GraphOmnibar from "./graph-omnibar";
+import DragPanZone from "./drag-pan-zone";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -899,8 +900,11 @@ const FlowGraph = () => {
     [graphElements, mouseElements, suggestedEdges],
   );
 
+  const [isDragging, setIsDragging] = useState(false);
+
   const handleDragStart = useCallback(
     (event) => {
+      setIsDragging(true);
       if (event.altKey) {
         // Using selected elements because multiselect is tied to onNode events
         const selectedNodes = selectedElements.filter((el) => isNode(el));
@@ -1094,11 +1098,14 @@ const FlowGraph = () => {
               }
               // TODO: watch API change to fix issue with drag stophttps://github.com/wbkd/react-flow/issues/1314
               onNodeDragStop={(e, node) => {
+                setIsDragging(false);
                 // Drag stop for individual node or multi node select
                 // Bug with multi node select
                 proGraph.moveNode(node.id, node.position);
               }}
               onSelectionDragStop={(e, nodes) => {
+                setIsDragging(false);
+
                 // Drag stop for area selection
                 for (const node of nodes) {
                   proGraph.moveNode(node.id, node.position);
@@ -1115,7 +1122,7 @@ const FlowGraph = () => {
                     right: "10px",
                     background: "white",
                     borderRadius: "100%",
-                    zIndex: 1000,
+                    zIndex: 5,
                   }}
                   onClick={() => setSideMenuOpen(true)}
                 >
@@ -1131,7 +1138,7 @@ const FlowGraph = () => {
                   left: "10px",
                   background: "white",
                   borderRadius: "100%",
-                  zIndex: 1000,
+                  zIndex: 5,
                 }}
                 onClick={() => setBottomMenuOpen((prev) => !prev)}
               >
@@ -1167,6 +1174,14 @@ const FlowGraph = () => {
                   </div>
                 </div>
               </Drawer>
+              <DragPanZone zoneId={"topLeft"} isDragging={isDragging} />
+              <DragPanZone zoneId={"top"} isDragging={isDragging} />
+              <DragPanZone zoneId={"topRight"} isDragging={isDragging} />
+              <DragPanZone zoneId={"right"} isDragging={isDragging} />
+              <DragPanZone zoneId={"bottomRight"} isDragging={isDragging} />
+              <DragPanZone zoneId={"bottom"} isDragging={isDragging} />
+              <DragPanZone zoneId={"bottomLeft"} isDragging={isDragging} />
+              <DragPanZone zoneId={"left"} isDragging={isDragging} />
             </ReactFlow>
           </GraphInternals.Provider>
         )}
