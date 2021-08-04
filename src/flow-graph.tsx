@@ -904,7 +904,6 @@ const FlowGraph = () => {
 
   const handleDragStart = useCallback(
     (event) => {
-      setIsDragging(true);
       if (event.altKey) {
         // Using selected elements because multiselect is tied to onNode events
         const selectedNodes = selectedElements.filter((el) => isNode(el));
@@ -981,6 +980,9 @@ const FlowGraph = () => {
               defaultZoom={1}
               onDrop={onDrop}
               onNodeDragStart={(event, _node) => handleDragStart(event)}
+              onNodeDrag={() => {
+                if (!isDragging) setIsDragging(true);
+              }}
               onNodeDoubleClick={(e, node) => {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
