@@ -400,7 +400,7 @@ export default class ProGraph {
       const possibleOutputs =
         input.type === "any"
           ? Object.values(typeToOutputs).flatMap((outputs) => outputs)
-          : typeToOutputs[input.type];
+          : typeToOutputs[input.type] || [];
 
       return possibleOutputs
         .filter((output) => output.nodeId !== input.nodeId)
