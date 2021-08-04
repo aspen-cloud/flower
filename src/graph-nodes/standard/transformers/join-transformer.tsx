@@ -1,9 +1,11 @@
-import { any, array, defaulted, enums, object, string } from "superstruct";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { defaulted, string } from "superstruct";
+import { useCallback, useMemo } from "react";
 import BaseNode from "../../../components/base-node";
 import { TableStruct } from "../../../structs";
 import DirtyInput from "../../../dirty-input";
 import { NodeClass } from "../../../prograph";
+import { Icon } from "@blueprintjs/core";
+import { css } from "@emotion/css";
 
 const Join: NodeClass = {
   inputs: {
@@ -146,59 +148,62 @@ const Join: NodeClass = {
 
     return (
       <BaseNode label="Table Join" sources={data.inputs} sinks={data.outputs}>
-        <div
-          style={{
-            backgroundColor: "white",
-            padding: "1em",
-            display: "flex",
-            flexDirection: "row",
-          }}
-        >
-          <div>
-            <h3>TableA</h3>
+        <div>
+          <div
+            className={css`
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            `}
+          >
             <div>
-              <label>
-                Label:
-                <DirtyInput
-                  onConfirm={(value) => setLabelA(value)}
-                  value={data.sources.labelA.value}
-                />
-              </label>
+              <h5 style={{ textAlign: "center" }}>Left Table</h5>
+              <div>
+                <label>
+                  Label:
+                  <DirtyInput
+                    small
+                    onConfirm={(value) => setLabelA(value)}
+                    value={data.sources.labelA.value}
+                  />
+                </label>
+              </div>
             </div>
             <div>
-              <label>
-                Join on:
-                <select
-                  value={joinColumnA}
-                  onChange={(e) => setJoinColumnA(e.target.value)}
-                >
-                  {tableAColumnsOptions}
-                </select>
-              </label>
+              <h5 style={{ textAlign: "center" }}>Right Table</h5>
+              <div>
+                <label>
+                  Label:
+                  <DirtyInput
+                    small
+                    onConfirm={(value) => setLabelB(value)}
+                    value={data.sources.labelB.value}
+                  />
+                </label>
+              </div>
             </div>
           </div>
-          <div>
-            <h3>TableB</h3>
-            <div>
-              <label>
-                Label:
-                <DirtyInput
-                  onConfirm={(value) => setLabelB(value)}
-                  value={data.sources.labelB.value}
-                />
-              </label>
-            </div>
-            <div>
-              <label>
-                Join on:
-                <select
-                  value={joinColumnB}
-                  onChange={(e) => setJoinColumnB(e.target.value)}
-                >
-                  {tableBColumnsOptions}
-                </select>
-              </label>
-            </div>
+          <div
+            className={css`
+              display: flex;
+              align-items: center;
+              justify-content: space-evenly;
+              padding: 10px;
+            `}
+          >
+            <select
+              value={joinColumnB}
+              onChange={(e) => setJoinColumnB(e.target.value)}
+            >
+              {tableBColumnsOptions}
+            </select>
+            <Icon icon="equals" iconSize={24} />
+            <select
+              value={joinColumnA}
+              onChange={(e) => setJoinColumnA(e.target.value)}
+            >
+              {tableAColumnsOptions}
+            </select>
           </div>
         </div>
       </BaseNode>
