@@ -57,7 +57,7 @@ const WriterNode: GraphNode<WriterNodeIO> = {
     }, [sinks.output, fileHandle]);
     return (
       <BaseNode sources={sources} sinks={sinks}>
-        <DataTable data={table.rows} columns={table.columns} />
+        {/* <DataTable data={table.rows} columns={table.columns} /> */}
         {fileHandle ? (
           <div>{fileHandle.name}</div>
         ) : (

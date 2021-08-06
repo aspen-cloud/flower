@@ -8,18 +8,6 @@ body {
   flex-direction: column;
 }
 
-table {
-  border: 1px solid lightblue;
-  border-radius: 10px;
-  padding: 10px;
-  background-color: white;
-}
-
-thead {
-  padding: 10px;
-  background-color: lightblue;
-}
-
 .transformer {
   margin: 20px auto;
   display: inline-block;

@@ -33,7 +33,7 @@ const TableNode: GraphNode<TableNodeIO> = {
     }, [sources.table]);
     return (
       <BaseNode sources={sources} sinks={sinks}>
-        <DataTable data={table.rows} columns={table.columns} />
+        {/* <DataTable data={table.rows} columns={table.columns} /> */}
       </BaseNode>
     );
   },
