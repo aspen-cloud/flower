@@ -10,17 +10,18 @@ Object.defineProperty(global.self, "crypto", {
 global.indexedDB = require("fake-indexeddb");
 global.IDBKeyRange = require("fake-indexeddb/lib/FDBKeyRange");
 import ProGraph from "../prograph";
-import { any, defaulted, number } from "superstruct";
+import { any, defaulted, func, number } from "superstruct";
 import { nanoid } from "nanoid";
+import * as Y from "yjs";
 
 describe("basic CRUD", () => {
-  const graph = new ProGraph({
+  const graph = new ProGraph("test", new Y.Doc(), {
     TEST_NODE: {
       inputs: {
         input: any(),
       },
       outputs: {
-        output: ({ input }) => input,
+        output: { func: ({ input }) => input, struct: func() },
       },
     },
   });
@@ -98,13 +99,13 @@ describe("basic CRUD", () => {
 });
 
 describe("topological sorting", () => {
-  const graph = new ProGraph({
+  const graph = new ProGraph("test", new Y.Doc(), {
     TEST_NODE: {
       inputs: {
         input: any(),
       },
       outputs: {
-        output: ({ input }) => input,
+        output: { func: ({ input }) => input, struct: any() },
       },
     },
   });
@@ -365,7 +366,7 @@ describe("Basic calculations", () => {
           right: { type: defaulted(number(), 0) },
         },
         outputs: {
-          sum: ({ left, right }) => left + right,
+          sum: { func: ({ left, right }) => left + right, struct: number() },
         },
       },
       Subtract: {
@@ -374,7 +375,10 @@ describe("Basic calculations", () => {
           right: { type: defaulted(number(), 0) },
         },
         outputs: {
-          difference: ({ left, right }) => left - right,
+          difference: {
+            func: ({ left, right }) => left - right,
+            struct: number(),
+          },
         },
       },
       Number: {
@@ -387,12 +391,12 @@ describe("Basic calculations", () => {
           value: { type: any() },
         },
         outputs: {
-          value: ({ value }) => value,
+          value: { func: ({ value }) => value, struct: any() },
         },
       },
     };
 
-    graph = new ProGraph(NodeTypes);
+    graph = new ProGraph("test", new Y.Doc(), NodeTypes);
     graph.loadGraph(nanoid());
     graph.wipeAll();
 
