@@ -50,53 +50,74 @@ export interface GraphEdge {
 
 // TODO: move to types
 export interface NodeClass {
-  inputs: Record<string, Struct>;
-  sources: Record<string, Struct>;
+  inputs?: Record<string, Struct>;
+  sources?: Record<string, Struct>;
   outputs: Record<
     string,
     { func: (vals: Record<string, any>) => any; struct: Struct }
   >;
-  Component: FunctionComponent<any>;
+  Component?: FunctionComponent<any>;
 }
 
 export default class ProGraph {
-  private ydoc: Y.Doc;
+  private rootDoc: Y.Doc;
   nodes$: BehaviorSubject<Map<string, GraphNode>>;
   edges$: BehaviorSubject<Map<string, GraphEdge>>;
+
+  id: string;
+
+  private _name: string;
+  name$: BehaviorSubject<string>;
+  description: Y.Text;
+
+  graph: Y.Doc;
+
   _nodes: Y.Map<GraphNode>;
   _edges: Y.Map<GraphEdge>;
+
   _outputs: Record<string, Record<string, NodeOutput>>;
   nodeTypes: Record<string, NodeClass>;
+
   presence: awarenessProtocol.Awareness;
 
   loadedGraph$: Subject<string>;
 
-  constructor(nodeTypes: Record<string, NodeClass>) {
+  constructor(id: string, yDoc: Y.Doc, nodeTypes: Record<string, NodeClass>) {
+    this.id = id;
+    this.rootDoc = yDoc;
     this.nodeTypes = nodeTypes;
     this.loadedGraph$ = new Subject();
-  }
 
-  loadGraph(graphId: string) {
-    if (this.ydoc) {
-      this.ydoc.destroy();
-    }
-    this.ydoc = new Y.Doc();
     this._outputs = {};
 
-    const indexeddbProvider = new IndexeddbPersistence(graphId, this.ydoc);
+    const rootIndexeddbProvider = new IndexeddbPersistence(id, this.rootDoc);
 
-    this.presence = new awarenessProtocol.Awareness(this.ydoc);
-    const webRTCProvider = new WebrtcProvider(graphId, this.ydoc, {
+    this.presence = new awarenessProtocol.Awareness(this.rootDoc);
+    const webRTCProvider = new WebrtcProvider(id, this.rootDoc, {
       signaling: ["wss://signaling.yjs.dev"],
-      password: graphId,
+      password: id,
       maxConns: 70 + Math.floor(Math.random() * 70),
       awareness: this.presence,
       filterBcConns: true,
       peerOpts: {},
     });
 
-    this._nodes = this.ydoc.getMap("nodes");
-    this._edges = this.ydoc.getMap("edges");
+    this.graph = this.rootDoc.getMap().get("graph");
+    if (!this.graph) {
+      this.graph = new Y.Doc({ autoLoad: true });
+    } else {
+      this.graph.load();
+    }
+
+    const graphIndexeddbProvider = new IndexeddbPersistence(id, this.graph);
+
+    this._nodes = this.graph.getMap("nodes");
+    this._edges = this.graph.getMap("edges");
+
+    this._name = this.rootDoc.getMap().get("name");
+    this.name$ = new BehaviorSubject(this._name);
+
+    this.description = this.rootDoc.getText("description");
 
     if (this.nodes$) {
       this.nodes$.complete();
@@ -124,10 +145,22 @@ export default class ProGraph {
       this.edges$.next(this.edges);
     });
 
-    indexeddbProvider.whenSynced.then(() => {
-      this.loadedGraph$.next(graphId);
+    graphIndexeddbProvider.whenSynced.then(() => {
+      this.loadedGraph$.next(id);
       this.evaluate();
+      this.name = this.rootDoc.getMap().get("name");
     });
+  }
+
+  loadGraph(graphId: string) {
+    if (this.rootDoc) {
+      this.rootDoc.destroy();
+    }
+    this.rootDoc = new Y.Doc();
+  }
+
+  unmount() {
+    this.rootDoc.destroy();
   }
 
   getNode(nodeId: string) {
@@ -153,6 +186,16 @@ export default class ProGraph {
       string,
       GraphEdge
     >;
+  }
+
+  set name(newName: string) {
+    this.rootDoc.getMap().set("name", newName);
+    this._name = newName;
+    this.name$.next(this._name);
+  }
+
+  get name() {
+    return this._name;
   }
 
   wipeAll() {
@@ -196,7 +239,7 @@ export default class ProGraph {
   }
 
   deleteNode(nodeId: string) {
-    this.ydoc.transact(() => {
+    this.rootDoc.transact(() => {
       this._nodes.delete(nodeId);
       const connectedEdges = Array.from(this._edges.values()).filter(
         (edge: GraphEdge) =>
