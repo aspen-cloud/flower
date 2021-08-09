@@ -49,11 +49,14 @@ class DataManager {
 
   async getAllGraphs() {
     await this.ready;
-    const allGraphs = this._graphs.values() as IterableIterator<Y.Doc>;
-    for (const graph of allGraphs) {
-      graph.load();
+    for (const graph of this._graphs) {
+      try {
+        graph.load();
+      } catch (e) {
+        console.log("couldn't load", graph);
+      }
     }
-    return allGraphs;
+    return this._graphs.toJSON() as Record<string, Y.Doc>;
   }
 
   async newGraph() {

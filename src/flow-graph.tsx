@@ -961,6 +961,7 @@ const FlowGraph = () => {
         }}
       />
       <SelectGraphDialog
+        dataManager={dataManager}
         isOpen={showSelectDialog}
         onClose={() => {
           setShowSelectDialog(false);
