@@ -964,6 +964,13 @@ const FlowGraph = () => {
           setShowSelectDialog(false);
           setShowNewDialog(true);
         }}
+        onDelete={(graphId: string) => {
+          dataManager.deleteGraph(graphId);
+          toaster.show({
+            message: `Graph (${graphId}) was deleted.`,
+            intent: "warning",
+          });
+        }}
       />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
         {graphElements && ( // Don't load react flow until elements are ready

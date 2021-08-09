@@ -1,17 +1,22 @@
 import { Button, Card, Dialog, Divider, H3, H4 } from "@blueprintjs/core";
+import { css } from "@emotion/css";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DataManager from "../data-manager";
+
+// TODO this should probably use a hook to get the datamanger and rely less on props
 
 export default function SelectGraphDialog({
   isOpen,
   onClose,
   onNew,
+  onDelete,
   dataManager,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onNew: () => void;
+  onDelete: (graphId: string) => void;
   dataManager: DataManager;
 }) {
   const [allGraphs, setAllGraphs] = useState([]);
@@ -46,12 +51,26 @@ export default function SelectGraphDialog({
               elevation={1}
               interactive={true}
             >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div
+                className={css`
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                `}
+              >
                 <div>
                   <H4>{name}</H4>
                   <div>{id}</div>
                 </div>
                 {/* <div>{formatDistance(lastAccessed, new Date(), { addSuffix: true })}</div> */}
+                <Button
+                  intent="danger"
+                  icon="delete"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onDelete(id);
+                  }}
+                />
               </div>
             </Card>
           </Link>

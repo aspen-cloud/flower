@@ -46,6 +46,10 @@ class DataManager {
     return this._graphs.toJSON() as Record<string, Y.Doc>;
   }
 
+  async deleteGraph(graphId: string) {
+    this._graphs.delete(graphId);
+  }
+
   async newGraph() {
     const id = nanoid();
     const newGraphDoc = new Y.Doc({ autoLoad: true, guid: id });
