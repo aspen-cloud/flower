@@ -28,9 +28,6 @@ import ReactFlow, {
   isNode,
   EdgeProps,
 } from "react-flow-renderer";
-import * as AllNodes from "./graph-nodes/index";
-
-import * as Y from "yjs";
 
 import { ItemRenderer } from "@blueprintjs/select";
 import {
@@ -44,7 +41,6 @@ import {
   Classes,
   Collapse,
   Card,
-  EditableText,
   InputGroup,
   FormGroup,
 } from "@blueprintjs/core";
@@ -60,15 +56,12 @@ import {
   ElementClipboardContext,
   parseClipboard,
 } from "./utils/clipboard";
-import { combineLatest } from "rxjs";
-import ProGraph, { GraphEdge, GraphNode, NodeClass } from "./prograph";
-import { map } from "rxjs/operators";
+import type ProGraph from "./prograph";
 import Spreadsheet from "./components/blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 import SuggestedEdge from "./graph-nodes/edges/suggested-edge";
-import { create, Struct } from "superstruct";
 import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import SelectGraphDialog from "./components/select-graph-dialog";
@@ -76,7 +69,9 @@ import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
 import GraphOmnibar from "./graph-omnibar";
 import DragPanZone from "./drag-pan-zone";
-import DataManager from "./data-manager";
+import useReactFlowNodes from "./hooks/use-react-flow-nodes";
+import GraphNodes from "./graph-nodes";
+import useDataManager from "./hooks/use-data-manager";
 
 const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
 
@@ -84,14 +79,6 @@ const initBgColor = "#343434";
 
 const connectionLineStyle = { stroke: "#fff" };
 const snapGrid: [number, number] = [20, 20];
-
-function flattenNodes(nodes: Record<string, any>): [string, NodeClass][] {
-  return Object.entries(nodes).flatMap(([key, val]) =>
-    val.Component ? [[key, val]] : flattenNodes(val),
-  );
-}
-
-const GraphNodes = Object.fromEntries(flattenNodes(AllNodes));
 
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => {
@@ -146,83 +133,6 @@ const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
   );
 };
 
-function getComponentDataForNode(prograph, node) {
-  const nodeClass = GraphNodes[node.type];
-  const inputEntries: [string, Struct][] = nodeClass.inputs
-    ? Object.entries(nodeClass.inputs)
-    : [];
-  const sourceEntries: [string, Struct][] = nodeClass.sources
-    ? Object.entries(nodeClass.sources)
-    : [];
-  const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
-
-  const inputVals = prograph.getNodeInputs(node.id);
-  const inputs = Object.fromEntries(
-    inputEntries.map(([key, struct]) => [
-      key,
-      create(inputVals[key].value, struct),
-    ]),
-  );
-  const sources = sourceEntries.reduce((acc, curr) => {
-    const [key, struct] = curr;
-    acc[key] = {
-      value: create(node.sources[key], struct),
-      set: (newVal) => {
-        prograph.updateNodeSources(node.id, { [key]: newVal });
-      },
-    };
-    return acc;
-  }, {});
-  const outputs = outputKeys.reduce((acc, curr) => {
-    acc[curr] = node.outputs && node.outputs[curr].value;
-    return acc;
-  }, {});
-
-  return {
-    inputs,
-    sources,
-    outputs,
-  };
-}
-
-function graphToReactFlow(
-  prograph,
-  nodes: Map<string, GraphNode>,
-  edges: Map<string, GraphEdge>,
-): Elements {
-  const flowNodes: Node[] = Array.from(nodes.values()).map((node) => ({
-    position: node.position,
-    // TODO pass in Graph Values
-    data: getComponentDataForNode(prograph, node),
-    type: node.type,
-    id: node.id.toString(),
-    style: {
-      padding: "10px",
-      border: "1px solid white",
-      borderRadius: "10px",
-    },
-  }));
-
-  const flowEdges: Edge[] = Array.from(edges.values()).map((conn) => {
-    const fromNode = prograph.getNode(conn.from.nodeId);
-    const toNodeInputs = prograph.getNodeInputs(conn.to.nodeId);
-    return {
-      id: conn.id.toString(),
-      source: conn.from.nodeId.toString(),
-      sourceHandle: conn.from.busKey,
-      target: conn.to.nodeId.toString(),
-      targetHandle: conn.to.busKey,
-      data: {
-        outputs: fromNode.outputs ? fromNode.outputs[conn.from.busKey] : {},
-        inputs: toNodeInputs ? toNodeInputs[conn.to.busKey] : {},
-      },
-    };
-  });
-  return [...flowNodes, ...flowEdges];
-}
-
-const dataManager = new DataManager(GraphNodes);
-
 // Use sparingly, main use case is to add unsupported interactions to nodes (ie resizing)
 // May also be a good way to access react flow instance in the future if nodes need to be aware of graph state (ie zoom level)
 export const GraphInternals = React.createContext<{
@@ -232,13 +142,6 @@ export const GraphInternals = React.createContext<{
   proGraph: undefined,
   reactFlowInstance: undefined,
 });
-
-if (process.env.NODE_ENV === "development") {
-  // @ts-ignore
-  window.Y = Y;
-  // @ts-ignore
-  window.dataManager = dataManager;
-}
 
 interface SpreadSheetTableData {
   initialData: Table;
@@ -267,11 +170,12 @@ interface OmnibarContext {
   metadata: any;
 }
 
-const FlowGraph = () => {
+export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const [reactflowInstance, setReactflowInstance] =
     useState<OnLoadParams | null>(null);
 
-  const [graphElements, setGraphElements] = useState<Elements>([]);
+  const dataManager = useDataManager();
+
   const [mouseElements, setMouseElements] = useState<Elements>([]);
   const [suggestedEdges, setSuggestedEdges] = useState<Elements>([]);
 
@@ -285,7 +189,7 @@ const FlowGraph = () => {
     defaultOmnibarOptions,
   );
 
-  const [prograph, setPrograph] = useState<ProGraph | null>(null);
+  const graphElements = useReactFlowNodes(prograph);
   const [graphName, setGraphName] = useState("");
 
   const [newGraphLoaded, setNewGraphLoaded] = useState(false);
@@ -300,12 +204,6 @@ const FlowGraph = () => {
     () => (graphPath ? graphPath.slice(-21) : null),
     [graphPath],
   );
-
-  // const graphName: string | null = useMemo(
-  //   () =>
-  //     graphPath ? graphPath.slice(0, -21).split("-").join(" ").trim() : null,
-  //   [graphPath],
-  // );
 
   useEffect(() => {
     if (!newGraphLoaded || graphElements.length === 0 || !reactflowInstance)
@@ -325,65 +223,29 @@ const FlowGraph = () => {
   useEffect(() => {
     setShowNewDialog(false);
     setShowSelectDialog(false);
-    (async () => {
-      if (!graphPath) {
-        /**
-         * This can likely all be derived from the
-         * timestamps that we should add to each graph
-         */
-        const savedLastGraph = window.localStorage.getItem("lastGraph");
-        if (savedLastGraph) {
-          history.push(`/${savedLastGraph}`);
-        } else {
-          const newPrograph = await dataManager.newGraph();
-          setPrograph(newPrograph);
-          history.push(`/${newPrograph.id}`);
-        }
-      } else {
-        window.localStorage.setItem("lastGraph", graphId);
-        const graph = await dataManager.loadGraph(graphId);
-        history.push(`/${graphId}`);
-        setPrograph(graph);
 
-        const flowElements$ = combineLatest(graph.nodes$, graph.edges$).pipe(
-          map(([nodes, edges]) => graphToReactFlow(graph, nodes, edges)),
-        );
+    toaster.show({
+      intent: "success",
+      message: `You are now viewing Graph ID:${graphId}`,
+    });
 
-        const elementSubscription = flowElements$.subscribe((els) => {
-          setGraphElements(els);
-        });
-
-        toaster.show({
-          intent: "success",
-          message: `You are now viewing Graph ID:${graphId}`,
-        });
-
-        graph.presence.setLocalState({
-          name: "Anonymous",
-          mousePosition: { x: 0, y: 0 },
-        });
-        graph.presence.on("change", () => {
-          const collaboratorStates = Array.from(
-            graph.presence.getStates().entries(),
-          ).filter(([key]) => key !== graph.presence.clientID);
-          const mouseElems: Elements = collaboratorStates.map(
-            ([key, state]) => ({
-              position: state.mousePosition,
-              id: `${key}-mouse`,
-              type: "mouse",
-              data: { label: state.name },
-            }),
-          );
-          setMouseElements(mouseElems);
-        });
-
-        return () => {
-          elementSubscription.unsubscribe();
-          //loadedGraphSub.unsubscribe();
-        };
-      }
-    })();
-  }, [graphPath]);
+    prograph.presence.setLocalState({
+      name: "Anonymous",
+      mousePosition: { x: 0, y: 0 },
+    });
+    prograph.presence.on("change", () => {
+      const collaboratorStates = Array.from(
+        prograph.presence.getStates().entries(),
+      ).filter(([key]) => key !== prograph.presence.clientID);
+      const mouseElems: Elements = collaboratorStates.map(([key, state]) => ({
+        position: state.mousePosition,
+        id: `${key}-mouse`,
+        type: "mouse",
+        data: { label: state.name },
+      }));
+      setMouseElements(mouseElems);
+    });
+  }, [prograph]);
 
   useEffect(() => {
     if (!prograph) return;
@@ -509,12 +371,12 @@ const FlowGraph = () => {
   };
 
   const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
-    setGraphElements((els) => {
-      if (!validateConnection(newConnection, els)) return els;
-      onEdgeDisconnect(oldEdge, els);
-      onEdgeConnect(newConnection, els);
-      return updateEdge(oldEdge, newConnection, els);
-    });
+    // setGraphElements((els) => {
+    //   if (!validateConnection(newConnection, els)) return els;
+    //   onEdgeDisconnect(oldEdge, els);
+    //   onEdgeConnect(newConnection, els);
+    //   return updateEdge(oldEdge, newConnection, els);
+    // });
   };
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -1351,6 +1213,4 @@ const FlowGraph = () => {
       )}
     </div>
   );
-};
-
-export default FlowGraph;
+}
