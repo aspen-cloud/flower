@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import {
   Column,
   Table,
@@ -7,18 +13,17 @@ import {
   RowHeaderCell,
   EditableName,
 } from "@blueprintjs/table";
-import { Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
+import { Button, Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
 import { Table as DataTable, Column as DataColumn, RowValue } from "../types";
 import { parseRow } from "../utils/tables";
 import { columnTypes } from "../column-parsers";
+import * as Y from "yjs";
+import { WebrtcProvider } from "y-webrtc";
+import * as awarenessProtocol from "y-protocols/awareness.js";
 
 interface SpreadsheetProps {
-  onDataUpdate?: (
-    columnIds: DataColumn[],
-    rowData: Record<string, RowValue>[],
-  ) => void;
-  initialData?: DataTable;
+  doc: Y.Doc;
 }
 
 interface SpreadsheetCoordinates {
@@ -26,12 +31,11 @@ interface SpreadsheetCoordinates {
   rowIndex: number;
 }
 
-export default React.memo(function Spreadsheet({
-  onDataUpdate,
-  initialData,
-}: SpreadsheetProps) {
-  const [columnData, setColumnData] = useState<DataColumn[]>([newColumn()]);
-  const [rowData, setRowData] = useState<Record<string, RowValue>[]>([{}]);
+export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
+  const undoManager = useRef<Y.UndoManager>(null);
+  const yOriginRef = useRef<string>(null);
+  const yColumnsRef = useRef<Y.Array<DataColumn>>(null);
+  const yRowsRef = useRef<Y.Array<Record<string, RowValue>>>(null);
   const [editCoordinates, setEditCoordinates] = useState<
     SpreadsheetCoordinates | undefined
   >();
@@ -44,67 +48,78 @@ export default React.memo(function Spreadsheet({
     };
   }
 
+  const [columnData, setColumnData] = useState<DataColumn[]>(
+    doc.getArray<DataColumn>("columns").toArray(),
+  );
+  const [rowData, setRowData] = useState<Record<string, RowValue>[]>(
+    doc.getArray<Record<string, RowValue>>("rows").toArray(),
+  );
+
   useEffect(() => {
-    if (!initialData) return;
+    yOriginRef.current = nanoid();
+  }, []);
 
-    setColumnData(initialData.columns);
-    setRowData(initialData.rows);
-  }, [initialData]);
-
-  // NOTE: probably best to avoid adding onDataUpdate as dep, may run the update with bad data and causes the data to get screwy
   useEffect(() => {
-    if (rowData.length === 0) {
-      setRowData([{}]);
-      return;
-    }
-    if (columnData.length === 0) {
-      setColumnData([newColumn()]);
-      return;
-    }
+    const handleUpdate = () => {
+      setColumnData(doc.getArray<DataColumn>("columns").toArray());
+      setRowData(doc.getArray<Record<string, RowValue>>("rows").toArray());
+    };
+    doc.on("update", handleUpdate);
+    return () => {
+      doc.off("update", handleUpdate);
+    };
+  }, [doc]);
 
-    if (onDataUpdate) onDataUpdate(columnData, rowData);
-  }, [rowData, columnData]);
+  useEffect(() => {
+    yColumnsRef.current = doc.getArray("columns");
+    yRowsRef.current = doc.getArray("rows");
+    undoManager.current = new Y.UndoManager(
+      [yColumnsRef.current, yRowsRef.current],
+      {
+        trackedOrigins: new Set([yOriginRef.current]),
+      },
+    );
+  }, [doc]);
 
   function insertRow(rowIndex: number) {
-    setRowData((prevRowData) => {
-      prevRowData.splice(rowIndex, 0, {});
-      return [...prevRowData];
-    });
+    doc.transact(() => {
+      yRowsRef.current.insert(rowIndex, [{}]);
+    }, yOriginRef.current);
   }
 
   function deleteRow(rowIndex: number) {
-    setRowData((prevRowData) => {
-      if (prevRowData.length > 1) prevRowData.splice(rowIndex, 1);
-      return [...prevRowData];
-    });
+    doc.transact(() => {
+      yRowsRef.current.delete(rowIndex, 1);
+    }, yOriginRef.current);
   }
 
   function insertColumn(columnIndex: number) {
-    setColumnData((prevColumnData) => {
-      prevColumnData.splice(columnIndex, 0, newColumn());
-      return [...prevColumnData];
-    });
+    doc.transact(() => {
+      yColumnsRef.current.insert(columnIndex, [newColumn()]);
+    }, yOriginRef.current);
   }
 
   function deleteColumn(columnIndex: number) {
-    setColumnData((prevColumnData) => {
-      if (prevColumnData.length > 1) prevColumnData.splice(columnIndex, 1);
-      return [...prevColumnData];
-    });
+    doc.transact(() => {
+      yColumnsRef.current.delete(columnIndex, 1);
+    }, yOriginRef.current);
   }
 
   const cellSetter = useCallback(
     (rowIndex: number, columnIndex: number, type: string) => {
       return (value: string) => {
-        setRowData((prevRowData) => {
-          const newRows = [...prevRowData];
-          const { accessor: colId, Type: colType } = columnData[columnIndex];
-          newRows[rowIndex][colId] = parseRow(value, colType);
-          return newRows;
-        });
+        const { accessor: colId, Type: colType } = columnData[columnIndex];
+        const row = rowData[rowIndex];
+        // TODO: easier way to just edit?
+        doc.transact(() => {
+          yRowsRef.current.delete(rowIndex, 1);
+          yRowsRef.current.insert(rowIndex, [
+            { ...row, [colId]: parseRow(value, colType) },
+          ]);
+        }, yOriginRef.current);
       };
     },
-    [columnData],
+    [columnData, rowData, doc],
   );
 
   const cellRenderer = (rowIndex: number, columnIndex: number) => {
@@ -134,37 +149,31 @@ export default React.memo(function Spreadsheet({
             const matrixData = clipboardData
               .split("\n")
               .map((line) => line.split("\t"));
-            setColumnData((prevColumnData) => {
-              const newColumnData = [...prevColumnData];
+            doc.transact(() => {
               const newColsNeeded =
-                columnIndex + matrixData[0].length - newColumnData.length;
+                columnIndex + matrixData[0].length - yColumnsRef.current.length;
               if (newColsNeeded > 0) {
-                newColumnData.splice(
-                  newColumnData.length,
-                  0,
-                  ...Array(newColsNeeded)
+                yColumnsRef.current.insert(
+                  yColumnsRef.current.length,
+                  Array(newColsNeeded)
                     .fill(0)
                     .map(() => newColumn()),
                 );
               }
-              setRowData((prevRowData) => {
-                const newRows = [...prevRowData];
-                matrixData.forEach((row, i) => {
-                  row.forEach((cellValue, j) => {
-                    const { accessor: columnId, Type: columnType } =
-                      newColumnData[columnIndex + j];
-                    if (rowIndex + i === newRows.length)
-                      newRows.splice(newRows.length, 0, {});
-                    newRows[rowIndex + i][columnId] = parseRow(
-                      cellValue,
-                      columnType,
-                    );
-                  });
+
+              matrixData.forEach((clipboardRow, i) => {
+                clipboardRow.forEach((cellValue, j) => {
+                  const { accessor: columnId, Type: columnType } =
+                    yColumnsRef.current.get(columnIndex + j);
+                  const row = yRowsRef.current.get(rowIndex + i);
+                  if (rowIndex + i < yRowsRef.current.length)
+                    yRowsRef.current.delete(rowIndex + i, 1);
+                  yRowsRef.current.insert(rowIndex + i, [
+                    { ...row, [columnId]: parseRow(cellValue, columnType) },
+                  ]);
                 });
-                return newRows;
               });
-              return newColumnData;
-            });
+            }, yOriginRef.current);
           }
 
           if (
@@ -180,6 +189,17 @@ export default React.memo(function Spreadsheet({
           ) {
             insertRow(rowIndex + 1);
           }
+
+          if (e.key === "z" && e.metaKey) {
+            if (!isEditing) {
+              console.log(undoManager.current, yOriginRef.current);
+              if (e.shiftKey) {
+                undoManager.current.redo();
+              } else {
+                undoManager.current.undo();
+              }
+            }
+          }
         }}
       />
     );
@@ -187,11 +207,11 @@ export default React.memo(function Spreadsheet({
 
   const columnNameSetter = (columnIndex: number, type: string) => {
     return (value: string) => {
-      setColumnData((prevColumnData) => {
-        const newColumnData = [...prevColumnData];
-        newColumnData[columnIndex].Header = value;
-        return newColumnData;
-      });
+      const column = columnData[columnIndex];
+      doc.transact(() => {
+        yColumnsRef.current.delete(columnIndex, 1);
+        yColumnsRef.current.insert(columnIndex, [{ ...column, Header: value }]);
+      }, yOriginRef.current);
     };
   };
 
@@ -227,25 +247,28 @@ export default React.memo(function Spreadsheet({
                   active={columnData[columnIndex].Type === t}
                   text={t}
                   icon={columnTypes[t].icon}
-                  onClick={() =>
-                    setColumnData((prevColumnData) => {
-                      const newColumnData = [...prevColumnData];
-                      const column = newColumnData[columnIndex];
-                      column.Type = t;
-                      setRowData((prevRowData) => {
-                        const newRowData = [...prevRowData];
-                        newRowData.forEach(
-                          (row) =>
-                            (row[column.accessor] = parseRow(
-                              row[column.accessor]?.writeValue,
+                  onClick={() => {
+                    doc.transact(() => {
+                      const col = yColumnsRef.current.get(columnIndex);
+                      yColumnsRef.current.delete(columnIndex, 1);
+                      yColumnsRef.current.insert(columnIndex, [
+                        { ...col, Type: t },
+                      ]);
+
+                      yRowsRef.current.forEach((row, i) => {
+                        yRowsRef.current.delete(i, 1);
+                        yRowsRef.current.insert(i, [
+                          {
+                            ...row,
+                            [col.accessor]: parseRow(
+                              row[col.accessor].writeValue,
                               t,
-                            )),
-                        );
-                        return newRowData;
+                            ),
+                          },
+                        ]);
                       });
-                      return newColumnData;
-                    })
-                  }
+                    }, yOriginRef.current);
+                  }}
                 />
               ))}
             </MenuItem>
@@ -320,67 +343,98 @@ export default React.memo(function Spreadsheet({
     );
   };
 
+  const addCellsOnEmpty = useCallback(() => {
+    if (columnData.length === 0) {
+      undoManager.current.stopCapturing();
+      yColumnsRef.current.insert(0, [newColumn()]);
+    }
+    if (rowData.length === 0) {
+      undoManager.current.stopCapturing();
+      yRowsRef.current.insert(0, [{}]);
+    }
+  }, [columnData, rowData]);
+
   return (
     <>
-      <Table
-        numRows={rowData.length}
-        enableFocusedCell={true}
-        enableColumnReordering={true}
-        // Interaction bar not really necessary and causes formatting issues on 1 col 1 row tables (which is our default)
-        // enableColumnInteractionBar={true}
-        enableRowReordering={true}
-        onColumnsReordered={(oldIndex, newIndex, length) => {
-          setColumnData((prevColumnData) => {
-            const newColIds = [...prevColumnData];
-            newColIds.splice(
-              newIndex,
-              0,
-              ...newColIds.splice(oldIndex, length),
-            );
-            return newColIds;
-          });
-        }}
-        onRowsReordered={(oldIndex, newIndex, length) => {
-          setRowData((prevRowData) => {
-            const newRowData = [...prevRowData];
-            newRowData.splice(
-              newIndex,
-              0,
-              ...newRowData.splice(oldIndex, length),
-            );
-            return newRowData;
-          });
-        }}
-        getCellClipboardData={(rowIndex, columnIndex) => {
-          const columnId = columnData[columnIndex].accessor;
-          const cellData = rowData[rowIndex][columnId].writeValue;
-          return cellData;
-        }}
-        rowHeaderCellRenderer={rowHeaderCellRenderer}
-        handleSelectionDelete={(e, selection) => {
-          e.stopPropagation();
-          setRowData((prevRowData) => {
-            const newRows = [...prevRowData];
-            for (const region of selection) {
-              const [colMin, colMax] = region.cols ?? [
-                0,
-                columnData.length - 1,
-              ];
-              const [rowMin, rowMax] = region.rows ?? [0, newRows.length - 1];
+      {columnData.length > 0 && rowData.length > 0 ? (
+        <Table
+          numRows={rowData.length}
+          enableFocusedCell={true}
+          enableColumnReordering={true}
+          // Interaction bar not really necessary and causes formatting issues on 1 col 1 row tables (which is our default)
+          // enableColumnInteractionBar={true}
+          enableRowReordering={true}
+          onColumnsReordered={(oldIndex, newIndex, length) => {
+            doc.transact(() => {
+              const cols = yColumnsRef.current.slice(
+                oldIndex,
+                oldIndex + length,
+              );
+              yColumnsRef.current.delete(oldIndex, length);
+              yColumnsRef.current.insert(newIndex, cols);
+            }, yOriginRef.current);
+          }}
+          onRowsReordered={(oldIndex, newIndex, length) => {
+            doc.transact(() => {
+              const rows = yRowsRef.current.slice(oldIndex, oldIndex + length);
+              yRowsRef.current.delete(oldIndex, length);
+              yRowsRef.current.insert(newIndex, rows);
+            }, yOriginRef.current);
+          }}
+          getCellClipboardData={(rowIndex, columnIndex) => {
+            const columnId = columnData[columnIndex].accessor;
+            const cellData = rowData[rowIndex][columnId].writeValue;
+            return cellData;
+          }}
+          rowHeaderCellRenderer={rowHeaderCellRenderer}
+          additionalHotKeys={[
+            {
+              key: "delete-selection-hotkey",
+              label: "Handle selection delete",
+              combo: "backspace",
+              onKeyDown: (e, props, state) => {
+                e.stopPropagation();
+                doc.transact(() => {
+                  for (const region of state.selectedRegions ?? []) {
+                    const [colMin, colMax] = region.cols ?? [
+                      0,
+                      columnData.length - 1,
+                    ];
+                    const [rowMin, rowMax] = region.rows ?? [
+                      0,
+                      yRowsRef.current.length - 1,
+                    ];
 
-              for (let cIndex = colMin; cIndex <= colMax; cIndex++) {
-                const colId = columnData[cIndex].accessor;
-                for (let rIndex = rowMin; rIndex <= rowMax; rIndex++) {
-                  delete newRows[rIndex][colId];
-                }
-              }
-            }
-            return newRows;
-          });
-        }}
-      >
-        {[...Array(columnData.length).keys()].map(columnRenderer)}
-      </Table>
+                    for (let rIndex = rowMin; rIndex <= rowMax; rIndex++) {
+                      const newRow = { ...yRowsRef.current.get(rIndex) };
+                      for (let cIndex = colMin; cIndex <= colMax; cIndex++) {
+                        delete newRow[yColumnsRef.current.get(cIndex).accessor];
+                      }
+                      yRowsRef.current.delete(rIndex, 1);
+                      yRowsRef.current.insert(rIndex, [newRow]);
+                    }
+                  }
+                }, yOriginRef.current);
+              },
+            },
+          ]}
+        >
+          {[...Array(columnData.length).keys()].map(columnRenderer)}
+        </Table>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+          }}
+        >
+          <Button intent="primary" onClick={() => addCellsOnEmpty()}>
+            Add cells
+          </Button>
+        </div>
+      )}
     </>
   );
 });

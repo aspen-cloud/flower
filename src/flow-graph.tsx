@@ -76,6 +76,8 @@ import useDataManager from "./hooks/use-data-manager";
 import TableManager from "./components/table-manager";
 import SelectedElementsManager from "./components/selected-elements-manager";
 
+import * as Y from "yjs";
+
 const initBgColor = "#343434";
 
 const connectionLineStyle = { stroke: "#fff" };
@@ -107,9 +109,8 @@ export const GraphInternals = React.createContext<{
 });
 
 interface SpreadSheetTableData {
-  initialData: Table;
   nodeId: string;
-  docId: string;
+  doc: Y.Doc;
 }
 
 function addNode(prograph: ProGraph, { type, data, position }) {
@@ -870,26 +871,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const spreadsheetElement = useMemo(
     () =>
       spreadsheetTableData ? (
-        // TODO: Spreadsheet updating doesnt always propagate changes of underlying data to siblings
-        <Spreadsheet
-          initialData={spreadsheetTableData.initialData}
-          onDataUpdate={async (columnData, rowData) => {
-            const doc = await dataManager.getTable(spreadsheetTableData.docId);
-            const docCols = doc.getArray<Column>("columns");
-            const docRows = doc.getArray<Record<string, RowValue>>("rows");
-            doc.transact(() => {
-              docCols.delete(0, docCols.length);
-              docCols.insert(0, columnData);
-
-              docRows.delete(0, docRows.length);
-              docRows.insert(0, rowData);
-            });
-          }}
-        />
+        <Spreadsheet doc={spreadsheetTableData.doc} />
       ) : (
         "Must select a source node"
       ),
-    [spreadsheetTableData, dataManager],
+    [spreadsheetTableData],
   );
 
   const hotkeys = useMemo(() => {
@@ -928,6 +914,26 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     ];
   }, [mode, enterSuggestionMode, exitSuggestionMode]);
   const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
+
+  useEffect(() => {
+    (async () => {
+      if (graphElements) {
+        const tableNode = graphElements.find(
+          (el) => isNode(el) && el.id === spreadsheetTableData?.nodeId,
+        );
+
+        if (tableNode) {
+          const doc = await dataManager.getTable(
+            tableNode.data.sources.docId.value,
+          );
+          setSpreadsheetTableData({
+            nodeId: tableNode.id,
+            doc,
+          });
+        }
+      }
+    })();
+  }, [graphElements, spreadsheetTableData?.nodeId, dataManager]);
 
   return (
     <div
@@ -999,18 +1005,13 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
                   const graphNode = prograph._nodes.get(nodeId);
+                  console.log(graphNode);
                   const doc = await dataManager.getTable(
                     graphNode.sources.docId,
                   );
                   setSpreadsheetTableData({
                     nodeId,
-                    initialData: {
-                      columns: doc.getArray<Column>("columns").toArray(),
-                      rows: doc
-                        .getArray<Record<string, RowValue>>("rows")
-                        .toArray(),
-                    },
-                    docId: graphNode.sources.docId,
+                    doc,
                   });
                   setBottomMenuOpen(true);
                 } else {
@@ -1381,7 +1382,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           resetOnSelect={true}
         />
       </HotkeysTarget2>
-
       <Drawer
         position={Position.BOTTOM}
         isOpen={bottomMenuOpen}
@@ -1391,7 +1391,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         title="Inspector"
         icon="path-search"
       >
-        <div>{spreadsheetElement}</div>
+        {spreadsheetElement}
       </Drawer>
     </div>
   );

@@ -120,6 +120,8 @@ export default class ProGraph {
 
     this.description = this.rootDoc.getText("description");
 
+    console.log("LOADING GRAPH", this._nodes, this._edges);
+
     if (this.nodes$) {
       this.nodes$.complete();
     }
@@ -147,9 +149,17 @@ export default class ProGraph {
     });
 
     graphIndexeddbProvider.whenSynced.then(() => {
-      this.loadedGraph$.next(id);
-      this.evaluate();
-      this.name = this.rootDoc.getMap().get("name");
+      // Running initialization for some nodes on graph load / updates
+      // TODO: Should find a better place for this to run
+      Promise.all(
+        Array.from(this.nodes.values()).map((node) =>
+          this.initializeNode(node.id),
+        ),
+      ).then(() => {
+        this.loadedGraph$.next(id);
+        this.evaluate();
+        this.name = this.rootDoc.getMap().get("name");
+      });
     });
   }
 
@@ -207,11 +217,16 @@ export default class ProGraph {
 
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    this._nodes.set(id, { ...node, id });
-    if (node.sources) {
-      this.updateNodeSources(id, node.sources);
-    }
-    this.evaluate([id]);
+    const fullNode = { ...node, id };
+    this._nodes.set(id, fullNode);
+    // TODO: Should find a better place for this to run
+    this.initializeNode(id).then(() => {
+      if (fullNode.sources) {
+        this.updateNodeSources(id, fullNode.sources);
+      }
+      this.evaluate([id]);
+    });
+
     return id;
   }
 
@@ -354,51 +369,9 @@ export default class ProGraph {
 
   updateNodeSources(nodeId: string, sources: Record<string, any>) {
     const node = this._nodes.get(nodeId);
-    const newSourceVals = { ...node.sources, ...sources };
-
-    const update = (newSources) => {
-      node.sources = newSources;
-      this._nodes.set(node.id, { ...node });
-      this.evaluate([nodeId]);
-    };
-
-    // Hack: some nodes need to have their sources initialized outside the component
-    if (!initializedNodes.has(node.id)) {
-      if (node.type === "DataTable") {
-        const initializer = async () => {
-          let docId = newSourceVals["docId"];
-          if (!docId) {
-            docId = await dataManager.newTable({
-              columns: [],
-              rows: [],
-            });
-          }
-          const doc = await dataManager.getTable(newSourceVals["docId"]);
-
-          const dataTableUpdate = () =>
-            update({
-              ...newSourceVals,
-              table: {
-                columns: doc.getArray("columns").toArray(),
-                rows: doc.getArray("rows").toArray(),
-              },
-              sourceLabel: doc.getMap("metadata").get("label"),
-            });
-
-          doc.on("update", () => {
-            dataTableUpdate();
-          });
-          dataTableUpdate();
-        };
-        initializer();
-        initializedNodes.add(node.id);
-        return; // need to end early here
-      }
-      initializedNodes.add(node.id);
-    }
-    // Hack end
-
-    update(newSourceVals);
+    node.sources = { ...node.sources, ...sources };
+    this._nodes.set(node.id, { ...node });
+    this.evaluate([nodeId]);
   }
 
   updateNodeOutput(
@@ -415,7 +388,6 @@ export default class ProGraph {
 
   evaluate(changedNodes?: string[]) {
     const sorting = this.getTopologicallySortedNodes(changedNodes);
-
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
       const inputVals = Object.fromEntries(
@@ -613,6 +585,43 @@ export default class ProGraph {
           ];
         }
       }
+    }
+  }
+
+  // Hack: some nodes need to have their sources initialized outside the component
+  private async initializeNode(nodeId: string) {
+    if (!initializedNodes.has(nodeId)) {
+      const node = this._nodes.get(nodeId);
+      if (node.type === "DataTable") {
+        let docId = node.sources ? node.sources["docId"] : undefined;
+        if (!docId) {
+          docId = await dataManager.newTable({
+            columns: [],
+            rows: [],
+          });
+        }
+        const doc = await dataManager.getTable(docId);
+
+        doc.on("update", () => {
+          this.updateNodeSources(nodeId, {
+            table: {
+              columns: doc.getArray("columns").toArray(),
+              rows: doc.getArray("rows").toArray(),
+            },
+            sourceLabel: doc.getMap("metadata").get("label"),
+          });
+        });
+        node.sources = {
+          ...(node.sources ?? {}),
+          docId,
+          table: {
+            columns: doc.getArray("columns").toArray(),
+            rows: doc.getArray("rows").toArray(),
+          },
+          sourceLabel: doc.getMap("metadata").get("label"),
+        };
+      }
+      initializedNodes.add(nodeId);
     }
   }
 }

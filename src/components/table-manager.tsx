@@ -220,6 +220,9 @@ export default function TableManager() {
               x: window.innerWidth / 2,
               y: window.innerHeight / 2,
             }),
+            sources: {
+              docId: undefined,
+            },
           });
         }}
         small={true}
