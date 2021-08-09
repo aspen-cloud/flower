@@ -1,7 +1,5 @@
 import { Button, Card, Dialog, Divider, H3, H4 } from "@blueprintjs/core";
-import { formatDistance } from "date-fns";
 import { useEffect, useState } from "react";
-import graphManager from "../graph-manager";
 import { Link } from "react-router-dom";
 import DataManager from "../data-manager";
 

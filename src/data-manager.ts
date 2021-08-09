@@ -2,16 +2,6 @@ import * as Y from "yjs";
 import { nanoid } from "nanoid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import ProGraph, { NodeClass } from "./prograph";
-import { resolve } from "path/posix";
-
-interface GraphInfo {
-  id: string;
-  name: string;
-  owner?: string;
-  collaborators?: string[];
-  lastAccessed: Date;
-  createdAt: Date;
-}
 
 /**
  * This manages graphs and tables. It's able to load "all" graphs into memory
@@ -20,8 +10,6 @@ interface GraphInfo {
 
 class DataManager {
   private rootDoc: Y.Doc;
-
-  // currentGraph$: BehaviorSubject<string | null>;
 
   currentGraph: ProGraph;
 
@@ -41,7 +29,6 @@ class DataManager {
 
     this.ready = new Promise((resolve) => {
       indexeddbProvider.whenSynced.then(() => {
-        console.log("Synced!", Object.fromEntries(this._graphs.entries()));
         resolve();
       });
     });
@@ -70,7 +57,6 @@ class DataManager {
   async loadGraph(id: string): Promise<ProGraph> {
     await this.ready;
     const doc = this._graphs.get(id);
-    console.log(JSON.stringify(Object.fromEntries(this._graphs.entries())));
     if (!doc) {
       //throw new Error(`Could not find graph with ID: ${id}`);
       console.log(`Could not find graph with ID: ${id}`);

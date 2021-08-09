@@ -32,7 +32,7 @@ import * as AllNodes from "./graph-nodes/index";
 
 import * as Y from "yjs";
 
-import { ItemPredicate, ItemRenderer, Omnibar } from "@blueprintjs/select";
+import { ItemRenderer } from "@blueprintjs/select";
 import {
   HotkeysTarget2,
   MenuItem,
@@ -71,7 +71,6 @@ import SuggestedEdge from "./graph-nodes/edges/suggested-edge";
 import { create, Struct } from "superstruct";
 import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
-import graphManager from "./graph-manager";
 import SelectGraphDialog from "./components/select-graph-dialog";
 import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
@@ -330,23 +329,18 @@ const FlowGraph = () => {
       if (!graphPath) {
         /**
          * This can likely all be derived from the
-         * `lastAccessed` field in the GraphManager
+         * timestamps that we should add to each graph
          */
         const savedLastGraph = window.localStorage.getItem("lastGraph");
         if (savedLastGraph) {
           history.push(`/${savedLastGraph}`);
         } else {
-          // graphManager.createGraph().then((newGraphId) => {
-          //   history.push(`/${newGraphId}`);
-          // });
           const newPrograph = await dataManager.newGraph();
           setPrograph(newPrograph);
           history.push(`/${newPrograph.id}`);
         }
       } else {
         window.localStorage.setItem("lastGraph", graphId);
-        // graphManager.selectGraph(graphId, graphName);
-        // prograph.loadGraph(graphId);
         const graph = await dataManager.loadGraph(graphId);
         history.push(`/${graphId}`);
         setPrograph(graph);
@@ -395,7 +389,6 @@ const FlowGraph = () => {
     if (!prograph) return;
 
     const subscription = prograph.name$.subscribe((name) => {
-      console.log("new graph name", name);
       setGraphName(name);
     });
 
@@ -955,8 +948,9 @@ const FlowGraph = () => {
         isOpen={showNewDialog}
         onCancel={() => setShowNewDialog(false)}
         onSubmit={async (name: string) => {
-          const graphId = await graphManager.createGraph(name);
-          history.push(`/${name.split(" ").join("-")}-${graphId}`);
+          const graph = await dataManager.newGraph();
+          graph.name = name;
+          history.push(`/${name.split(" ").join("-")}-${graph.id}`);
           setShowNewDialog(false);
         }}
       />
