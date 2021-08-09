@@ -44,6 +44,9 @@ import {
   Classes,
   Collapse,
   Card,
+  EditableText,
+  InputGroup,
+  FormGroup,
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
@@ -284,6 +287,7 @@ const FlowGraph = () => {
   );
 
   const [prograph, setPrograph] = useState<ProGraph | null>(null);
+  const [graphName, setGraphName] = useState("");
 
   const [newGraphLoaded, setNewGraphLoaded] = useState(false);
 
@@ -298,11 +302,11 @@ const FlowGraph = () => {
     [graphPath],
   );
 
-  const graphName: string | null = useMemo(
-    () =>
-      graphPath ? graphPath.slice(0, -21).split("-").join(" ").trim() : null,
-    [graphPath],
-  );
+  // const graphName: string | null = useMemo(
+  //   () =>
+  //     graphPath ? graphPath.slice(0, -21).split("-").join(" ").trim() : null,
+  //   [graphPath],
+  // );
 
   useEffect(() => {
     if (!newGraphLoaded || graphElements.length === 0 || !reactflowInstance)
@@ -386,6 +390,19 @@ const FlowGraph = () => {
       }
     })();
   }, [graphPath]);
+
+  useEffect(() => {
+    if (!prograph) return;
+
+    const subscription = prograph.name$.subscribe((name) => {
+      console.log("new graph name", name);
+      setGraphName(name);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [prograph]);
 
   const [spreadsheetTableData, setSpreadsheetTableData] =
     useState<SpreadSheetTableData>();
@@ -1164,7 +1181,7 @@ const FlowGraph = () => {
               <Drawer
                 icon="multi-select"
                 onClose={() => setSideMenuOpen(false)}
-                title="Selected Elements"
+                title="General"
                 isOpen={sideMenuOpen}
                 size={DrawerSize.SMALL}
                 hasBackdrop={false}
@@ -1175,6 +1192,14 @@ const FlowGraph = () => {
               >
                 <div className={Classes.DRAWER_BODY}>
                   <div className={Classes.DIALOG_BODY}>
+                    <FormGroup label="Name">
+                      <InputGroup
+                        value={graphName}
+                        onChange={(e) => {
+                          prograph.name = e.target.value;
+                        }}
+                      />
+                    </FormGroup>
                     {selectedElements.length ? (
                       selectedElements.map((el, i) => (
                         <ElementInfoMenuItem key={i} element={el} />

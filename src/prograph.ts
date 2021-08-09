@@ -66,7 +66,8 @@ export default class ProGraph {
 
   id: string;
 
-  name: Y.Text;
+  private _name: string;
+  name$: BehaviorSubject<string>;
   description: Y.Text;
 
   graph: Y.Doc;
@@ -113,7 +114,9 @@ export default class ProGraph {
     this._nodes = this.graph.getMap("nodes");
     this._edges = this.graph.getMap("edges");
 
-    this.name = this.rootDoc.getText("name");
+    this._name = this.rootDoc.getMap().get("name");
+    this.name$ = new BehaviorSubject(this._name);
+
     this.description = this.rootDoc.getText("description");
 
     if (this.nodes$) {
@@ -145,6 +148,7 @@ export default class ProGraph {
     graphIndexeddbProvider.whenSynced.then(() => {
       this.loadedGraph$.next(id);
       this.evaluate();
+      this.name = this.rootDoc.getMap().get("name");
     });
   }
 
@@ -182,6 +186,16 @@ export default class ProGraph {
       string,
       GraphEdge
     >;
+  }
+
+  set name(newName: string) {
+    this.rootDoc.getMap().set("name", newName);
+    this._name = newName;
+    this.name$.next(this._name);
+  }
+
+  get name() {
+    return this._name;
   }
 
   wipeAll() {
