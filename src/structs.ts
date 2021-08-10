@@ -29,11 +29,9 @@ const ColumnStruct: Describe<Column> = object({
   Type: string(),
 });
 
-const TableStructInternal: Describe<Table> = object({
+export const TableStruct: Describe<Table> = object({
   columns: defaulted(array(ColumnStruct), []),
   rows: defaulted(array(record(string(), RowValueStruct)), []),
 });
 
-export const TableStruct = define<Table>("table", (value) =>
-  is(value, TableStructInternal),
-);
+TableStruct.type = "table";
