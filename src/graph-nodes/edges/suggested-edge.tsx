@@ -60,3 +60,7 @@ export default function SuggestedEdge({
     </>
   );
 }
+
+export function suggestedEdgeId(conn: Omit<GraphEdge, "id">) {
+  return JSON.stringify(conn);
+}

@@ -60,7 +60,9 @@ import Spreadsheet from "./components/blueprint-spreadsheet";
 import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
-import SuggestedEdge from "./graph-nodes/edges/suggested-edge";
+import SuggestedEdge, {
+  suggestedEdgeId,
+} from "./graph-nodes/edges/suggested-edge";
 import toaster from "./components/app-toaster";
 import NewSheetDialog from "./components/new-sheet-dialog";
 import SelectGraphDialog from "./components/select-graph-dialog";
@@ -497,6 +499,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     }
 
     const [{ id, type }] = selectedElements;
+    // selecting a suggested edge should not reset suggested edges
     if (type === "suggested") return;
 
     const suggestedConnections: Edge[] = prograph
@@ -505,7 +508,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         return from.nodeId === id || to.nodeId === id;
       })
       .map((conn) => ({
-        id: JSON.stringify(conn),
+        id: suggestedEdgeId(conn),
         source: conn.from.nodeId,
         sourceHandle: conn.from.busKey,
         target: conn.to.nodeId,
@@ -736,7 +739,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         ...props,
         onDoubleClick: (conn) => {
           prograph.addEdge(conn);
-          setSuggestedEdges([]);
+          setSuggestedEdges((prev) =>
+            prev.filter((e) => e.id !== suggestedEdgeId(conn)),
+          );
         },
       });
     },
