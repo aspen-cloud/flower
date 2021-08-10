@@ -496,9 +496,8 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       return;
     }
 
-    const [{ id }] = selectedElements;
-
-    console.log("getting suggested edges for", id);
+    const [{ id, type }] = selectedElements;
+    if (type === "suggested") return;
 
     const suggestedConnections: Edge[] = prograph
       .getSuggestedEdges()
@@ -513,8 +512,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         targetHandle: conn.to.busKey,
         type: "suggested",
       }));
-
-    console.log(suggestedConnections);
 
     setSuggestedEdges(suggestedConnections);
   }, [selectedElements]);
@@ -734,7 +731,15 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         },
       });
     },
-    suggested: SuggestedEdge,
+    suggested: ({ ...props }: EdgeProps) => {
+      return SuggestedEdge({
+        ...props,
+        onDoubleClick: (conn) => {
+          prograph.addEdge(conn);
+          setSuggestedEdges([]);
+        },
+      });
+    },
   };
 
   const filterNodeTypes = (

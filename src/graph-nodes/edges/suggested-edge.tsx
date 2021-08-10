@@ -1,7 +1,16 @@
-import { getBezierPath, getMarkerEnd } from "react-flow-renderer";
+import { EdgeProps, getBezierPath, getMarkerEnd } from "react-flow-renderer";
+import { GraphEdge } from "../../prograph";
+
+interface DefaultEdgeProps extends EdgeProps {
+  onDoubleClick: (conn: Omit<GraphEdge, "id">) => void;
+}
 
 export default function SuggestedEdge({
   id,
+  source,
+  sourceHandleId,
+  target,
+  targetHandleId,
   sourceX,
   sourceY,
   targetX,
@@ -12,7 +21,8 @@ export default function SuggestedEdge({
   data,
   arrowHeadType,
   markerEndId,
-}) {
+  onDoubleClick,
+}: DefaultEdgeProps) {
   const edgePath = getBezierPath({
     sourceX,
     sourceY,
@@ -25,6 +35,18 @@ export default function SuggestedEdge({
   return (
     <>
       <path
+        onDoubleClick={() =>
+          onDoubleClick({
+            from: {
+              nodeId: source,
+              busKey: sourceHandleId,
+            },
+            to: {
+              nodeId: target,
+              busKey: targetHandleId,
+            },
+          })
+        }
         id={id}
         style={{
           stroke: "rgb(206 206 206 / 35%)",
