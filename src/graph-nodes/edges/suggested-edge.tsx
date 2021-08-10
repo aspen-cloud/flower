@@ -5,6 +5,8 @@ interface DefaultEdgeProps extends EdgeProps {
   onDoubleClick: (conn: Omit<GraphEdge, "id">) => void;
 }
 
+const HOTKEY_LABEL_SIZE = 16;
+
 export default function SuggestedEdge({
   id,
   source,
@@ -57,6 +59,40 @@ export default function SuggestedEdge({
         d={edgePath}
         markerEnd={markerEnd}
       />
+      <g>
+        <circle
+          style={{
+            fill: "lightgray",
+          }}
+          cx={sourceX}
+          cy={sourceY + HOTKEY_LABEL_SIZE}
+          r={HOTKEY_LABEL_SIZE}
+        ></circle>
+        <text
+          x={sourceX}
+          y={sourceY + HOTKEY_LABEL_SIZE}
+          text-anchor="middle"
+          dy=".3em"
+        >
+          {data.sourceHandleSuggestionId}
+        </text>
+        <circle
+          style={{
+            fill: "lightgray",
+          }}
+          cx={targetX}
+          cy={targetY - HOTKEY_LABEL_SIZE}
+          r={HOTKEY_LABEL_SIZE}
+        ></circle>
+        <text
+          x={targetX}
+          y={targetY - HOTKEY_LABEL_SIZE}
+          text-anchor="middle"
+          dy=".3em"
+        >
+          {data.targetHandleSuggestionId}
+        </text>
+      </g>
     </>
   );
 }
