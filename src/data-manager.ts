@@ -43,13 +43,26 @@ class DataManager {
     });
 
     this.rootDoc.on("subdocs", async () => {
+      console.log("subdoc loaded");
       this.graphs$.next(await this.getAllGraphs());
+    });
+
+    this.ready.then(() => {
+      for (const entry of this._graphs) {
+        const [id, graph] = entry as unknown as [string, Y.Doc];
+        try {
+          graph.load();
+        } catch (e) {
+          console.log("couldn't load", graph);
+        }
+      }
     });
   }
 
   async getAllGraphs() {
     await this.ready;
-    for (const graph of this._graphs) {
+    for (const entry of this._graphs) {
+      const [id, graph] = entry as unknown as [string, Y.Doc];
       try {
         graph.load();
       } catch (e) {

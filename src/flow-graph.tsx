@@ -46,7 +46,6 @@ import {
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
-import Graph from "./graph";
 import { jsonToTable, matrixToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
@@ -233,16 +232,24 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       name: "Anonymous",
       mousePosition: { x: 0, y: 0 },
     });
-    prograph.presence.on("change", () => {
+    prograph.presence.on("change", (changes) => {
       const collaboratorStates = Array.from(
         prograph.presence.getStates().entries(),
       ).filter(([key]) => key !== prograph.presence.clientID);
-      const mouseElems: Elements = collaboratorStates.map(([key, state]) => ({
-        position: state.mousePosition,
-        id: `${key}-mouse`,
-        type: "mouse",
-        data: { label: state.name },
-      }));
+      const mouseElems: Elements = collaboratorStates
+        .filter(
+          ([_, state]) =>
+            state.mousePosition &&
+            state.mousePosition.x != null &&
+            state.mousePosition.y != null,
+        )
+        .map(([key, state]) => ({
+          position: state.mousePosition,
+          id: `${key}-mouse`,
+          type: "mouse",
+          data: { label: state.name },
+        }));
+
       setMouseElements(mouseElems);
     });
   }, [prograph]);
@@ -287,9 +294,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     }
   }, [omnibarQuery]);
 
-  // TODO remove in favor of prograph
-  const graphRef = useRef<Graph>();
-
   const validateConnection = (
     connection: Connection | Edge<any>,
     els: Elements,
@@ -333,18 +337,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     return [sourceOutput, targetInput];
   };
 
-  const onEdgeConnect = (edge: Connection | Edge<any>, els: Elements) => {
-    const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
-    sourceOutput.subscribe((latestVal: any) => {
-      targetInput.next(latestVal);
-    });
-  };
-
-  const onEdgeDisconnect = (edge: Connection | Edge<any>, els: Elements) => {
-    const [sourceOutput, targetInput] = getEdgeStreams(edge, els);
-    // TODO fix for RXJS
-  };
-
   const onConnect = (connection: Connection | Edge<any>) => {
     prograph.addEdge({
       from: {
@@ -371,6 +363,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   };
 
   const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
+    // TODO fix to work with Prograph
     // setGraphElements((els) => {
     //   if (!validateConnection(newConnection, els)) return els;
     //   onEdgeDisconnect(oldEdge, els);
@@ -526,6 +519,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
   });
+
   useEffect(() => {
     const mouseMoveHandler = (event: MouseEvent) => {
       mousePosition.current = { x: event.clientX, y: event.clientY };
@@ -839,12 +833,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 if (!reactflowInstance) return;
                 const absolutePos = { x: e.clientX, y: e.clientY };
                 const coordinates = reactflowInstance.project(absolutePos);
-                if (prograph) {
-                  prograph.presence.setLocalStateField(
-                    "mousePosition",
-                    coordinates,
-                  );
-                }
+                prograph.presence.setLocalStateField(
+                  "mousePosition",
+                  coordinates,
+                );
               }}
               onElementClick={onElementClick}
               onElementsRemove={onElementsRemove}
