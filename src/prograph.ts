@@ -293,7 +293,7 @@ export default class ProGraph {
 
     const inputTypes = this.nodeTypes[node.type].inputs || {};
     const inputs: Record<string, NodeInput> = {};
-    for (const [inputKey, inputStruct] of Object.entries<Struct>(inputTypes)) {
+    for (const [inputKey, _inputStruct] of Object.entries<Struct>(inputTypes)) {
       const edge = inboundEdges[inputKey];
       try {
         if (edge) {
@@ -306,8 +306,12 @@ export default class ProGraph {
             ),
           };
           if (!inboundNodeOutputs) continue;
+          // TODO replace with more general solution
           inputs[inputKey] = {
-            value: create(inboundNodeOutputs[edge.from.busKey], inputStruct),
+            value: inboundNodeOutputs[edge.from.busKey] || {
+              row: [],
+              columns: [],
+            }, // create(inboundNodeOutputs[edge.from.busKey], inputStruct),
             error: undefined,
           };
         } else {
@@ -377,6 +381,7 @@ export default class ProGraph {
             ...sourceVals,
           });
         } catch (err) {
+          console.error("output error", err, inputVals, sourceVals);
           outputError = err;
         }
         this.updateNodeOutput(
