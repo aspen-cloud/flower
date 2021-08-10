@@ -496,13 +496,17 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       .filter(({ from, to }) => {
         return from.nodeId === id || to.nodeId === id;
       })
-      .map((conn) => ({
+      .map((conn, i) => ({
         id: suggestedEdgeId(conn),
         source: conn.from.nodeId,
         sourceHandle: conn.from.busKey,
         target: conn.to.nodeId,
         targetHandle: conn.to.busKey,
         type: "suggested",
+        data: {
+          index: i,
+          incoming: conn.to.nodeId === id,
+        },
       }));
 
     setSuggestedEdges(suggestedConnections);
