@@ -87,8 +87,9 @@ export function parseRow(value: string, typeKey: string): RowValue {
   };
 }
 
-function inferType(val: string) {
+export function inferType(val: string) {
   if (val) {
+    if (typeof val === "number") return "Number";
     if (val.startsWith("$")) {
       const parsedNumber = parseNumber(val.substring(1));
       if (!isNaN(parsedNumber)) return "Currency";

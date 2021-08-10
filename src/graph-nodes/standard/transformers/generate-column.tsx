@@ -5,6 +5,7 @@ import BaseNode from "../../../components/base-node";
 import DirtyInput from "../../../dirty-input";
 import { NodeClass } from "../../../prograph";
 import { TableStruct } from "../../../structs";
+import { inferType } from "../../../utils/tables";
 
 const GenerateColumn: NodeClass = {
   sources: {
@@ -20,19 +21,28 @@ const GenerateColumn: NodeClass = {
         if (!func) return table;
         const accessor = `user-col-${columnName || nanoid()}`;
 
+        const newRows = table.rows.map((row) => {
+          const newCellVal = func(row);
+          return {
+            ...row,
+            [accessor]: {
+              underlyingValue: newCellVal,
+              readValue: newCellVal.toString(),
+              writeValue: newCellVal.toString(),
+            },
+          };
+        });
+
         const newTable = {
-          rows: table.rows.map((row) => {
-            const newCellVal = func(row);
-            return {
-              ...row,
-              [accessor]: {
-                underlyingValue: newCellVal,
-                readValue: newCellVal,
-                writeValue: newCellVal,
-              },
-            };
-          }),
-          columns: [...table.columns, { accessor, Header: columnName }],
+          rows: newRows,
+          columns: [
+            ...table.columns,
+            {
+              accessor,
+              Header: columnName,
+              Type: inferType(newRows[0].underlyingValue), // TODO be smarter (or less smart?) about infering column type
+            },
+          ],
         };
 
         return newTable;
