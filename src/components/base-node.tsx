@@ -102,8 +102,11 @@ function BaseNode({
           padding: 15px;
           border-radius: 5px;
 
+          box-shadow: -5px -5px 0 -1px #c16cbd, 5px 5px 0 -1px #4a8923;
+          transition: box-shadow 0.1s ease-in-out;
+
           .selected & {
-            box-shadow: 0 0 0px 4px #707070;
+            box-shadow: 0 0 0px 4px #eacf42;
           }
         `,
         className,
