@@ -43,6 +43,7 @@ import {
   Card,
   InputGroup,
   FormGroup,
+  useHotkeys,
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
@@ -815,6 +816,34 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [spreadsheetTableData, prograph],
   );
 
+  const hotkeys = useMemo(
+    () => [
+      ...new Array(10).fill(0).map((_, i) => ({
+        combo: i === 9 ? "0" : (i + 1).toString(),
+        global: true,
+        disabled: suggestedEdges.length === 0,
+        label: "Select a suggested edge",
+        onKeyDown: () => {
+          if (i >= suggestedEdges.length) return;
+          const edge = suggestedEdges[i] as Edge;
+          prograph.addEdge({
+            from: {
+              nodeId: edge.source,
+              busKey: edge.sourceHandle,
+            },
+            to: {
+              nodeId: edge.target,
+              busKey: edge.targetHandle,
+            },
+          });
+          setSuggestedEdges((prev) => prev.filter((e) => e.id !== edge.id));
+        },
+      })),
+    ],
+    [suggestedEdges],
+  );
+  const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
+
   return (
     <div
       style={{
@@ -824,6 +853,8 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         flex: 1,
         height: "100vh",
       }}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
     >
       <SelectGraphDialog
         isOpen={showSelectDialog}
