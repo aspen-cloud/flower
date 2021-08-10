@@ -119,7 +119,3 @@ body {
 .edge-menu-index-close {
   background: #ddd;
 }
-
-.react-flow__edges {
-  z-index: 20 !important;
-}
