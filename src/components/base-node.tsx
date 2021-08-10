@@ -98,8 +98,13 @@ function BaseNode({
       className={cx(
         css`
           background-color: white;
-          min-width: ${minWidth};
-          padding: 10px;
+          min-width: ${minWidth}px;
+          padding: 15px;
+          border-radius: 5px;
+
+          .selected & {
+            box-shadow: 0 0 0px 4px #707070;
+          }
         `,
         className,
       )}

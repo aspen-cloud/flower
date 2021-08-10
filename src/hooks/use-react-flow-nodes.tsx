@@ -1,3 +1,4 @@
+import { css } from "@emotion/css";
 import { useEffect, useMemo, useState } from "react";
 import { Edge, Node, Elements } from "react-flow-renderer";
 import { combineLatest } from "rxjs";
@@ -16,11 +17,6 @@ function graphToReactFlow(
     data: getComponentDataForNode(prograph, node),
     type: node.type,
     id: node.id.toString(),
-    style: {
-      padding: "10px",
-      border: "1px solid white",
-      borderRadius: "10px",
-    },
   }));
 
   const flowEdges: Edge[] = Array.from(edges.values()).map((conn) => {

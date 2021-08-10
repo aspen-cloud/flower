@@ -77,11 +77,6 @@ body {
   stroke-width: 0.5em;
 }
 
-/* node selected styles */
-.react-flow__node.selected {
-  border-width: 2px !important;
-}
-
 /* handle issues with sidebar overlay stealing focus */
 .info-sidebar .bp3-overlay {
   left: unset;

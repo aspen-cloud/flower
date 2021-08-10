@@ -120,6 +120,11 @@ interface DefaultEdgeProps extends EdgeProps {
   addClickHandler: (edgeId: string, position: XYPosition) => void;
 }
 
+const baseStyles = css`
+  stroke: rgb(103 188 241);
+  filter: drop-shadow(0px 0px 3px rgba(103, 188, 241, 0.9));
+`;
+
 const animatedStyles = css`
   animation: dashdraw 0.5s linear infinite;
   stroke-dasharray: 5;
@@ -220,7 +225,7 @@ export default function DefaultEdge({
       <path
         id={id}
         style={style}
-        className={cx("react-flow__edge-path", animatedStyles, {
+        className={cx("react-flow__edge-path", baseStyles, animatedStyles, {
           [errorStyles]: data?.outputs?.error || data?.inputs?.error,
         })}
         d={edgePath}

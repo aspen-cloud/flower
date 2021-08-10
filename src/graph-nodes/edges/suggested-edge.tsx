@@ -26,7 +26,11 @@ export default function SuggestedEdge({
     <>
       <path
         id={id}
-        style={{ stroke: "orange", ...style }}
+        style={{
+          stroke: "rgb(206 206 206 / 35%)",
+          strokeWidth: "5px",
+          ...style,
+        }}
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd}
