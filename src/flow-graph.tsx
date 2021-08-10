@@ -817,7 +817,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         }}
       />
       <SelectGraphDialog
-        dataManager={dataManager}
         isOpen={showSelectDialog}
         onClose={() => {
           setShowSelectDialog(false);
@@ -825,13 +824,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         onNew={() => {
           setShowSelectDialog(false);
           setShowNewDialog(true);
-        }}
-        onDelete={(graphId: string) => {
-          dataManager.deleteGraph(graphId);
-          toaster.show({
-            message: `Graph (${graphId}) was deleted.`,
-            intent: "warning",
-          });
         }}
       />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>

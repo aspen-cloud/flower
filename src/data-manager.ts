@@ -2,6 +2,7 @@ import * as Y from "yjs";
 import { nanoid } from "nanoid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import ProGraph, { NodeClass } from "./prograph";
+import { BehaviorSubject } from "rxjs";
 
 /**
  * This manages graphs and tables. It's able to load "all" graphs into memory
@@ -14,6 +15,8 @@ class DataManager {
   currentGraph: ProGraph;
 
   private _graphs: Y.Map<Y.Doc>;
+
+  graphs$: BehaviorSubject<Record<string, Y.Doc>>;
 
   readonly nodeTypes: Record<string, NodeClass>;
 
@@ -31,6 +34,16 @@ class DataManager {
       indexeddbProvider.whenSynced.then(() => {
         resolve();
       });
+    });
+
+    this.graphs$ = new BehaviorSubject(this._graphs.toJSON());
+
+    this._graphs.observe(async () => {
+      this.graphs$.next(await this.getAllGraphs());
+    });
+
+    this.rootDoc.on("subdocs", async () => {
+      this.graphs$.next(await this.getAllGraphs());
     });
   }
 

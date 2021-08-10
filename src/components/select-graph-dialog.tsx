@@ -2,7 +2,7 @@ import { Button, Card, Dialog, Divider, H3, H4 } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import DataManager from "../data-manager";
+import useDataManager from "../hooks/use-data-manager";
 
 // TODO this should probably use a hook to get the datamanger and rely less on props
 
@@ -10,20 +10,17 @@ export default function SelectGraphDialog({
   isOpen,
   onClose,
   onNew,
-  onDelete,
-  dataManager,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onNew: () => void;
-  onDelete: (graphId: string) => void;
-  dataManager: DataManager;
 }) {
+  const dataManager = useDataManager();
   const [allGraphs, setAllGraphs] = useState([]);
   useEffect(() => {
-    dataManager.getAllGraphs().then((graphs) => {
+    const sub = dataManager.graphs$.subscribe((graphObj) => {
       setAllGraphs(
-        Object.entries(graphs).map(([id, graph]) => {
+        Object.entries(graphObj).map(([id, graph]) => {
           return {
             id,
             name: graph.getMap().get("name") || "",
@@ -31,6 +28,9 @@ export default function SelectGraphDialog({
         }),
       );
     });
+    return () => {
+      sub.unsubscribe();
+    };
   }, [isOpen]);
 
   return (
@@ -68,7 +68,7 @@ export default function SelectGraphDialog({
                   icon="delete"
                   onClick={(e) => {
                     e.preventDefault();
-                    onDelete(id);
+                    dataManager.deleteGraph(id);
                   }}
                 />
               </div>
