@@ -23,7 +23,9 @@ export default function MouseNode({ data }) {
       <MouseIcon
         width="20px"
         className={css`
-          fill: rgba(255, 255, 255, 0.7);
+          fill: #343434;
+          stroke: white;
+          stroke-width: 2px;
         `}
       />
     </div>
