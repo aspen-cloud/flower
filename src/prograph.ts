@@ -94,7 +94,6 @@ export default class ProGraph {
 
     this.presence = new awarenessProtocol.Awareness(this.rootDoc);
 
-    console.log("setting up webrtc provider for", id);
     // @ts-ignore
     new WebrtcProvider(id, this.rootDoc, {
       password: id,
