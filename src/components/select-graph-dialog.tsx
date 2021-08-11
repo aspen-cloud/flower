@@ -1,10 +1,8 @@
-import { Button, Card, Dialog, Divider, H3, H4 } from "@blueprintjs/core";
+import { Button, Card, Dialog, Divider, H4 } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useDataManager from "../hooks/use-data-manager";
-
-// TODO this should probably use a hook to get the datamanger and rely less on props
 
 export default function SelectGraphDialog({
   isOpen,
@@ -13,7 +11,7 @@ export default function SelectGraphDialog({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onNew: () => void;
+  onNew: (graphId: string) => void;
 }) {
   const dataManager = useDataManager();
   const [allGraphs, setAllGraphs] = useState([]);
@@ -34,15 +32,29 @@ export default function SelectGraphDialog({
   }, [isOpen]);
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Open Previous Work">
+    <Dialog isOpen={isOpen} onClose={onClose} title="Open a workspace">
       <Card style={{ overflow: "scroll", maxHeight: "80vh" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <H3>Select a graph</H3>
-          <Button minimal onClick={onNew}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <H4>Workspaces</H4>
+          <Button
+            onClick={async () => {
+              const newGraph = await dataManager.newGraph();
+              onNew(newGraph.id);
+            }}
+          >
             New
           </Button>
         </div>
         <Divider />
+        {allGraphs.length === 0 ? (
+          <div>You don't have any workspaces yet.</div>
+        ) : null}
         {allGraphs.map(({ id, name }) => (
           <Link to={`/${name.split(" ").join("-")}-${id}`}>
             <Card
