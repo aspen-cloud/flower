@@ -5,7 +5,7 @@ import { NodeIO } from "../types";
 import styled from "@emotion/styled";
 import { css, cx } from "@emotion/css";
 
-export interface BaseNodeProps extends NodeIO {
+export interface BaseNodeProps extends Partial<NodeIO> {
   children: JSX.Element | JSX.Element[];
   className?: string;
   label?: string;
@@ -22,9 +22,9 @@ const Label = styled.div`
   margin-bottom: 5px;
 `;
 
-function BaseNode({
-  sources,
-  sinks,
+function BaseNodeClass({
+  sources = {},
+  sinks = {},
   label = "",
   children,
   className,
@@ -120,4 +120,6 @@ function BaseNode({
   );
 }
 
-export default memo(BaseNode);
+const BaseNode = memo(BaseNodeClass);
+
+export default BaseNode;

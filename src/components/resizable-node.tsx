@@ -10,7 +10,7 @@ export interface ResizableNodeProps extends BaseNodeProps {
 }
 
 // TODO: resize in all directions
-function ResizableNode({
+function ResizableNodeComponent({
   sources,
   sinks,
   children,
@@ -58,4 +58,6 @@ function ResizableNode({
   );
 }
 
-export default memo(ResizableNode);
+const ResizableNode = memo(ResizableNodeComponent);
+
+export default ResizableNode;

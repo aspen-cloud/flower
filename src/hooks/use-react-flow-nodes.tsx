@@ -73,6 +73,9 @@ function getComponentDataForNode(prograph: ProGraph, node: GraphNode) {
     inputs,
     sources,
     outputs,
+    metadata: {
+      size: node.size,
+    },
   };
 }
 

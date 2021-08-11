@@ -84,16 +84,6 @@ const snapGrid: [number, number] = [20, 20];
 const nodeTypes = Object.fromEntries(
   Object.entries(GraphNodes).map(([key, val]) => {
     const { Component } = val;
-    // add additional custom props to node types
-    // RF only passes specific documented element props to component func
-    // const componentWrapper = ({ ...props }) => {
-    //   // TODO: hot reload issue
-    //   const node = prograph.getNode(props.id);
-    //   return Component({
-    //     ...props,
-    //     size: node.size,
-    //   });
-    // };
     return [key, Component];
   }),
 );
