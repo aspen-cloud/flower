@@ -185,7 +185,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
   const [newGraphLoaded, setNewGraphLoaded] = useState(false);
 
-  const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSelectDialog, setShowSelectDialog] = useState(false);
 
   const { graphPath } = useParams<{ graphPath?: string }>();
@@ -212,8 +211,8 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   }, [newGraphLoaded, graphElements, reactflowInstance]);
 
   useEffect(() => {
-    setShowNewDialog(false);
     setShowSelectDialog(false);
+    setSideMenuOpen(true);
 
     toaster.show({
       intent: "success",
@@ -804,24 +803,13 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         height: "100vh",
       }}
     >
-      <NewSheetDialog
-        isOpen={showNewDialog}
-        onCancel={() => setShowNewDialog(false)}
-        onSubmit={async (name: string) => {
-          const graph = await dataManager.newGraph();
-          graph.name = name;
-          history.push(`/${name.split(" ").join("-")}-${graph.id}`);
-          setShowNewDialog(false);
-        }}
-      />
       <SelectGraphDialog
         isOpen={showSelectDialog}
         onClose={() => {
           setShowSelectDialog(false);
         }}
-        onNew={() => {
-          setShowSelectDialog(false);
-          setShowNewDialog(true);
+        onNew={(graphId) => {
+          history.push(`/${graphId}`);
         }}
       />
       <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
@@ -1074,22 +1062,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           </GraphInternals.Provider>
         )}
       </div>
-
-      <HotkeysTarget2
-        hotkeys={[
-          {
-            combo: "shift+n",
-            global: true,
-            label: "New graph",
-            allowInInput: false,
-            onKeyDown: () => {
-              setShowNewDialog(true);
-            },
-          },
-        ]}
-      >
-        <div></div>
-      </HotkeysTarget2>
 
       <HotkeysTarget2
         hotkeys={[
