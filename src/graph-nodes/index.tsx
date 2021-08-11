@@ -18,3 +18,4 @@
 export { default as Sources } from "./standard/sources";
 export { default as Transformers } from "./standard/transformers";
 export { default as Sinks } from "./standard/sinks";
+export { default as Hermetics } from "./standard/hermetic";
