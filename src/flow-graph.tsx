@@ -73,8 +73,9 @@ import DragPanZone from "./drag-pan-zone";
 import useReactFlowElements from "./hooks/use-react-flow-elements";
 import GraphNodes from "./graph-nodes";
 import useDataManager from "./hooks/use-data-manager";
-
-const onElementClick = (event: React.MouseEvent, element: Node | Edge) => {};
+import { string } from "superstruct";
+import { NodeClass } from "./prograph";
+import { isNumber } from "util";
 
 const initBgColor = "#343434";
 
@@ -168,7 +169,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const dataManager = useDataManager();
 
   const [mouseElements, setMouseElements] = useState<Elements>([]);
-  const [suggestedEdges, setSuggestedEdges] = useState<Elements>([]);
+  const [suggestedEdges, setSuggestedEdges] = useState<Edge[]>([]);
 
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
@@ -481,37 +482,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     };
   }, [selectedElements]);
 
-  useEffect(() => {
-    if (selectedElements.length !== 1) {
-      setSuggestedEdges([]);
-      return;
-    }
-
-    const [{ id, type }] = selectedElements;
-    // selecting a suggested edge should not reset suggested edges
-    if (type === "suggested") return;
-
-    const suggestedConnections: Edge[] = prograph
-      .getSuggestedEdges()
-      .filter(({ from, to }) => {
-        return from.nodeId === id || to.nodeId === id;
-      })
-      .map((conn, i) => ({
-        id: suggestedEdgeId(conn),
-        source: conn.from.nodeId,
-        sourceHandle: conn.from.busKey,
-        target: conn.to.nodeId,
-        targetHandle: conn.to.busKey,
-        type: "suggested",
-        data: {
-          index: i,
-          incoming: conn.to.nodeId === id,
-        },
-      }));
-
-    setSuggestedEdges(suggestedConnections);
-  }, [selectedElements]);
-
   const mousePosition = useRef({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -797,6 +767,130 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [selectedElements],
   );
 
+  const [mode, setMode] = useState("GRAPH");
+  const handleSuggestionIds = useRef<Record<string, Record<string, number>>>(
+    {},
+  );
+  const nextHandleSuggestionId = useRef(1);
+  const [edgeSuggestionInput, setEdgeSuggestionInput] = useState("");
+  const edgeSuggestionInputRef = useRef(null);
+
+  const getSuggestedEdgesForSelectedNodes = useCallback(() => {
+    let selectedNodes = null;
+    if (selectedElements.length) {
+      selectedNodes = selectedElements.reduce<Node[]>((nodes, el) => {
+        if (isNode(el)) nodes.push(el);
+        return nodes;
+      }, []);
+    }
+
+    let suggestedEdges = prograph.getSuggestedEdges();
+    if (selectedNodes) {
+      const nodeIds = new Set(selectedNodes.map((node) => node.id));
+      suggestedEdges = suggestedEdges.filter(
+        ({ from, to }) => nodeIds.has(from.nodeId) || nodeIds.has(to.nodeId),
+      );
+    }
+
+    const suggestedConnections: Edge[] = suggestedEdges.map((conn, i) => {
+      return {
+        id: suggestedEdgeId(conn),
+        source: conn.from.nodeId,
+        sourceHandle: conn.from.busKey,
+        target: conn.to.nodeId,
+        targetHandle: conn.to.busKey,
+        type: "suggested",
+        data: {
+          sourceHandleSuggestionId:
+            handleSuggestionIds.current[conn.from.nodeId][conn.from.busKey],
+          targetHandleSuggestionId:
+            handleSuggestionIds.current[conn.to.nodeId][conn.to.busKey],
+        },
+      };
+    });
+
+    return suggestedConnections;
+  }, [selectedElements]);
+
+  // Handle the addition of new elements to the graph
+  useEffect(() => {
+    const nodeEls = graphElements.reduce<Node[]>((nodes, el) => {
+      if (isNode(el)) nodes.push(el);
+      return nodes;
+    }, []);
+
+    // On new node, set handle suggestion ids
+    for (const node of nodeEls) {
+      if (!(node.id in handleSuggestionIds.current)) {
+        handleSuggestionIds.current[node.id] = {};
+        for (const handle of Object.keys(GraphNodes[node.type].inputs)) {
+          handleSuggestionIds.current[node.id][handle] =
+            nextHandleSuggestionId.current;
+          nextHandleSuggestionId.current += 1;
+        }
+        for (const handle of Object.keys(GraphNodes[node.type].outputs)) {
+          handleSuggestionIds.current[node.id][handle] =
+            nextHandleSuggestionId.current;
+          nextHandleSuggestionId.current += 1;
+        }
+      }
+    }
+
+    // on new edge, this should remove the relevant suggested edges
+    if (mode === "SUGGESTION") {
+      setSuggestedEdges(getSuggestedEdgesForSelectedNodes());
+    }
+  }, [graphElements, getSuggestedEdgesForSelectedNodes, mode]);
+
+  const enterSuggestionMode = useCallback(() => {
+    setMode("SUGGESTION");
+    edgeSuggestionInputRef.current?.focus();
+    setSuggestedEdges(getSuggestedEdgesForSelectedNodes());
+  }, [getSuggestedEdgesForSelectedNodes]);
+
+  const exitSuggestionMode = useCallback(() => {
+    setEdgeSuggestionInput("");
+    setSuggestedEdges([]);
+  }, []);
+
+  const parseSuggestionInput = useCallback(
+    (input: string) => {
+      const [handleA, handleB] = input.split("-");
+      const idA = Number(handleA);
+      const idB = Number(handleB);
+      if (
+        !Number.isInteger(idA) ||
+        idA < 1 ||
+        !Number.isInteger(idB) ||
+        idB < 1
+      )
+        return undefined;
+      const suggestion = suggestedEdges.find(
+        (edge) =>
+          (edge.data.sourceHandleSuggestionId === idA &&
+            edge.data.targetHandleSuggestionId === idB) ||
+          (edge.data.sourceHandleSuggestionId === idB &&
+            edge.data.targetHandleSuggestionId === idA),
+      );
+      return suggestion;
+    },
+    [suggestedEdges],
+  );
+
+  const onElementClick = useCallback(
+    (event: React.MouseEvent, element: Node | Edge) => {
+      if (isNode(element)) {
+        if (mode === "GRAPH") {
+          // TODO: Better modifier?
+          if (event.altKey) {
+            enterSuggestionMode();
+          }
+        }
+      }
+    },
+    [enterSuggestionMode, mode],
+  );
+
   // memoizing because we re-render on mouse moves
   const spreadsheetElement = useMemo(
     () =>
@@ -820,32 +914,41 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [spreadsheetTableData, prograph],
   );
 
-  const hotkeys = useMemo(
-    () => [
-      ...new Array(10).fill(0).map((_, i) => ({
-        combo: i === 9 ? "0" : (i + 1).toString(),
+  const hotkeys = useMemo(() => {
+    return [
+      {
+        combo: "esc",
         global: true,
-        disabled: suggestedEdges.length === 0,
-        label: "Select a suggested edge",
+        allowInInput: true, // Want to trigger on suggestion input
+        disabled: mode === "GRAPH",
+        label: "Escape non default mode",
         onKeyDown: () => {
-          if (i >= suggestedEdges.length) return;
-          const edge = suggestedEdges[i] as Edge;
-          prograph.addEdge({
-            from: {
-              nodeId: edge.source,
-              busKey: edge.sourceHandle,
-            },
-            to: {
-              nodeId: edge.target,
-              busKey: edge.targetHandle,
-            },
-          });
-          setSuggestedEdges((prev) => prev.filter((e) => e.id !== edge.id));
+          if (mode === "SUGGESTION") exitSuggestionMode();
+          setMode("GRAPH");
         },
-      })),
-    ],
-    [suggestedEdges],
-  );
+      },
+      {
+        combo: "S",
+        global: true,
+        disabled: mode !== "GRAPH",
+        label: "Enter suggestion mode",
+        onKeyDown: (e) => {
+          e.preventDefault();
+          enterSuggestionMode();
+        },
+      },
+      {
+        combo: "Enter",
+        global: true,
+        disabled: mode !== "SUGGESTION",
+        label: "Focus suggestion input",
+        onKeyDown: (e) => {
+          e.preventDefault();
+          edgeSuggestionInputRef.current.focus();
+        },
+      },
+    ];
+  }, [mode, enterSuggestionMode, exitSuggestionMode]);
   const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
 
   return (
@@ -902,9 +1005,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               snapGrid={snapGrid}
               defaultZoom={1}
               onDrop={onDrop}
-              onNodeDragStart={(event, _node) => handleDragStart(event)}
-              onNodeDrag={() => {
-                if (!isDragging) setIsDragging(true);
+              onNodeDrag={(event) => {
+                if (!isDragging) {
+                  setIsDragging(true);
+                  // Handling in onNodeDrag instead of onNodeDragStartso alt+click doesn't trigger the handler (only once we start dragging)
+                  handleDragStart(event);
+                }
               }}
               onNodeDoubleClick={(e, node) => {
                 if (node.type === "DataTable") {
@@ -1115,6 +1221,62 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               <DragPanZone zoneId={"bottom"} isDragging={isDragging} />
               <DragPanZone zoneId={"bottomLeft"} isDragging={isDragging} />
               <DragPanZone zoneId={"left"} isDragging={isDragging} />
+              {mode === "SUGGESTION" ? (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    left: "calc(50% - 200px)",
+                    zIndex: 5,
+                  }}
+                >
+                  <InputGroup
+                    value={edgeSuggestionInput}
+                    onChange={(e) => {
+                      setEdgeSuggestionInput(e.target.value);
+                    }}
+                    style={{ width: "400px" }}
+                    inputRef={edgeSuggestionInputRef}
+                    placeholder="Type an edge (eg. 4-10) and press 'Enter'"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const suggestion =
+                          parseSuggestionInput(edgeSuggestionInput);
+                        if (suggestion) {
+                          const conn = {
+                            from: {
+                              nodeId: suggestion.source,
+                              busKey: suggestion.sourceHandle,
+                            },
+                            to: {
+                              nodeId: suggestion.target,
+                              busKey: suggestion.targetHandle,
+                            },
+                          };
+                          prograph.addEdge(conn);
+                          setEdgeSuggestionInput("");
+                        } else {
+                          // TODO
+                          console.error("INVALID!");
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <></>
+              )}
+              <div
+                style={{
+                  background: "white",
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                }}
+              >
+                Mode: {mode}
+              </div>
             </ReactFlow>
           </GraphInternals.Provider>
         )}

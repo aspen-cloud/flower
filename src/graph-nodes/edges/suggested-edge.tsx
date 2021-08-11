@@ -86,25 +86,33 @@ export default function SuggestedEdge({
           style={{
             fill: "lightgray",
           }}
-          cx={data.incoming ? sourceX : targetX}
-          cy={
-            data.incoming
-              ? sourceY + HOTKEY_LABEL_SIZE
-              : targetY - HOTKEY_LABEL_SIZE
-          }
+          cx={sourceX}
+          cy={sourceY + HOTKEY_LABEL_SIZE}
           r={HOTKEY_LABEL_SIZE}
         ></circle>
         <text
-          x={data.incoming ? sourceX : targetX}
-          y={
-            data.incoming
-              ? sourceY + HOTKEY_LABEL_SIZE
-              : targetY - HOTKEY_LABEL_SIZE
-          }
+          x={sourceX}
+          y={sourceY + HOTKEY_LABEL_SIZE}
           text-anchor="middle"
           dy=".3em"
         >
-          {data.index === 9 ? 0 : data.index + 1}
+          {data.sourceHandleSuggestionId}
+        </text>
+        <circle
+          style={{
+            fill: "lightgray",
+          }}
+          cx={targetX}
+          cy={targetY - HOTKEY_LABEL_SIZE}
+          r={HOTKEY_LABEL_SIZE}
+        ></circle>
+        <text
+          x={targetX}
+          y={targetY - HOTKEY_LABEL_SIZE}
+          text-anchor="middle"
+          dy=".3em"
+        >
+          {data.targetHandleSuggestionId}
         </text>
       </g>
     </>
