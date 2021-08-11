@@ -33,9 +33,15 @@ const TableViewer: NodeClass = {
   outputs: {
     table: { func: ({ table }) => table, struct: TableStruct },
   },
-  Component: ({ data, id, size, selected }) => {
-    const { inputs, outputs } = data;
-
+  Component: ({
+    data: {
+      inputs,
+      outputs,
+      metadata: { size },
+    },
+    id,
+    selected,
+  }) => {
     return (
       <ResizableNode
         label="Table Explorer"
