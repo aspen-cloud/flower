@@ -93,8 +93,10 @@ export default class ProGraph {
     const rootIndexeddbProvider = new IndexeddbPersistence(id, this.rootDoc);
 
     this.presence = new awarenessProtocol.Awareness(this.rootDoc);
-    const webRTCProvider = new WebrtcProvider(id, this.rootDoc, {
-      signaling: ["wss://signaling.yjs.dev"],
+
+    console.log("setting up webrtc provider for", id);
+    // @ts-ignore
+    new WebrtcProvider(id, this.rootDoc, {
       password: id,
       maxConns: 70 + Math.floor(Math.random() * 70),
       awareness: this.presence,
@@ -110,6 +112,9 @@ export default class ProGraph {
     }
 
     const graphIndexeddbProvider = new IndexeddbPersistence(id, this.graph);
+
+    // @ts-ignore
+    new WebrtcProvider(id + "_graph", this.graph);
 
     this._nodes = this.graph.getMap("nodes");
     this._edges = this.graph.getMap("edges");
@@ -161,6 +166,7 @@ export default class ProGraph {
 
   unmount() {
     this.rootDoc.destroy();
+    this.graph.destroy();
   }
 
   getNode(nodeId: string) {
