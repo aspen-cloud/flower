@@ -82,7 +82,12 @@ export default class ProGraph {
 
   loadedGraph$: Subject<string>;
 
-  constructor(id: string, yDoc: Y.Doc, nodeTypes: Record<string, NodeClass>) {
+  constructor(
+    id: string,
+    yDoc: Y.Doc,
+    nodeTypes: Record<string, NodeClass>,
+    autoLoadGraph = true,
+  ) {
     this.id = id;
     this.rootDoc = yDoc;
     this.nodeTypes = nodeTypes;

@@ -61,15 +61,13 @@ class DataManager {
 
   async getAllGraphs() {
     await this.ready;
-    for (const entry of this._graphs) {
-      const [id, graph] = entry as unknown as [string, Y.Doc];
-      try {
-        graph.load();
-      } catch (e) {
-        console.log("couldn't load", graph);
-      }
-    }
-    return this._graphs.toJSON() as Record<string, Y.Doc>;
+    const graphEntries = await Promise.all(
+      Array.from(this._graphs.keys()).map(async (id) => {
+        return [id, await this.loadGraphDoc(id)];
+      }),
+    );
+
+    return Object.fromEntries(graphEntries);
   }
 
   async deleteGraph(graphId: string) {
@@ -102,6 +100,16 @@ class DataManager {
     this._graphs.set(id, newGraphDoc);
     console.log("loading remote graph", id);
     return this.loadGraph(id);
+  }
+
+  async loadGraphDoc(graphId: string): Promise<Y.Doc> {
+    const yDoc = this._graphs.get(graphId);
+
+    const dbProvider = new IndexeddbPersistence(graphId, yDoc);
+
+    await dbProvider.whenSynced;
+
+    return yDoc;
   }
 }
 

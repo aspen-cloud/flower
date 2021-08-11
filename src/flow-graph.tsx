@@ -64,7 +64,6 @@ import SuggestedEdge, {
   suggestedEdgeId,
 } from "./graph-nodes/edges/suggested-edge";
 import toaster from "./components/app-toaster";
-import NewSheetDialog from "./components/new-sheet-dialog";
 import SelectGraphDialog from "./components/select-graph-dialog";
 import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
