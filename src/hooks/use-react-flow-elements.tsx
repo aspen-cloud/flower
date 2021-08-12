@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edge, Node, Elements } from "react-flow-renderer";
 import { combineLatest } from "rxjs";
 import { map } from "rxjs/operators";
-import { create, Struct } from "superstruct";
+import { create, Struct, StructError } from "superstruct";
 import ProGraph, { GraphEdge, GraphNode } from "../prograph";
 
 function graphToReactFlow(
@@ -48,10 +48,19 @@ function getComponentDataForNode(prograph: ProGraph, node: GraphNode) {
 
   const inputVals = prograph.getNodeInputs(node.id);
   const inputs = Object.fromEntries(
-    inputEntries.map(([key, struct]) => [
-      key,
-      create(inputVals[key].value, struct),
-    ]),
+    inputEntries.map(([key, struct]) => {
+      let val;
+      try {
+        val = create(inputVals[key].value, struct);
+      } catch (e) {
+        if (e instanceof StructError) {
+          console.log(e.message, e.path, e.failures);
+        }
+        val = undefined;
+        console.log("Couldn't create value", inputVals[key], struct);
+      }
+      return [key, val];
+    }),
   );
   const sources = sourceEntries.reduce((acc, curr) => {
     const [key, struct] = curr;

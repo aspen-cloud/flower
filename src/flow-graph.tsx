@@ -69,7 +69,7 @@ import { useHistory, useParams } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
 import GraphOmnibar from "./graph-omnibar";
 import DragPanZone from "./drag-pan-zone";
-import useReactFlowElements from "./hooks/use-react-flow-nodes";
+import useReactFlowElements from "./hooks/use-react-flow-elements";
 import GraphNodes from "./graph-nodes";
 import useDataManager from "./hooks/use-data-manager";
 
