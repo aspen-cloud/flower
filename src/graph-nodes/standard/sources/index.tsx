@@ -29,13 +29,14 @@ const Text: NodeClass = {
       <ResizableNode
         sources={{}}
         sinks={outputs}
-        className={`${selected ? "nowheel nodrag" : ""}`}
+        className={`${selected ? "nowheel" : ""}`}
         height={size?.height || 20}
         width={size?.width || 200}
         nodeId={id}
         label="Text"
       >
         <textarea
+          className="nodrag"
           value={sources.text.value}
           onChange={(e) => sources.text.set(e.target.value)}
           placeholder="Enter text..."
