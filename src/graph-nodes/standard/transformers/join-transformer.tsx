@@ -194,17 +194,17 @@ const Join: NodeClass = {
             `}
           >
             <select
-              value={joinColumnB}
-              onChange={(e) => setJoinColumnB(e.target.value)}
-            >
-              {tableBColumnsOptions}
-            </select>
-            <Icon icon="equals" iconSize={24} />
-            <select
               value={joinColumnA}
               onChange={(e) => setJoinColumnA(e.target.value)}
             >
               {tableAColumnsOptions}
+            </select>
+            <Icon icon="equals" iconSize={24} />
+            <select
+              value={joinColumnB}
+              onChange={(e) => setJoinColumnB(e.target.value)}
+            >
+              {tableBColumnsOptions}
             </select>
           </div>
         </div>
