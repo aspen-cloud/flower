@@ -699,9 +699,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         ...props,
         onDoubleClick: (conn) => {
           prograph.addEdge(conn);
-          setSuggestedEdges((prev) =>
-            prev.filter((e) => e.id !== suggestedEdgeId(conn)),
-          );
         },
       });
     },
@@ -852,11 +849,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
   const parseSuggestionInput = useCallback(
     (input: string): [Edge, string] => {
-      const [handleA, handleB] = input.split("-");
+      const [handleA, handleB] = input.split(":");
       if (!handleA || !handleB)
         return [
           undefined,
-          "Input must be of format <number>-<number> (eg. 6-18)",
+          "Input must be of format <number>:<number> (eg. 6:18)",
         ];
       const idA = Number(handleA);
       const idB = Number(handleB);
@@ -1038,7 +1035,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               onDragOver={onDragOver}
               onEdgeUpdate={onEdgeUpdate}
               onSelectionChange={(elements) => {
-                setSelectedElements(elements || []);
+                const els = elements || [];
+                const isSuggestedEdge = (el: FlowElement) =>
+                  isEdge(el) && el.type === "suggested";
+                // Selecting a suggested edge (occurs on click) should not trigger a change to selection
+                if (els.length && els.every(isSuggestedEdge)) return;
+                setSelectedElements(els.filter((el) => !isSuggestedEdge(el)));
               }}
               onNodeContextMenu={(event, node) => {
                 // @ts-ignore
@@ -1065,10 +1067,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               onEdgeContextMenu={(event, edge) => {
                 event.preventDefault();
 
-                if (edge.type === "suggested") {
-                  onConnect(edge);
-                  return;
-                }
+                if (edge.type === "suggested") return;
 
                 const menu = (
                   <Menu>
@@ -1250,7 +1249,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                     }}
                     style={{ width: "400px" }}
                     inputRef={edgeSuggestionInputRef}
-                    placeholder="Type an edge (eg. 4-10)"
+                    placeholder="Type an edge (eg. 4:10)"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
