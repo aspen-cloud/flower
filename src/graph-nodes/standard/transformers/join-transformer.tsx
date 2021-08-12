@@ -42,11 +42,13 @@ const Join: NodeClass = {
         );
         const columns = tableA.columns
           .map((col) => ({
+            ...col,
             accessor: columnRenameIndexA[col.accessor],
             Header: columnRenameIndexA[col.accessor],
           }))
           .concat(
             tableB.columns.map((col) => ({
+              ...col,
               accessor: columnRenameIndexB[col.accessor],
               Header: columnRenameIndexB[col.accessor],
             })),
@@ -72,7 +74,7 @@ const Join: NodeClass = {
             ).map(([key, val]) => [columnRenameIndexB[key], val]),
           ),
         }));
-
+        console.log(columns, rows);
         return { columns, rows };
       },
       struct: TableStruct,
