@@ -1,4 +1,3 @@
-import { css } from "@emotion/css";
 import { useEffect, useMemo, useState } from "react";
 import { Edge, Node, Elements } from "react-flow-renderer";
 import { combineLatest } from "rxjs";
@@ -79,7 +78,7 @@ function getComponentDataForNode(prograph: ProGraph, node: GraphNode) {
   };
 }
 
-export default function useReactFlowNodes(prograph: ProGraph) {
+export default function useReactFlowElements(prograph: ProGraph) {
   const [graphElements, setGraphElements] = useState<Elements>([]);
 
   const flowElements$ = useMemo(
