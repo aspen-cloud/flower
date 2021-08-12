@@ -854,17 +854,19 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   }, []);
 
   const parseSuggestionInput = useCallback(
-    (input: string) => {
+    (input: string): [Edge, string] => {
       const [handleA, handleB] = input.split("-");
+      if (!handleA || !handleB)
+        return [
+          undefined,
+          "Input must be of format <number>-<number> (eg. 6-18)",
+        ];
       const idA = Number(handleA);
       const idB = Number(handleB);
-      if (
-        !Number.isInteger(idA) ||
-        idA < 1 ||
-        !Number.isInteger(idB) ||
-        idB < 1
-      )
-        return undefined;
+      if (!Number.isInteger(idA) || idA < 1)
+        return [undefined, `${handleA} is not a valid handle id`];
+      if (!Number.isInteger(idB) || idB < 1)
+        return [undefined, `${handleB} is not a valid handle id`];
       const suggestion = suggestedEdges.find(
         (edge) =>
           (edge.data.sourceHandleSuggestionId === idA &&
@@ -872,7 +874,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           (edge.data.sourceHandleSuggestionId === idB &&
             edge.data.targetHandleSuggestionId === idA),
       );
-      return suggestion;
+      if (!suggestion)
+        return [
+          undefined,
+          `Based on your selection, no suggestion exists between ${handleA} and ${handleB}`,
+        ];
+      return [suggestion, undefined];
     },
     [suggestedEdges],
   );
@@ -972,7 +979,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           history.push(`/${graphId}`);
         }}
       />
-      <div ref={reactFlowWrapper} style={{ flexGrow: 1 }}>
+      <div
+        ref={reactFlowWrapper}
+        style={{
+          flexGrow: 1,
+        }}
+      >
         {graphElements && ( // Don't load react flow until elements are ready
           <GraphInternals.Provider
             value={{ proGraph: prograph, reactFlowInstance: reactflowInstance }}
@@ -1228,6 +1240,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                     top: "20px",
                     left: "calc(50% - 200px)",
                     zIndex: 5,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <InputGroup
@@ -1237,11 +1253,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                     }}
                     style={{ width: "400px" }}
                     inputRef={edgeSuggestionInputRef}
-                    placeholder="Type an edge (eg. 4-10) and press 'Enter'"
+                    placeholder="Type an edge (eg. 4-10)"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        const suggestion =
+                        const [suggestion, errorMessage] =
                           parseSuggestionInput(edgeSuggestionInput);
                         if (suggestion) {
                           const conn = {
@@ -1257,12 +1273,21 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                           prograph.addEdge(conn);
                           setEdgeSuggestionInput("");
                         } else {
-                          // TODO
-                          console.error("INVALID!");
+                          toaster.show({
+                            intent: "danger",
+                            message: `Invalid: ${errorMessage}`,
+                            className: "suggestion-mode-toast",
+                          });
                         }
                       }
                     }}
                   />
+                  <div style={{ color: "lightgray" }}>
+                    Press 'enter' to add edge
+                  </div>
+                  <div style={{ color: "lightgray" }}>
+                    Press 'esc' to exit Suggestion Mode
+                  </div>
                 </div>
               ) : (
                 <></>
@@ -1273,10 +1298,20 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                   position: "absolute",
                   bottom: 0,
                   right: 0,
+                  padding: "2px",
                 }}
               >
                 Mode: {mode}
               </div>
+              <div
+                style={{
+                  height: "100%",
+                  width: "100%",
+                  border: `4px solid ${
+                    mode === "SUGGESTION" ? "purple" : "transparent"
+                  }`,
+                }}
+              ></div>
             </ReactFlow>
           </GraphInternals.Provider>
         )}

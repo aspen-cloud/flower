@@ -119,3 +119,7 @@ body {
 .edge-menu-index-close {
   background: #ddd;
 }
+
+.suggestion-mode-toast {
+  top: 50px;
+}
