@@ -9,7 +9,6 @@ import React, {
 import XLSX from "xlsx";
 
 import ReactFlow, {
-  updateEdge,
   getConnectedEdges,
   Controls,
   Background,
@@ -47,7 +46,7 @@ import {
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
-import { jsonToTable, matrixToTable } from "./utils/tables";
+import { jsonToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
 import {
@@ -73,9 +72,6 @@ import DragPanZone from "./drag-pan-zone";
 import useReactFlowElements from "./hooks/use-react-flow-elements";
 import GraphNodes from "./graph-nodes";
 import useDataManager from "./hooks/use-data-manager";
-import { string } from "superstruct";
-import { NodeClass } from "./prograph";
-import { isNumber } from "util";
 
 const initBgColor = "#343434";
 
@@ -286,6 +282,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     }
   }, [omnibarQuery]);
 
+  // TODO: not validating connections
   const validateConnection = (
     connection: Connection | Edge<any>,
     els: Elements,
@@ -764,7 +761,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         );
       }
     },
-    [selectedElements],
+    [selectedElements, prograph],
   );
 
   const [mode, setMode] = useState("GRAPH");
@@ -810,7 +807,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     });
 
     return suggestedConnections;
-  }, [selectedElements]);
+  }, [selectedElements, prograph]);
 
   // Handle the addition of new elements to the graph
   useEffect(() => {
@@ -1286,7 +1283,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                     Press 'enter' to add edge
                   </div>
                   <div style={{ color: "lightgray" }}>
-                    Press 'esc' to exit Suggestion Mode
+                    Press 'escape' to exit Suggestion Mode
                   </div>
                 </div>
               ) : (

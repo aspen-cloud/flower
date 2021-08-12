@@ -59,28 +59,6 @@ export default function SuggestedEdge({
         d={edgePath}
         markerEnd={markerEnd}
       />
-      {/* <foreignObject
-        x={(data.incoming ? sourceX : targetX) - HOTKEY_LABEL_SIZE / 2}
-        y={(data.incoming ? sourceY : targetY) - HOTKEY_LABEL_SIZE / 2}
-        width={`${HOTKEY_LABEL_SIZE}px`}
-        height={`${HOTKEY_LABEL_SIZE}px`}
-      >
-        <div
-          style={{
-            width: `${HOTKEY_LABEL_SIZE}px`,
-            height: `${HOTKEY_LABEL_SIZE}px`,
-            borderRadius: "50%",
-            background: "lightgray",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 20,
-          }}
-        >
-          {data.index === 9 ? 0 : data.index + 1}
-        </div>
-      </foreignObject> */}
-      {/* TODO: improve circle label (maybe something more akin to map pin) */}
       <g>
         <circle
           style={{
