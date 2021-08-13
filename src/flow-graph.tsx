@@ -26,6 +26,8 @@ import ReactFlow, {
   OnLoadParams,
   isNode,
   EdgeProps,
+  useStoreState,
+  useStoreActions,
 } from "react-flow-renderer";
 
 import { ItemRenderer } from "@blueprintjs/select";
@@ -147,7 +149,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const [bgColor, setBgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
-  const [selectedElements, setSelectedElements] = useState<Elements>([]);
+  const selectedElements = useStoreState((state) => state.selectedElements);
+  const setSelectedElements = useStoreActions(
+    (actions) => actions.setSelectedElements,
+  );
   const [omnibarQuery, setOmnibarQuery] = useState("");
   const [omnibarTags, setOmnibarTags] = useState<string[]>([]);
   const [nodeTypeList, setNodeTypeList] = useState<OmnibarItem[]>(
@@ -447,7 +452,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       // default prevented as proxy for spreadsheet cell copies
       if (!isWritable && !event.defaultPrevented) {
         event.preventDefault();
-        await copyElements(selectedElements);
+        await copyElements(selectedElements ?? []);
       }
     };
     document.body.addEventListener("copy", copyHandler);
@@ -490,14 +495,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     if (type === "table") {
       const tableData = jsonToTable(data);
       const newId = await dataManager.newTable(tableData);
-      // const newTable = dataManager.getTable(newId);
-      // // console.log(newTable);
-      // const newTableData = newTable.getMap().get("tableData");
-      // console.log(newTableData);
-      // console.log(newTableData.getArray("columns").toArray());
-      // newTableData.load();
-      // console.log(newTableData);
-      // console.log(newTableData.getArray("columns").toArray());
 
       addNode(prograph, {
         type: "DataTable",
@@ -737,8 +734,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     (event) => {
       if (event.altKey) {
         // Using selected elements because multiselect is tied to onNode events
-        const selectedNodes = selectedElements.filter((el) => isNode(el));
-        const selectedEdges = selectedElements.filter((el) => isEdge(el));
+        const selectedNodes = (selectedElements ?? []).filter((el) =>
+          isNode(el),
+        );
+        const selectedEdges = (selectedElements ?? []).filter((el) =>
+          isEdge(el),
+        );
         prograph.replaceElementGroup(
           selectedNodes.map((el) => el.id),
           selectedEdges.map((el) => el.id),
@@ -758,7 +759,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
   const getSuggestedEdgesForSelectedNodes = useCallback(() => {
     let selectedNodes = null;
-    if (selectedElements.length) {
+
+    // Don't suggested edges when a suggested edge is interacted with
+    const isSuggestedEdge = (el: FlowElement) =>
+      isEdge(el) && el.type === "suggested";
+    if (selectedElements?.length && !selectedElements.every(isSuggestedEdge)) {
       selectedNodes = selectedElements.reduce<Node[]>((nodes, el) => {
         if (isNode(el)) nodes.push(el);
         return nodes;
@@ -1036,14 +1041,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               onSelectionDragStart={(event, _nodes) => handleDragStart(event)}
               onDragOver={onDragOver}
               onEdgeUpdate={onEdgeUpdate}
-              onSelectionChange={(elements) => {
-                const els = elements || [];
-                const isSuggestedEdge = (el: FlowElement) =>
-                  isEdge(el) && el.type === "suggested";
-                // Selecting a suggested edge (occurs on click) should not trigger a change to selection
-                if (els.length && els.every(isSuggestedEdge)) return;
-                setSelectedElements(els.filter((el) => !isSuggestedEdge(el)));
-              }}
               onNodeContextMenu={(event, node) => {
                 // @ts-ignore
                 if (event.target.closest(".base-node-content")) return;
@@ -1220,7 +1217,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                       />
                     </FormGroup>
                     <SelectedElementsManager
-                      selectedElements={selectedElements}
+                      selectedElements={selectedElements ?? []}
                     />
                     <Divider />
                     <TableManager />
@@ -1328,6 +1325,22 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
             allowInInput: false,
             onKeyDown: () => {
               setShowSelectDialog(true);
+            },
+          },
+        ]}
+      >
+        <div></div>
+      </HotkeysTarget2>
+      <HotkeysTarget2
+        hotkeys={[
+          {
+            combo: "cmd+a",
+            global: true,
+            label: "Select all nodes",
+            allowInInput: false,
+            onKeyDown: (e) => {
+              e.preventDefault();
+              setSelectedElements(graphElements);
             },
           },
         ]}

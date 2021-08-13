@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import FlowGraphWrapper from "./flow-graph-wrapper";
 import { DataManagerProvider } from "./hooks/use-data-manager";
 import Home from "./components/home";
+import { ReactFlowProvider } from "react-flow-renderer";
 
 export default function App() {
   return (
@@ -19,7 +20,9 @@ export default function App() {
             <Home />
           </Route>
           <Route exact path="/:graphPath">
-            <FlowGraphWrapper />
+            <ReactFlowProvider>
+              <FlowGraphWrapper />
+            </ReactFlowProvider>
           </Route>
         </Switch>
       </Router>
