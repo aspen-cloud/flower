@@ -318,7 +318,7 @@ export default class ProGraph {
           if (!inboundNodeOutputs) continue;
           // TODO replace with more general solution
           inputs[inputKey] = {
-            value: inboundNodeOutputs[edge.from.busKey] || {
+            value: inboundNodeOutputs[edge.from.busKey] ?? {
               row: [],
               columns: [],
             }, // create(inboundNodeOutputs[edge.from.busKey], inputStruct),
