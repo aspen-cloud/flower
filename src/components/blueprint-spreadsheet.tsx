@@ -6,9 +6,8 @@ import {
   ColumnHeaderCell,
   RowHeaderCell,
   EditableName,
-  IRegion,
 } from "@blueprintjs/table";
-import { EditableText, Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
+import { Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
 import { Table as DataTable, Column as DataColumn, RowValue } from "../types";
 import { parseRow } from "../utils/tables";
@@ -36,7 +35,6 @@ export default React.memo(function Spreadsheet({
   const [editCoordinates, setEditCoordinates] = useState<
     SpreadsheetCoordinates | undefined
   >();
-  const [currentSelection, setCurrentSelection] = useState<IRegion[]>(null);
 
   function newColumn(accessor?: string, label?: string): DataColumn {
     return {
@@ -172,27 +170,6 @@ export default React.memo(function Spreadsheet({
             rowIndex === rowData.length - 1
           ) {
             insertRow(rowIndex + 1);
-          }
-
-          if (e.key === "Backspace") {
-            if (!isEditing) {
-              e.stopPropagation();
-              setRowData((prevRowData) => {
-                const newRows = [...prevRowData];
-                for (const region of currentSelection) {
-                  const [colMin, colMax] = region.cols;
-                  const [rowMin, rowMax] = region.rows;
-
-                  for (let cIndex = colMin; cIndex <= colMax; cIndex++) {
-                    const colId = columnData[cIndex].accessor;
-                    for (let rIndex = rowMin; rIndex <= rowMax; rIndex++) {
-                      delete newRows[rIndex][colId];
-                    }
-                  }
-                }
-                return newRows;
-              });
-            }
           }
         }}
       />
@@ -370,7 +347,27 @@ export default React.memo(function Spreadsheet({
           return cellData;
         }}
         rowHeaderCellRenderer={rowHeaderCellRenderer}
-        onSelection={(selection) => setCurrentSelection(selection)}
+        handleSelectionDelete={(e, selection) => {
+          e.stopPropagation();
+          setRowData((prevRowData) => {
+            const newRows = [...prevRowData];
+            for (const region of selection) {
+              const [colMin, colMax] = region.cols ?? [
+                0,
+                columnData.length - 1,
+              ];
+              const [rowMin, rowMax] = region.rows ?? [0, newRows.length - 1];
+
+              for (let cIndex = colMin; cIndex <= colMax; cIndex++) {
+                const colId = columnData[cIndex].accessor;
+                for (let rIndex = rowMin; rIndex <= rowMax; rIndex++) {
+                  delete newRows[rIndex][colId];
+                }
+              }
+            }
+            return newRows;
+          });
+        }}
       >
         {[...Array(columnData.length).keys()].map(columnRenderer)}
       </Table>
