@@ -111,7 +111,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
 ];
 
 function parseNumber(value: string): number {
-  if (value.match(/^-?(\d+|\d{1,3}(,\d{3})*)(\.\d+)?$/)) {
+  if (value.match(/^-?(\d+|\d{1,3}(,\d{3})*)?(\.\d+)?$/)) {
     return Number(value.replaceAll(",", ""));
   }
   return NaN;
