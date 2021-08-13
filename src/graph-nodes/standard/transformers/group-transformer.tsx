@@ -1,10 +1,8 @@
-import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
-import { TableStruct } from "../../../structs";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 import { RowValue, Table } from "../../../types";
 import { parseRow } from "../../../utils/tables";
-import { NodeClass } from "../../../prograph";
 
 enum AggregateFunction {
   SUM = "SUM",
@@ -12,11 +10,16 @@ enum AggregateFunction {
   COUNT = "COUNT",
 }
 
-const ColumnSelectionStruct = object({
-  aggregateFunction: enums(Object.keys(AggregateFunction)),
-  columnAccessor: string(),
-});
-type GroupSelection = Infer<typeof ColumnSelectionStruct>;
+// const ColumnSelectionStruct = object({
+//   aggregateFunction: enums(Object.keys(AggregateFunction)),
+//   columnAccessor: string(),
+// });
+// type GroupSelection = Infer<typeof ColumnSelectionStruct>;
+
+interface GroupSelection {
+  aggregateFunction: AggregateFunction;
+  columnAccessor: string;
+}
 
 // Returns rows (data) that have a specific value of some column (key)
 function groupBy(data: Record<string, RowValue>[], groupKeys: string[]) {
@@ -67,13 +70,13 @@ function aggregate(func: AggregateFunction, values: RowValue[]) {
 }
 
 // TODO: custom aggregate functions
-const Group: NodeClass = {
+const Group = registerNode({
   inputs: {
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    table: ValueTypes.TABLE,
   },
   sources: {
-    columnSelections: defaulted(array(ColumnSelectionStruct), []),
-    groupColumns: defaulted(array(string()), []),
+    columnSelections: ValueTypes.ANY,
+    groupColumns: ValueTypes.ANY,
   },
   outputs: {
     table: {
@@ -141,7 +144,7 @@ const Group: NodeClass = {
 
         return { columns, rows };
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data }) => {
@@ -341,6 +344,6 @@ const Group: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Group;

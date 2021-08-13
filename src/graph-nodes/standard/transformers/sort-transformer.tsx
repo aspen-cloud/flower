@@ -1,33 +1,28 @@
-import { array, defaulted, enums, Infer, object, string } from "superstruct";
 import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
-import { TableStruct } from "../../../structs";
-import { NodeClass } from "../../../prograph";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-// TODO: what's the best way to converge struct and enum values
 enum SortDirection {
   ASC = "ASC",
   DESC = "DESC",
 }
-const SortDirectionStruct = enums(Object.keys(SortDirection));
 
-const SortDefinitionStruct = object({
-  columnAccessor: string(),
-  direction: SortDirectionStruct,
-});
-type SortDefinition = Infer<typeof SortDefinitionStruct>;
+interface SortDefinition {
+  direction: SortDirection;
+  columnAccessor: string;
+}
 
 function simpleSort(a: any, b: any, direction: SortDirection) {
   if (direction === SortDirection.ASC) return a > b ? 1 : a < b ? -1 : 0;
   return a < b ? 1 : a > b ? -1 : 0;
 }
 
-const Sort: NodeClass = {
+const Sort = registerNode({
   inputs: {
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    table: ValueTypes.TABLE,
   },
   sources: {
-    sortDefinitions: defaulted(array(SortDefinitionStruct), []),
+    sortDefinitions: ValueTypes.ANY,
   },
   outputs: {
     table: {
@@ -63,7 +58,7 @@ const Sort: NodeClass = {
         );
         return { columns, rows };
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data }) => {
@@ -203,6 +198,6 @@ const Sort: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Sort;

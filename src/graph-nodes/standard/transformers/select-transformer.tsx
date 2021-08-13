@@ -1,11 +1,9 @@
-import { any, string, set, defaulted, array } from "superstruct";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Tag, MenuItem } from "@blueprintjs/core";
 import { Suggest, ItemRenderer, ItemPredicate } from "@blueprintjs/select";
 import BaseNode from "../../../components/base-node";
 import { Column } from "../../../types";
-import { TableStruct } from "../../../structs";
-import { NodeClass } from "../../../prograph";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
 const ColumnSuggest = Suggest.ofType<Column>();
 
@@ -34,13 +32,12 @@ const columnSuggestPredicate: ItemPredicate<Column> = (
   return item.Header.includes(query);
 };
 
-const Select: NodeClass = {
+const Select = registerNode({
   inputs: {
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    table: ValueTypes.TABLE,
   },
   sources: {
-    // TODO: can we use set? Can set be serialized?
-    selectedTags: defaulted(array(string()), []),
+    selectedTags: ValueTypes.ANY, // TODO make string[]
   },
   outputs: {
     table: {
@@ -57,7 +54,7 @@ const Select: NodeClass = {
         );
         return { columns, rows };
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data }) => {
@@ -144,6 +141,6 @@ const Select: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Select;

@@ -1,20 +1,15 @@
-import { useMemo } from "react";
-import { Column } from "react-table";
-import { any, object, array, defaulted } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
-import { NodeClass } from "../../../prograph";
-import { TableStruct } from "../../../structs";
-import { RowValue } from "../../../types";
-import DataTable from "../../nodes/standard/table-node/data-table";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
+import DataTable from "./data-table";
 
-const Viewer: NodeClass = {
+const Viewer = registerNode({
   inputs: {
-    value: any(),
+    value: ValueTypes.ANY,
   },
   sources: {},
   outputs: {
-    value: { func: ({ value }) => value, struct: any() },
+    value: { func: ({ value }) => value, returns: ValueTypes.ANY },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -23,15 +18,15 @@ const Viewer: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
-const TableViewer: NodeClass = {
+const TableViewer = registerNode({
   inputs: {
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    table: ValueTypes.TABLE,
   },
   sources: {},
   outputs: {
-    table: { func: ({ table }) => table, struct: TableStruct },
+    table: { func: ({ table }) => table, returns: ValueTypes.TABLE },
   },
   Component: ({
     data: {
@@ -56,7 +51,7 @@ const TableViewer: NodeClass = {
       </ResizableNode>
     );
   },
-};
+});
 
 export default {
   Viewer,

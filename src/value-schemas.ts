@@ -30,8 +30,14 @@ export const FUNCTION = z
   .returns(z.unknown())
   .default((val) => val);
 
+export const ANY = z.any();
+
+export const BOOLEAN = z.boolean().default(false);
+
 export type AnyValueSchemas =
   | typeof STRING
   | typeof NUMBER
   | typeof TABLE
-  | typeof FUNCTION;
+  | typeof FUNCTION
+  | typeof ANY
+  | typeof BOOLEAN;

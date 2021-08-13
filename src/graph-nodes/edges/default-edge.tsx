@@ -8,8 +8,7 @@ import {
   getMarkerEnd,
   XYPosition,
 } from "react-flow-renderer";
-import { is } from "superstruct";
-import { TableStruct } from "../../structs";
+import { isType, ValueTypes } from "../../node-type-manager";
 
 // No rhyme or reason here, just giving obj enough space
 const foreignObjectDims = { width: 300, height: 20 };
@@ -187,7 +186,7 @@ export default function DefaultEdge({
           })
         }
         selectViewerHandler={(e) => {
-          const hasTableInput = is(data.inputs.value, TableStruct);
+          const hasTableInput = isType(ValueTypes.TABLE, data.inputs.value);
           nodeInsertHandler(e, id, hasTableInput ? "TableViewer" : "Viewer", {
             x: edgeCenterX,
             y: edgeCenterY,

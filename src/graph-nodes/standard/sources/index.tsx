@@ -1,19 +1,17 @@
 import { EditableText, Icon } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useCallback, useMemo, useState } from "react";
-import { boolean, defaulted, number, string } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
-import { NodeClass } from "../../../prograph";
-import { TableStruct } from "../../../structs";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-const Text: NodeClass = {
+const Text = registerNode({
   inputs: {},
   sources: {
-    text: defaulted(string(), ""),
+    text: ValueTypes.STRING,
   },
   outputs: {
-    text: { func: ({ text }) => text, struct: defaulted(string(), "") },
+    text: { func: ({ text }) => text, returns: ValueTypes.STRING },
   },
   Component: ({
     selected,
@@ -49,15 +47,15 @@ const Text: NodeClass = {
       </ResizableNode>
     );
   },
-};
+});
 
-const Number: NodeClass = {
+const Number = registerNode({
   inputs: {},
   sources: {
-    number: defaulted(number(), 0),
+    number: ValueTypes.NUMBER,
   },
   outputs: {
-    number: { func: ({ number }) => number, struct: defaulted(number(), 0) },
+    number: { func: ({ number }) => number, returns: ValueTypes.NUMBER },
   },
   Component: ({ data: { sources, outputs } }) => {
     return (
@@ -70,18 +68,18 @@ const Number: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
-const DataTable: NodeClass = {
+const DataTable = registerNode({
   inputs: {},
   sources: {
-    label: defaulted(string(), ""),
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    label: ValueTypes.STRING,
+    table: ValueTypes.TABLE,
   },
   outputs: {
     table: {
       func: ({ table }) => table,
-      struct: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data: { sources, outputs } }) => {
@@ -130,12 +128,12 @@ const DataTable: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
-const ErrorNode: NodeClass = {
+const ErrorNode = registerNode({
   inputs: {},
   sources: {
-    hasError: defaulted(boolean(), false),
+    hasError: ValueTypes.BOOLEAN,
   },
   outputs: {
     result: {
@@ -143,7 +141,7 @@ const ErrorNode: NodeClass = {
         if (hasError) throw new Error("GAH!");
         return "foo";
       },
-      struct: string(),
+      returns: ValueTypes.STRING,
     },
   },
   Component: ({ data }) => {
@@ -162,7 +160,7 @@ const ErrorNode: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default {
   Text,

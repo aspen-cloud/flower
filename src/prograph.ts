@@ -4,8 +4,7 @@ import { WebrtcProvider } from "y-webrtc";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
-import { create, Struct } from "superstruct";
-import { FunctionComponent } from "react";
+import { NodeClass, parseType, ValueTypes } from "./node-type-manager";
 
 if (process.env.NODE_ENV === "development") {
   if (process.argv.includes("log")) {
@@ -46,17 +45,6 @@ export interface GraphEdge {
     nodeId: string;
     busKey: string;
   };
-}
-
-// TODO: move to types
-export interface NodeClass {
-  inputs?: Record<string, Struct>;
-  sources?: Record<string, Struct>;
-  outputs: Record<
-    string,
-    { func: (vals: Record<string, any>) => any; struct: Struct }
-  >;
-  Component?: FunctionComponent<any>;
 }
 
 export default class ProGraph {
@@ -303,7 +291,9 @@ export default class ProGraph {
 
     const inputTypes = this.nodeTypes[node.type].inputs || {};
     const inputs: Record<string, NodeInput> = {};
-    for (const [inputKey, _inputStruct] of Object.entries<Struct>(inputTypes)) {
+    for (const [inputKey, inputType] of Object.entries<ValueTypes>(
+      inputTypes,
+    )) {
       const edge = inboundEdges[inputKey];
       try {
         if (edge) {
@@ -316,14 +306,21 @@ export default class ProGraph {
             ),
           };
           if (!inboundNodeOutputs) continue;
-          // TODO replace with more general solution
-          inputs[inputKey] = {
-            value: inboundNodeOutputs[edge.from.busKey] ?? {
-              row: [],
-              columns: [],
-            }, // create(inboundNodeOutputs[edge.from.busKey], inputStruct),
-            error: undefined,
-          };
+          const parsed = parseType(
+            inputType,
+            inboundNodeOutputs[edge.from.busKey],
+          );
+          if (parsed.success === true) {
+            inputs[inputKey] = {
+              value: parsed.data,
+              error: undefined,
+            };
+          } else {
+            inputs[inputKey] = {
+              value: undefined,
+              error: parsed.error,
+            };
+          }
         } else {
           inputs[inputKey] = { value: undefined, error: undefined };
         }
@@ -338,13 +335,14 @@ export default class ProGraph {
   getNodeSources(nodeId) {
     const node = this._nodes.get(nodeId);
     const sources = {};
-    for (const [sourcekey, sourceStruct] of Object.entries<Struct>(
+    for (const [sourcekey, sourceType] of Object.entries<ValueTypes>(
       this.nodeTypes[node.type].sources || {},
     )) {
-      try {
-        sources[sourcekey] = create(node.sources[sourcekey], sourceStruct);
-      } catch (e) {
-        sources[sourcekey] = undefined;
+      const parsed = parseType(sourceType, node.sources[sourcekey]);
+      if (parsed.success === true) {
+        sources[sourcekey] = parsed.data;
+      } else {
+        console.error(parsed.error);
       }
     }
     return sources;
@@ -410,10 +408,10 @@ export default class ProGraph {
     const inputs = nodeList.flatMap((node) => {
       const Type = this.nodeTypes[node.type];
       if (!Type.inputs) return [];
-      return Object.entries(Type.inputs).map(([busKey, struct]) => ({
+      return Object.entries(Type.inputs).map(([busKey, type]) => ({
         nodeId: node.id,
         busKey,
-        type: struct.type,
+        type,
       }));
     });
 
@@ -430,11 +428,13 @@ export default class ProGraph {
     const outputList = nodeList.flatMap((node) => {
       const Type = this.nodeTypes[node.type];
       if (!Type.outputs) return [];
-      return Object.entries(Type.outputs).map(([busKey, { func, struct }]) => ({
-        nodeId: node.id,
-        busKey,
-        type: struct.type,
-      }));
+      return Object.entries(Type.outputs).map(
+        ([busKey, { func, returns }]) => ({
+          nodeId: node.id,
+          busKey,
+          type: returns,
+        }),
+      );
     });
 
     const typeToOutputs: Record<
@@ -456,7 +456,7 @@ export default class ProGraph {
 
     return openInputs.flatMap((input) => {
       const possibleOutputs =
-        input.type === "any"
+        input.type === ValueTypes.ANY
           ? Object.values(typeToOutputs).flatMap((outputs) => outputs)
           : typeToOutputs[input.type] || [];
 

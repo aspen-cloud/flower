@@ -1,12 +1,11 @@
 import { css } from "@emotion/css";
 import { Global } from "@emotion/react";
-import { defaulted, string } from "superstruct";
-import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-const StickyNote = {
+const StickyNote = registerNode({
   sources: {
-    content: defaulted(string(), ""),
+    content: ValueTypes.STRING,
   },
   Component: ({
     data: {
@@ -49,6 +48,6 @@ const StickyNote = {
       </ResizableNode>
     );
   },
-};
+});
 
 export default StickyNote;
