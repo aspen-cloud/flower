@@ -792,6 +792,29 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [selectedElements],
   );
 
+  // memoizing because we re-render on mouse moves
+  const spreadsheetElement = useMemo(
+    () =>
+      spreadsheetTableData ? (
+        <Spreadsheet
+          initialData={spreadsheetTableData.initialData}
+          onDataUpdate={async (columnData, rowData) => {
+            const columns = columnData;
+            const rows = rowData;
+            prograph.updateNodeSources(spreadsheetTableData.nodeId, {
+              table: {
+                columns,
+                rows,
+              },
+            });
+          }}
+        />
+      ) : (
+        "Must select a source node"
+      ),
+    [spreadsheetTableData, prograph],
+  );
+
   return (
     <div
       style={{
@@ -1148,25 +1171,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       </HotkeysTarget2>
 
       {bottomMenuOpen ? (
-        <div style={{ height: "35%" }}>
-          {spreadsheetTableData ? (
-            <Spreadsheet
-              initialData={spreadsheetTableData.initialData}
-              onDataUpdate={async (columnData, rowData) => {
-                const columns = columnData;
-                const rows = rowData;
-                prograph.updateNodeSources(spreadsheetTableData.nodeId, {
-                  table: {
-                    columns,
-                    rows,
-                  },
-                });
-              }}
-            />
-          ) : (
-            "Must select a source node"
-          )}
-        </div>
+        <div style={{ height: "35%" }}>{spreadsheetElement}</div>
       ) : (
         ""
       )}
