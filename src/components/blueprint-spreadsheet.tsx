@@ -317,7 +317,8 @@ export default React.memo(function Spreadsheet({
         numRows={rowData.length}
         enableFocusedCell={true}
         enableColumnReordering={true}
-        enableColumnInteractionBar={true}
+        // Interaction bar not really necessary and causes formatting issues on 1 col 1 row tables (which is our default)
+        // enableColumnInteractionBar={true}
         enableRowReordering={true}
         onColumnsReordered={(oldIndex, newIndex, length) => {
           setColumnData((prevColumnData) => {
