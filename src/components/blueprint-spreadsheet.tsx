@@ -6,6 +6,7 @@ import {
   ColumnHeaderCell,
   RowHeaderCell,
   EditableName,
+  IRegion,
 } from "@blueprintjs/table";
 import { EditableText, Icon, Intent, Menu, MenuItem } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
@@ -35,6 +36,7 @@ export default React.memo(function Spreadsheet({
   const [editCoordinates, setEditCoordinates] = useState<
     SpreadsheetCoordinates | undefined
   >();
+  const [currentSelection, setCurrentSelection] = useState<IRegion[]>(null);
 
   function newColumn(accessor?: string, label?: string): DataColumn {
     return {
@@ -177,8 +179,17 @@ export default React.memo(function Spreadsheet({
               e.stopPropagation();
               setRowData((prevRowData) => {
                 const newRows = [...prevRowData];
-                const colId = columnData[columnIndex].accessor;
-                delete newRows[rowIndex][colId];
+                for (const region of currentSelection) {
+                  const [colMin, colMax] = region.cols;
+                  const [rowMin, rowMax] = region.rows;
+
+                  for (let cIndex = colMin; cIndex <= colMax; cIndex++) {
+                    const colId = columnData[cIndex].accessor;
+                    for (let rIndex = rowMin; rIndex <= rowMax; rIndex++) {
+                      delete newRows[rIndex][colId];
+                    }
+                  }
+                }
                 return newRows;
               });
             }
@@ -359,6 +370,7 @@ export default React.memo(function Spreadsheet({
           return cellData;
         }}
         rowHeaderCellRenderer={rowHeaderCellRenderer}
+        onSelection={(selection) => setCurrentSelection(selection)}
       >
         {[...Array(columnData.length).keys()].map(columnRenderer)}
       </Table>
