@@ -6,7 +6,7 @@ export const NUMBER = z.number().default(0);
 
 const ColumnSchema = z.object({
   accessor: z.string(),
-  type: z.string(),
+  Type: z.string(),
   Header: z.string(),
 });
 

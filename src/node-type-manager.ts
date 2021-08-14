@@ -91,33 +91,3 @@ export function parseType(type: ValueTypes, value: any) {
 export function isType(type: ValueTypes, value: any) {
   return parseType(type, value).success;
 }
-
-// registerNode({
-//   inputs: z.object({
-//     table: ValueSchemas[ValueTypes.TABLE],
-//   }),
-//   sources: z.object({
-//     label: ValueSchemas[ValueTypes.STRING],
-//   }),
-//   outputs: {
-//     newTable: ({ inputs, sources }) => {
-//       return sources.label;
-//     },
-//   },
-// });
-
-// function defToSchema(def: Record<string, ValueTypes>) {
-//   const schemas = Object.fromEntries(
-//     Object.entries(def).map(([name, type]) => [name, ValueSchemas[type]]),
-//   );
-//   const obj = z.object(schemas);
-//   return obj as z.infer<typeof obj>;
-// }
-
-// // const test = defToSchema({ num: ValueTypes.NUMBER });
-
-// const testSchema = z.object({
-//   table: TABLE,
-// });
-
-// type testType = z.infer<typeof testSchema>;
