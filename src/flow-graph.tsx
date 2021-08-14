@@ -1047,7 +1047,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 isOpen={sideMenuOpen}
                 size={DrawerSize.SMALL}
                 hasBackdrop={false}
-                canOutsideClickClose={false}
+                canOutsideClickClose={true}
                 canEscapeKeyClose={false}
                 enforceFocus={false}
                 portalClassName="info-sidebar"
