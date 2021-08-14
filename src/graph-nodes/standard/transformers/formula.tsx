@@ -1,20 +1,16 @@
 import { InputGroup } from "@blueprintjs/core";
-import { array, string, defaulted, object, any } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import formulajs from "@formulajs/formulajs";
-import { NodeClass } from "../../../prograph";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
 const FormulaParser = require("hot-formula-parser").Parser;
 
-const Formula: NodeClass = {
+const Formula = registerNode({
   inputs: {
-    tableSchema: defaulted(object({ rows: array(), columns: array() }), () => ({
-      rows: [],
-      columns: [],
-    })),
+    tableSchema: ValueTypes.TABLE,
   },
   sources: {
-    formulaText: defaulted(string(), () => ""),
+    formulaText: ValueTypes.STRING,
   },
   outputs: {
     function: {
@@ -45,7 +41,7 @@ const Formula: NodeClass = {
           return result;
         };
       },
-      struct: any(),
+      returns: ValueTypes.ANY,
     },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {
@@ -68,6 +64,6 @@ const Formula: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Formula;

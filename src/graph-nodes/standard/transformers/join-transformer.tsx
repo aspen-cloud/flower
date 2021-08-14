@@ -1,22 +1,20 @@
-import { defaulted, string } from "superstruct";
 import { useCallback, useMemo } from "react";
 import BaseNode from "../../../components/base-node";
-import { TableStruct } from "../../../structs";
 import DirtyInput from "../../../dirty-input";
-import { NodeClass } from "../../../prograph";
 import { Icon } from "@blueprintjs/core";
 import { css } from "@emotion/css";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-const Join: NodeClass = {
+const Join = registerNode({
   inputs: {
-    tableA: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
-    tableB: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    tableA: ValueTypes.TABLE,
+    tableB: ValueTypes.TABLE,
   },
   sources: {
-    labelA: defaulted(string(), ""),
-    labelB: defaulted(string(), ""),
-    joinColumnA: defaulted(string(), ""),
-    joinColumnB: defaulted(string(), ""),
+    labelA: ValueTypes.STRING,
+    labelB: ValueTypes.STRING,
+    joinColumnA: ValueTypes.STRING,
+    joinColumnB: ValueTypes.STRING,
   },
   outputs: {
     table: {
@@ -77,7 +75,7 @@ const Join: NodeClass = {
         console.log(columns, rows);
         return { columns, rows };
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data }) => {
@@ -211,6 +209,6 @@ const Join: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Join;

@@ -1,8 +1,9 @@
 import * as Y from "yjs";
 import { nanoid } from "nanoid";
 import { IndexeddbPersistence } from "y-indexeddb";
-import ProGraph, { NodeClass } from "./prograph";
+import ProGraph from "./prograph";
 import { BehaviorSubject } from "rxjs";
+import { NodeClass } from "./node-type-manager";
 
 /**
  * This manages graphs and tables. It's able to load "all" graphs into memory

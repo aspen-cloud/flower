@@ -10,7 +10,6 @@ Object.defineProperty(global.self, "crypto", {
 global.indexedDB = require("fake-indexeddb");
 global.IDBKeyRange = require("fake-indexeddb/lib/FDBKeyRange");
 import ProGraph from "../prograph";
-import { any, defaulted, func, number } from "superstruct";
 import { nanoid } from "nanoid";
 import * as Y from "yjs";
 
@@ -21,7 +20,7 @@ describe("basic CRUD", () => {
         input: any(),
       },
       outputs: {
-        output: { func: ({ input }) => input, struct: func() },
+        output: { func: ({ input }) => input, returns: func() },
       },
     },
   });
@@ -105,7 +104,7 @@ describe("topological sorting", () => {
         input: any(),
       },
       outputs: {
-        output: { func: ({ input }) => input, struct: any() },
+        output: { func: ({ input }) => input, returns: any() },
       },
     },
   });
@@ -362,28 +361,31 @@ describe("Basic calculations", () => {
     const NodeTypes = {
       Add: {
         inputs: {
-          left: { type: defaulted(number(), 0) },
-          right: { type: defaulted(number(), 0) },
+          left: { type: ValueTypes.NUMBER },
+          right: { type: ValueTypes.NUMBER },
         },
         outputs: {
-          sum: { func: ({ left, right }) => left + right, struct: number() },
+          sum: {
+            func: ({ left, right }) => left + right,
+            returns: ValueTypes.NUMBER,
+          },
         },
       },
       Subtract: {
         inputs: {
-          left: { type: defaulted(number(), 0) },
-          right: { type: defaulted(number(), 0) },
+          left: { type: ValueTypes.NUMBER },
+          right: { type: ValueTypes.NUMBER },
         },
         outputs: {
           difference: {
             func: ({ left, right }) => left - right,
-            struct: number(),
+            returns: ValueTypes.NUMBER,
           },
         },
       },
       Number: {
         sources: {
-          number: { type: defaulted(number(), 0) },
+          number: { type: ValueTypes.NUMBER },
         },
       },
       Output: {
@@ -391,7 +393,7 @@ describe("Basic calculations", () => {
           value: { type: any() },
         },
         outputs: {
-          value: { func: ({ value }) => value, struct: any() },
+          value: { func: ({ value }) => value, returns: any() },
         },
       },
     };

@@ -1,4 +1,3 @@
-import { defaulted, number } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import Sort from "./sort-transformer";
 import Select from "./select-transformer";
@@ -8,18 +7,18 @@ import Formula from "./formula";
 import GenerateColumn from "./generate-column";
 import Filter from "./filter-transformer";
 import { Icon } from "@blueprintjs/core";
-import { NodeClass } from "../../../prograph";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-const Add: NodeClass = {
+const Add = registerNode({
   inputs: {
-    left: defaulted(number(), 0),
-    right: defaulted(number(), 0),
+    left: ValueTypes.NUMBER,
+    right: ValueTypes.NUMBER,
   },
   sources: {},
   outputs: {
     sum: {
       func: ({ left, right }) => +left + +right,
-      struct: number(),
+      returns: ValueTypes.NUMBER,
     },
   },
   Component: ({ data: { inputs, outputs } }) => {
@@ -29,16 +28,19 @@ const Add: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
-const Subtract: NodeClass = {
+const Subtract = registerNode({
   inputs: {
-    left: defaulted(number(), 0),
-    right: defaulted(number(), 0),
+    left: ValueTypes.NUMBER,
+    right: ValueTypes.NUMBER,
   },
   sources: {},
   outputs: {
-    difference: { func: ({ left, right }) => +left - +right, struct: number() },
+    difference: {
+      func: ({ left, right }) => +left - +right,
+      returns: ValueTypes.NUMBER,
+    },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -47,16 +49,19 @@ const Subtract: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
-const Multiply: NodeClass = {
+const Multiply = registerNode({
   inputs: {
-    left: defaulted(number(), 0),
-    right: defaulted(number(), 0),
+    left: ValueTypes.NUMBER,
+    right: ValueTypes.NUMBER,
   },
   sources: {},
   outputs: {
-    product: { func: ({ left, right }) => +left * +right, struct: number() },
+    product: {
+      func: ({ left, right }) => +left * +right,
+      returns: ValueTypes.NUMBER,
+    },
   },
   Component: ({ data: { inputs, outputs } }) => {
     return (
@@ -65,13 +70,13 @@ const Multiply: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 // Example of error thrown in output
-const Divide: NodeClass = {
+const Divide = registerNode({
   inputs: {
-    numerator: defaulted(number(), 0),
-    divisor: defaulted(number(), 0),
+    numerator: ValueTypes.NUMBER,
+    divisor: ValueTypes.NUMBER,
   },
   sources: {},
   outputs: {
@@ -81,7 +86,7 @@ const Divide: NodeClass = {
 
         return +numerator / +divisor;
       },
-      struct: number(),
+      returns: ValueTypes.NUMBER,
     },
   },
   Component: ({ data: { inputs, outputs } }) => {
@@ -91,7 +96,7 @@ const Divide: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default {
   Add,

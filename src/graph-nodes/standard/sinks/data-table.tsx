@@ -9,10 +9,10 @@ import {
   useFilters,
   Column,
 } from "react-table";
-import { columnTypes } from "../../../../column-parsers";
-import { Table, Column as DataColumn } from "../../../../types";
-import { download, tableToCsv } from "../../../../utils/files";
-import filterDefinitions from "../filter-node/filters";
+import { columnTypes } from "../../../column-parsers";
+import { Table, Column as DataColumn } from "../../../types";
+import { download, tableToCsv } from "../../../utils/files";
+import filterDefinitions from "../transformers/filters";
 
 const ROW_HEIGHT = "40px";
 

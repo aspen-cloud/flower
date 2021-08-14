@@ -1,20 +1,17 @@
-import { array, defaulted, enums, Infer, object, string } from "superstruct";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import BaseNode from "../../../components/base-node";
-import { TableStruct } from "../../../structs";
-import filters from "../../nodes/standard/filter-node/filters";
+import filters from "./filters";
 import DirtyInput from "../../../dirty-input";
-import { Table } from "../../../types";
-import { NodeClass } from "../../../prograph";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 
-const Filter: NodeClass = {
+const Filter = registerNode({
   inputs: {
-    table: defaulted(TableStruct, () => ({ rows: [], columns: [] })),
+    table: ValueTypes.TABLE,
   },
   sources: {
-    columnAccessor: defaulted(string(), ""),
-    columnFilter: defaulted(string(), ""),
-    compareValue: defaulted(string(), ""),
+    columnAccessor: ValueTypes.STRING,
+    columnFilter: ValueTypes.STRING,
+    compareValue: ValueTypes.STRING,
   },
   outputs: {
     table: {
@@ -29,7 +26,7 @@ const Filter: NodeClass = {
           columns: table.columns,
         };
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data }) => {
@@ -121,6 +118,6 @@ const Filter: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default Filter;

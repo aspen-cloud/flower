@@ -1,19 +1,17 @@
 import { FormGroup } from "@blueprintjs/core";
 import { nanoid } from "nanoid";
-import { any, defaulted, func, string } from "superstruct";
 import BaseNode from "../../../components/base-node";
 import DirtyInput from "../../../dirty-input";
-import { NodeClass } from "../../../prograph";
-import { TableStruct } from "../../../structs";
+import { registerNode, ValueTypes } from "../../../node-type-manager";
 import { inferType } from "../../../utils/tables";
 
-const GenerateColumn: NodeClass = {
+const GenerateColumn = registerNode({
   sources: {
-    columnName: defaulted(string(), () => ""),
+    columnName: ValueTypes.STRING,
   },
   inputs: {
-    table: defaulted(any(), () => ({ rows: [], columns: [] })),
-    func: defaulted(func(), () => (val) => val),
+    table: ValueTypes.TABLE,
+    func: ValueTypes.FUNCTION,
   },
   outputs: {
     table: {
@@ -47,7 +45,7 @@ const GenerateColumn: NodeClass = {
 
         return newTable;
       },
-      struct: TableStruct,
+      returns: ValueTypes.TABLE,
     },
   },
   Component: ({ data: { sources, inputs, outputs } }) => {
@@ -67,6 +65,6 @@ const GenerateColumn: NodeClass = {
       </BaseNode>
     );
   },
-};
+});
 
 export default GenerateColumn;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Edge, Node, Elements } from "react-flow-renderer";
 import { combineLatest } from "rxjs";
 import { map } from "rxjs/operators";
-import { create, Struct, StructError } from "superstruct";
+import { parseType, ValueTypes } from "../node-type-manager";
 import ProGraph, { GraphEdge, GraphNode } from "../prograph";
 
 function graphToReactFlow(
@@ -38,10 +38,10 @@ function graphToReactFlow(
 
 function getComponentDataForNode(prograph: ProGraph, node: GraphNode) {
   const nodeClass = prograph.nodeTypes[node.type];
-  const inputEntries: [string, Struct][] = nodeClass.inputs
+  const inputEntries: [string, ValueTypes][] = nodeClass.inputs
     ? Object.entries(nodeClass.inputs)
     : [];
-  const sourceEntries: [string, Struct][] = nodeClass.sources
+  const sourceEntries: [string, ValueTypes][] = nodeClass.sources
     ? Object.entries(nodeClass.sources)
     : [];
   const outputKeys = nodeClass.outputs ? Object.keys(nodeClass.outputs) : [];
@@ -49,23 +49,27 @@ function getComponentDataForNode(prograph: ProGraph, node: GraphNode) {
   const inputVals = prograph.getNodeInputs(node.id);
   const inputs = Object.fromEntries(
     inputEntries.map(([key, struct]) => {
-      let val;
-      try {
-        val = create(inputVals[key].value, struct);
-      } catch (e) {
-        if (e instanceof StructError) {
-          console.log(e.message, e.path, e.failures);
-        }
-        val = undefined;
-        console.log("Couldn't create value", inputVals[key], struct);
+      const parsed = parseType(struct, inputVals[key].value);
+      if (parsed.success === true) {
+        return [key, parsed.data];
+      } else {
+        console.error(parsed.error);
+        return [key, undefined];
       }
-      return [key, val];
     }),
   );
   const sources = sourceEntries.reduce((acc, curr) => {
     const [key, struct] = curr;
+    let value;
+    const parsed = parseType(struct, node.sources[key]);
+    if (parsed.success === true) {
+      value = parsed.data;
+    } else {
+      console.error(parsed.error);
+      value = undefined;
+    }
     acc[key] = {
-      value: create(node.sources[key], struct),
+      value,
       set: (newVal) => {
         prograph.updateNodeSources(node.id, { [key]: newVal });
       },

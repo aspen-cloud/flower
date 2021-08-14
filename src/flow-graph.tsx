@@ -712,11 +712,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           const inputType =
             GraphNodes[prograph.getNode(edge.from.nodeId).type].outputs[
               edge.from.busKey
-            ].struct.type;
+            ].returns;
           const outputType =
             GraphNodes[prograph.getNode(edge.to.nodeId).type].inputs[
               edge.to.busKey
-            ].type;
+            ];
           setOmnibarTags([`input:${inputType}`, `output:${outputType}`]);
           setShowNodeOmniBar(true);
         },
@@ -758,13 +758,13 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     const inputFilter =
       !normalizedFilters.input ||
       Object.values(itemType?.inputs || {}).some(
-        (struct) => struct.type === normalizedFilters.input,
+        (struct) => struct === normalizedFilters.input,
       );
 
     const outputFilter =
       !normalizedFilters.output ||
       Object.values(itemType?.outputs || {}).some(
-        (outputObj) => outputObj.struct.type === normalizedFilters.output,
+        (outputObj) => outputObj.returns === normalizedFilters.output,
       );
 
     return queryFilter && inputFilter && outputFilter;
