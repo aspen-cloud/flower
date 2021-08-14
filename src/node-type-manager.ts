@@ -1,13 +1,5 @@
 import { z } from "zod";
-import {
-  FUNCTION,
-  NUMBER,
-  STRING,
-  TABLE,
-  AnyValueSchemas,
-  ANY,
-  BOOLEAN,
-} from "./value-schemas";
+import { FUNCTION, NUMBER, STRING, TABLE, ANY, BOOLEAN } from "./value-schemas";
 import { FunctionComponent } from "react";
 import { NodeComponentProps } from "react-flow-renderer";
 
@@ -28,18 +20,6 @@ export const ValueSchemas: Record<ValueTypes, z.ZodTypeAny> = {
   [ValueTypes.ANY]: ANY,
   [ValueTypes.BOOLEAN]: BOOLEAN,
 };
-
-// export interface NodeClass<IS extends string, SS extends string> {
-//   inputs: Record<IS, ValueTypes>;
-//   sources: Record<SS, ValueTypes>;
-//   outputs: {
-//     func: (args: {
-//       input: Record<IS, z.infer<AnyValueSchemas>>;
-//       sources: Record<IS, z.infer<AnyValueSchemas>>;
-//     }) => {};
-//     returns: ValueTypes;
-//   };
-// }
 
 export function registerNode<
   I extends Record<string, ValueTypes> = {},
