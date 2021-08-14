@@ -43,6 +43,7 @@ import {
   Card,
   InputGroup,
   FormGroup,
+  Position,
 } from "@blueprintjs/core";
 
 import { OmnibarItem } from "./types";
@@ -1025,7 +1026,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 style={{
                   position: "absolute",
                   bottom: "10px",
-                  left: "10px",
+                  right: "10px",
                   background: "white",
                   borderRadius: "100%",
                   zIndex: 5,
@@ -1046,7 +1047,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 title="General"
                 isOpen={sideMenuOpen}
                 size={DrawerSize.SMALL}
-                hasBackdrop={false}
+                hasBackdrop={true}
                 canOutsideClickClose={true}
                 canEscapeKeyClose={false}
                 enforceFocus={false}
@@ -1170,11 +1171,17 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         />
       </HotkeysTarget2>
 
-      {bottomMenuOpen ? (
-        <div style={{ height: "35%" }}>{spreadsheetElement}</div>
-      ) : (
-        ""
-      )}
+      <Drawer
+        position={Position.BOTTOM}
+        isOpen={bottomMenuOpen}
+        onClose={() => {
+          setBottomMenuOpen(false);
+        }}
+        title="Inspector"
+        icon="path-search"
+      >
+        <div>{spreadsheetElement}</div>
+      </Drawer>
     </div>
   );
 }
