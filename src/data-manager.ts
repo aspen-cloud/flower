@@ -79,8 +79,9 @@ class DataManager {
     const id = nanoid();
     const newGraphDoc = new Y.Doc({ autoLoad: true, guid: id });
     this._graphs.set(id, newGraphDoc);
-    console.log("creating graph", id);
-    return this.loadGraph(id);
+    const prograph = await this.loadGraph(id);
+    prograph.name = "Untitled";
+    return prograph;
   }
 
   async loadGraph(id: string): Promise<ProGraph> {
