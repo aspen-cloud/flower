@@ -2,6 +2,7 @@ import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
 import DataTable from "./data-table";
+import SwarmPlot from "./swarm-plot";
 
 const Viewer = registerNode({
   inputs: {
@@ -56,4 +57,5 @@ const TableViewer = registerNode({
 export default {
   Viewer,
   TableViewer,
+  SwarmPlot,
 };
