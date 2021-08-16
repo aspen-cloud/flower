@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
+import dataManager from "../../../data-manager";
 
 const Text = registerNode({
   inputs: {},
@@ -75,6 +76,8 @@ const DataTable = registerNode({
   sources: {
     label: ValueTypes.STRING,
     table: ValueTypes.TABLE,
+    sourceLabel: ValueTypes.STRING,
+    docId: ValueTypes.STRING,
   },
   outputs: {
     table: {
@@ -112,6 +115,7 @@ const DataTable = registerNode({
             className={css`
               font-size: 0.6em;
               display: flex;
+              flex-direction: column;
               align-items: center;
               color: #5c7080;
 
@@ -120,9 +124,12 @@ const DataTable = registerNode({
               }
             `}
           >
-            {/* TODO Fails on paste */}
-            <span>{outputs.table?.rows.length} rows</span>
-            <span>{outputs.table?.columns.length} columns</span>
+            <div>Data source: {sources.sourceLabel.value}</div>
+            <div>
+              {/* TODO Fails on paste */}
+              <span>{outputs.table?.rows.length} rows</span>
+              <span>{outputs.table?.columns.length} columns</span>
+            </div>
           </div>
         </div>
       </BaseNode>

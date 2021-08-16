@@ -44,9 +44,9 @@ import {
   FormGroup,
   Position,
   useHotkeys,
+  Divider,
 } from "@blueprintjs/core";
-
-import { OmnibarItem } from "./types";
+import { Column, OmnibarItem, RowValue } from "./types";
 import { jsonToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
@@ -73,6 +73,8 @@ import DragPanZone from "./drag-pan-zone";
 import useReactFlowElements from "./hooks/use-react-flow-elements";
 import GraphNodes from "./graph-nodes";
 import useDataManager from "./hooks/use-data-manager";
+import TableManager from "./components/table-manager";
+import SelectedElementsManager from "./components/selected-elements-manager";
 
 const initBgColor = "#343434";
 
@@ -94,34 +96,6 @@ const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
   data: {},
 }));
 
-const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const error = element.data?.inputs?.error || element.data?.outputs?.error;
-  return (
-    <>
-      <div onClick={() => setIsOpen((wasOpen) => !wasOpen)}>
-        <b>
-          <Icon icon={isOpen ? "caret-down" : "caret-right"} /> {element.id}
-        </b>
-      </div>
-      <Collapse isOpen={isOpen}>
-        <Card>
-          <div>
-            <b>Type:</b> {element.type}
-          </div>
-          {error ? (
-            <div>
-              <b>Error:</b> {error.message}
-            </div>
-          ) : (
-            ""
-          )}
-        </Card>
-      </Collapse>
-    </>
-  );
-};
-
 // Use sparingly, main use case is to add unsupported interactions to nodes (ie resizing)
 // May also be a good way to access react flow instance in the future if nodes need to be aware of graph state (ie zoom level)
 export const GraphInternals = React.createContext<{
@@ -135,6 +109,7 @@ export const GraphInternals = React.createContext<{
 interface SpreadSheetTableData {
   initialData: Table;
   nodeId: string;
+  docId: string;
 }
 
 function addNode(prograph: ProGraph, { type, data, position }) {
@@ -393,11 +368,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     const file = await entry.getFile();
     const jsonData = await csvToJson(file);
     const tableData = jsonToTable(jsonData);
+    const newId = await dataManager.newTable(tableData, file.name);
     addNode(prograph, {
       type: "DataTable",
       data: {
-        table: tableData,
-        label: file.name,
+        docId: newId,
       },
       position,
     });
@@ -513,10 +488,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
     if (type === "table") {
       const tableData = jsonToTable(data);
+      const newId = await dataManager.newTable(tableData);
       addNode(prograph, {
         type: "DataTable",
         data: {
-          table: tableData,
+          docId: newId,
         },
         position,
       });
@@ -894,23 +870,26 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const spreadsheetElement = useMemo(
     () =>
       spreadsheetTableData ? (
+        // TODO: Spreadsheet updating doesnt always propagate changes of underlying data to siblings
         <Spreadsheet
           initialData={spreadsheetTableData.initialData}
           onDataUpdate={async (columnData, rowData) => {
-            const columns = columnData;
-            const rows = rowData;
-            prograph.updateNodeSources(spreadsheetTableData.nodeId, {
-              table: {
-                columns,
-                rows,
-              },
+            const doc = await dataManager.getTable(spreadsheetTableData.docId);
+            const docCols = doc.getArray<Column>("columns");
+            const docRows = doc.getArray<Record<string, RowValue>>("rows");
+            doc.transact(() => {
+              docCols.delete(0, docCols.length);
+              docCols.insert(0, columnData);
+
+              docRows.delete(0, docRows.length);
+              docRows.insert(0, rowData);
             });
           }}
         />
       ) : (
         "Must select a source node"
       ),
-    [spreadsheetTableData, prograph],
+    [spreadsheetTableData, dataManager],
   );
 
   const hotkeys = useMemo(() => {
@@ -1016,13 +995,22 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                   handleDragStart(event);
                 }
               }}
-              onNodeDoubleClick={(e, node) => {
+              onNodeDoubleClick={async (e, node) => {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
                   const graphNode = prograph._nodes.get(nodeId);
+                  const doc = await dataManager.getTable(
+                    graphNode.sources.docId,
+                  );
                   setSpreadsheetTableData({
                     nodeId,
-                    initialData: graphNode.sources.table as Table,
+                    initialData: {
+                      columns: doc.getArray<Column>("columns").toArray(),
+                      rows: doc
+                        .getArray<Record<string, RowValue>>("rows")
+                        .toArray(),
+                    },
+                    docId: graphNode.sources.docId,
                   });
                   setBottomMenuOpen(true);
                 } else {
@@ -1209,13 +1197,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                         }}
                       />
                     </FormGroup>
-                    {selectedElements.length ? (
-                      selectedElements.map((el, i) => (
-                        <ElementInfoMenuItem key={i} element={el} />
-                      ))
-                    ) : (
-                      <div>No elements selected.</div>
-                    )}
+                    <SelectedElementsManager
+                      selectedElements={selectedElements}
+                    />
+                    <Divider />
+                    <TableManager />
                   </div>
                 </div>
               </Drawer>

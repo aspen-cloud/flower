@@ -1,8 +1,5 @@
 import { createContext, useContext } from "react";
-import DataManager from "../data-manager";
-import GraphNodes from "../graph-nodes";
-
-const dataManager = new DataManager(GraphNodes);
+import dataManager from "../data-manager";
 
 const DataManagerContext = createContext(dataManager);
 

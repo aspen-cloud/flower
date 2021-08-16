@@ -4,6 +4,8 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import ProGraph from "./prograph";
 import { BehaviorSubject } from "rxjs";
 import { NodeClass } from "./node-type-manager";
+import { Column, RowValue, Table } from "./types";
+import GraphNodes from "./graph-nodes";
 
 /**
  * This manages graphs and tables. It's able to load "all" graphs into memory
@@ -19,6 +21,10 @@ class DataManager {
 
   graphs$: BehaviorSubject<Record<string, Y.Doc>>;
 
+  private _tables: Y.Map<Y.Doc>; // Each table has a string that identifies a doc, doc has columns, rows, etc
+
+  tables$: BehaviorSubject<Record<string, Y.Doc>>;
+
   readonly nodeTypes: Record<string, NodeClass>;
 
   ready: Promise<void>;
@@ -28,8 +34,12 @@ class DataManager {
     this.nodeTypes = nodeTypes;
 
     this._graphs = this.rootDoc.getMap("graphs");
+    this._tables = this.rootDoc.getMap("tables");
 
-    const indexeddbProvider = new IndexeddbPersistence("graphs", this.rootDoc);
+    const indexeddbProvider = new IndexeddbPersistence(
+      "flow-data",
+      this.rootDoc,
+    );
 
     this.ready = new Promise((resolve) => {
       indexeddbProvider.whenSynced.then(() => {
@@ -38,9 +48,14 @@ class DataManager {
     });
 
     this.graphs$ = new BehaviorSubject(this._graphs.toJSON());
+    this.tables$ = new BehaviorSubject(this._tables.toJSON());
 
     this._graphs.observe(async () => {
       this.graphs$.next(await this.getAllGraphs());
+    });
+
+    this._tables.observe(async () => {
+      this.tables$.next(await this.getAllTables());
     });
 
     this.rootDoc.on("subdocs", async () => {
@@ -113,6 +128,64 @@ class DataManager {
 
     return yDoc;
   }
+
+  async newTable(data: Table, label?: string) {
+    const id = nanoid();
+    const newTableDoc = new Y.Doc({ autoLoad: true, guid: id });
+
+    const columns = newTableDoc.getArray<Column>("columns");
+    columns.insert(0, data.columns);
+
+    const rows = newTableDoc.getArray<Record<string, RowValue>>("rows");
+    rows.insert(0, data.rows);
+
+    const metadata = newTableDoc.getMap("metadata");
+    metadata.set("label", label || "Untitled"); // TODO: unique labels
+
+    this._tables.set(id, newTableDoc);
+    const dbProvider = new IndexeddbPersistence(`table-${id}`, newTableDoc);
+    await dbProvider.whenSynced;
+    return id;
+  }
+
+  async getTable(id: string) {
+    // TODO: handle table does not exist
+    return await this.loadTable(id);
+  }
+
+  async getAllTables(): Promise<Record<string, Y.Doc>> {
+    const tableEntries = await Promise.all(
+      Array.from(this._tables.keys()).map(async (id) => {
+        return [id, await this.loadTable(id)];
+      }),
+    );
+
+    return Object.fromEntries(tableEntries);
+  }
+
+  private async loadTable(id: string) {
+    const tableDoc = this._tables.get(id);
+    const dbProvider = new IndexeddbPersistence(`table-${id}`, tableDoc);
+    await dbProvider.whenSynced;
+    return tableDoc;
+  }
+
+  // Going nuclear for now
+  // Should make sure any related nodes are deleted
+  deleteTable(id: string) {
+    const entry = this._tables.get(id);
+    const dbProvider = new IndexeddbPersistence(`table-${id}`, entry);
+    dbProvider.clearData();
+    entry.destroy();
+    this._tables.delete(id);
+  }
+
+  // TODO: Figure out better update propagation to tables document and rxjs listener
+  updateTable(id: string, updateFunc: (doc: Y.Doc) => void) {
+    const doc = this._tables.get(id);
+    updateFunc(doc);
+    this._tables.set(id, doc);
+  }
 }
 
-export default DataManager;
+export default new DataManager(GraphNodes);

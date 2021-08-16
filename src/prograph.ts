@@ -5,6 +5,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
 import { NodeClass, parseType, ValueTypes } from "./node-type-manager";
+import dataManager from "./data-manager";
 
 if (process.env.NODE_ENV === "development") {
   if (process.argv.includes("log")) {
@@ -34,6 +35,9 @@ export interface GraphNode {
   position: { x: number; y: number };
   size?: { width: number; height: number };
 }
+
+// Keep track locally of what nodes have had their source initialized (see hack in updateNodeSources)
+const initializedNodes = new Set();
 
 export interface GraphEdge {
   id: string;
@@ -350,9 +354,51 @@ export default class ProGraph {
 
   updateNodeSources(nodeId: string, sources: Record<string, any>) {
     const node = this._nodes.get(nodeId);
-    node.sources = { ...node.sources, ...sources };
-    this._nodes.set(node.id, { ...node });
-    this.evaluate([nodeId]);
+    const newSourceVals = { ...node.sources, ...sources };
+
+    const update = (newSources) => {
+      node.sources = newSources;
+      this._nodes.set(node.id, { ...node });
+      this.evaluate([nodeId]);
+    };
+
+    // Hack: some nodes need to have their sources initialized outside the component
+    if (!initializedNodes.has(node.id)) {
+      if (node.type === "DataTable") {
+        const initializer = async () => {
+          let docId = newSourceVals["docId"];
+          if (!docId) {
+            docId = await dataManager.newTable({
+              columns: [],
+              rows: [],
+            });
+          }
+          const doc = await dataManager.getTable(newSourceVals["docId"]);
+
+          const dataTableUpdate = () =>
+            update({
+              ...newSourceVals,
+              table: {
+                columns: doc.getArray("columns").toArray(),
+                rows: doc.getArray("rows").toArray(),
+              },
+              sourceLabel: doc.getMap("metadata").get("label"),
+            });
+
+          doc.on("update", () => {
+            dataTableUpdate();
+          });
+          dataTableUpdate();
+        };
+        initializer();
+        initializedNodes.add(node.id);
+        return; // need to end early here
+      }
+      initializedNodes.add(node.id);
+    }
+    // Hack end
+
+    update(newSourceVals);
   }
 
   updateNodeOutput(

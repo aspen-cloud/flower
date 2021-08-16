@@ -51,8 +51,17 @@ export default React.memo(function Spreadsheet({
     setRowData(initialData.rows);
   }, [initialData]);
 
+  // NOTE: probably best to avoid adding onDataUpdate as dep, may run the update with bad data and causes the data to get screwy
   useEffect(() => {
-    // NOTE: probably best to avoid adding onDataUpdate as dep, may run the update with bad data and causes the data to get screwy
+    if (rowData.length === 0) {
+      setRowData([{}]);
+      return;
+    }
+    if (columnData.length === 0) {
+      setColumnData([newColumn()]);
+      return;
+    }
+
     if (onDataUpdate) onDataUpdate(columnData, rowData);
   }, [rowData, columnData]);
 
