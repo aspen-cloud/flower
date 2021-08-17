@@ -5,6 +5,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
 import { NodeClass, parseType, ValueTypes } from "./node-type-manager";
+import dataManager from "./data-manager";
 
 if (process.env.NODE_ENV === "development") {
   if (process.argv.includes("log")) {
@@ -34,6 +35,9 @@ export interface GraphNode {
   position: { x: number; y: number };
   size?: { width: number; height: number };
 }
+
+// Keep track locally of what nodes have had their source initialized (see hack in updateNodeSources)
+const initializedNodes = new Set();
 
 export interface GraphEdge {
   id: string;
@@ -116,6 +120,8 @@ export default class ProGraph {
 
     this.description = this.rootDoc.getText("description");
 
+    console.log("LOADING GRAPH", this._nodes, this._edges);
+
     if (this.nodes$) {
       this.nodes$.complete();
     }
@@ -143,9 +149,17 @@ export default class ProGraph {
     });
 
     graphIndexeddbProvider.whenSynced.then(() => {
-      this.loadedGraph$.next(id);
-      this.evaluate();
-      this.name = this.rootDoc.getMap().get("name");
+      // Running initialization for some nodes on graph load / updates
+      // TODO: Should find a better place for this to run
+      Promise.all(
+        Array.from(this.nodes.values()).map((node) =>
+          this.initializeNode(node.id),
+        ),
+      ).then(() => {
+        this.loadedGraph$.next(id);
+        this.evaluate();
+        this.name = this.rootDoc.getMap().get("name");
+      });
     });
   }
 
@@ -203,11 +217,16 @@ export default class ProGraph {
 
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    this._nodes.set(id, { ...node, id });
-    if (node.sources) {
-      this.updateNodeSources(id, node.sources);
-    }
-    this.evaluate([id]);
+    const fullNode = { ...node, id };
+    this._nodes.set(id, fullNode);
+    // TODO: Should find a better place for this to run
+    this.initializeNode(id).then(() => {
+      if (fullNode.sources) {
+        this.updateNodeSources(id, fullNode.sources);
+      }
+      this.evaluate([id]);
+    });
+
     return id;
   }
 
@@ -369,7 +388,6 @@ export default class ProGraph {
 
   evaluate(changedNodes?: string[]) {
     const sorting = this.getTopologicallySortedNodes(changedNodes);
-
     for (const node of sorting) {
       const nodeClass = this.nodeTypes[node.type];
       const inputVals = Object.fromEntries(
@@ -567,6 +585,43 @@ export default class ProGraph {
           ];
         }
       }
+    }
+  }
+
+  // Hack: some nodes need to have their sources initialized outside the component
+  private async initializeNode(nodeId: string) {
+    if (!initializedNodes.has(nodeId)) {
+      const node = this._nodes.get(nodeId);
+      if (node.type === "DataTable") {
+        let docId = node.sources ? node.sources["docId"] : undefined;
+        if (!docId) {
+          docId = await dataManager.newTable({
+            columns: [],
+            rows: [],
+          });
+        }
+        const doc = await dataManager.getTable(docId);
+
+        doc.on("update", () => {
+          this.updateNodeSources(nodeId, {
+            table: {
+              columns: doc.getArray("columns").toArray(),
+              rows: doc.getArray("rows").toArray(),
+            },
+            sourceLabel: doc.getMap("metadata").get("label"),
+          });
+        });
+        node.sources = {
+          ...(node.sources ?? {}),
+          docId,
+          table: {
+            columns: doc.getArray("columns").toArray(),
+            rows: doc.getArray("rows").toArray(),
+          },
+          sourceLabel: doc.getMap("metadata").get("label"),
+        };
+      }
+      initializedNodes.add(nodeId);
     }
   }
 }

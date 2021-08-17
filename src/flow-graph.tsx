@@ -44,9 +44,9 @@ import {
   FormGroup,
   Position,
   useHotkeys,
+  Divider,
 } from "@blueprintjs/core";
-
-import { OmnibarItem } from "./types";
+import { Column, OmnibarItem, RowValue } from "./types";
 import { jsonToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
@@ -73,6 +73,10 @@ import DragPanZone from "./drag-pan-zone";
 import useReactFlowElements from "./hooks/use-react-flow-elements";
 import GraphNodes from "./graph-nodes";
 import useDataManager from "./hooks/use-data-manager";
+import TableManager from "./components/table-manager";
+import SelectedElementsManager from "./components/selected-elements-manager";
+
+import * as Y from "yjs";
 
 const initBgColor = "#343434";
 
@@ -94,34 +98,6 @@ const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
   data: {},
 }));
 
-const ElementInfoMenuItem = ({ element }: { element: FlowElement }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const error = element.data?.inputs?.error || element.data?.outputs?.error;
-  return (
-    <>
-      <div onClick={() => setIsOpen((wasOpen) => !wasOpen)}>
-        <b>
-          <Icon icon={isOpen ? "caret-down" : "caret-right"} /> {element.id}
-        </b>
-      </div>
-      <Collapse isOpen={isOpen}>
-        <Card>
-          <div>
-            <b>Type:</b> {element.type}
-          </div>
-          {error ? (
-            <div>
-              <b>Error:</b> {error.message}
-            </div>
-          ) : (
-            ""
-          )}
-        </Card>
-      </Collapse>
-    </>
-  );
-};
-
 // Use sparingly, main use case is to add unsupported interactions to nodes (ie resizing)
 // May also be a good way to access react flow instance in the future if nodes need to be aware of graph state (ie zoom level)
 export const GraphInternals = React.createContext<{
@@ -133,8 +109,8 @@ export const GraphInternals = React.createContext<{
 });
 
 interface SpreadSheetTableData {
-  initialData: Table;
   nodeId: string;
+  doc: Y.Doc;
 }
 
 function addNode(prograph: ProGraph, { type, data, position }) {
@@ -393,11 +369,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     const file = await entry.getFile();
     const jsonData = await csvToJson(file);
     const tableData = jsonToTable(jsonData);
+    const newId = await dataManager.newTable(tableData, file.name);
     addNode(prograph, {
       type: "DataTable",
       data: {
-        table: tableData,
-        label: file.name,
+        docId: newId,
       },
       position,
     });
@@ -513,10 +489,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
     if (type === "table") {
       const tableData = jsonToTable(data);
+      const newId = await dataManager.newTable(tableData);
       addNode(prograph, {
         type: "DataTable",
         data: {
-          table: tableData,
+          docId: newId,
         },
         position,
       });
@@ -894,23 +871,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const spreadsheetElement = useMemo(
     () =>
       spreadsheetTableData ? (
-        <Spreadsheet
-          initialData={spreadsheetTableData.initialData}
-          onDataUpdate={async (columnData, rowData) => {
-            const columns = columnData;
-            const rows = rowData;
-            prograph.updateNodeSources(spreadsheetTableData.nodeId, {
-              table: {
-                columns,
-                rows,
-              },
-            });
-          }}
-        />
+        <Spreadsheet doc={spreadsheetTableData.doc} />
       ) : (
         "Must select a source node"
       ),
-    [spreadsheetTableData, prograph],
+    [spreadsheetTableData],
   );
 
   const hotkeys = useMemo(() => {
@@ -949,6 +914,26 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     ];
   }, [mode, enterSuggestionMode, exitSuggestionMode]);
   const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
+
+  useEffect(() => {
+    (async () => {
+      if (graphElements) {
+        const tableNode = graphElements.find(
+          (el) => isNode(el) && el.id === spreadsheetTableData?.nodeId,
+        );
+
+        if (tableNode) {
+          const doc = await dataManager.getTable(
+            tableNode.data.sources.docId.value,
+          );
+          setSpreadsheetTableData({
+            nodeId: tableNode.id,
+            doc,
+          });
+        }
+      }
+    })();
+  }, [graphElements, spreadsheetTableData?.nodeId, dataManager]);
 
   return (
     <div
@@ -1016,13 +1001,17 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                   handleDragStart(event);
                 }
               }}
-              onNodeDoubleClick={(e, node) => {
+              onNodeDoubleClick={async (e, node) => {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
                   const graphNode = prograph._nodes.get(nodeId);
+                  console.log(graphNode);
+                  const doc = await dataManager.getTable(
+                    graphNode.sources.docId,
+                  );
                   setSpreadsheetTableData({
                     nodeId,
-                    initialData: graphNode.sources.table as Table,
+                    doc,
                   });
                   setBottomMenuOpen(true);
                 } else {
@@ -1209,13 +1198,11 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                         }}
                       />
                     </FormGroup>
-                    {selectedElements.length ? (
-                      selectedElements.map((el, i) => (
-                        <ElementInfoMenuItem key={i} element={el} />
-                      ))
-                    ) : (
-                      <div>No elements selected.</div>
-                    )}
+                    <SelectedElementsManager
+                      selectedElements={selectedElements}
+                    />
+                    <Divider />
+                    <TableManager />
                   </div>
                 </div>
               </Drawer>
@@ -1395,7 +1382,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           resetOnSelect={true}
         />
       </HotkeysTarget2>
-
       <Drawer
         position={Position.BOTTOM}
         isOpen={bottomMenuOpen}
@@ -1405,7 +1391,15 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         title="Inspector"
         icon="path-search"
       >
-        <div>{spreadsheetElement}</div>
+        <div
+          style={{ height: "100%" }}
+          onKeyDown={(e) => {
+            // stop propagation from triggering omnibar
+            if (e.key === "n") e.stopPropagation();
+          }}
+        >
+          {spreadsheetElement}
+        </div>
       </Drawer>
     </div>
   );
