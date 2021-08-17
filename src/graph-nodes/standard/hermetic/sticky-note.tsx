@@ -1,4 +1,4 @@
-import { css } from "@emotion/css";
+import { css, cx } from "@emotion/css";
 import { Global } from "@emotion/react";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
@@ -17,7 +17,7 @@ const StickyNote = registerNode({
   }) => {
     return (
       <ResizableNode
-        className={`${selected ? "nowheel nodrag" : ""}`}
+        className={`${selected ? "nowheel" : ""}`}
         height={size?.height || 20}
         width={size?.width || 200}
         nodeId={id}
@@ -32,18 +32,21 @@ const StickyNote = registerNode({
           value={sources.content.value}
           onChange={(e) => sources.content.set(e.target.value)}
           placeholder="Enter text..."
-          className={css`
-            font-family: "Patrick Hand", cursive;
-            width: 100%;
-            height: 100%;
-            resize: none;
-            color: white;
-            background-color: #343434;
-            box-shadow: inset 0px 0px 20px 1px rgb(255 255 255 / 30%);
-            padding: 10px;
-            font-size: 18px;
-            border-radius: 4px;
-          `}
+          className={cx(
+            "nodrag",
+            css`
+              font-family: "Patrick Hand", cursive;
+              width: 100%;
+              height: 100%;
+              resize: none;
+              color: white;
+              background-color: #343434;
+              box-shadow: inset 0px 0px 20px 1px rgb(255 255 255 / 30%);
+              padding: 10px;
+              font-size: 18px;
+              border-radius: 4px;
+            `,
+          )}
         />
       </ResizableNode>
     );
