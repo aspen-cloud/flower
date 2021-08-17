@@ -809,21 +809,18 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
   // Handle the addition of new elements to the graph
   useEffect(() => {
-    const nodeEls = graphElements.reduce<Node[]>((nodes, el) => {
-      if (isNode(el)) nodes.push(el);
-      return nodes;
-    }, []);
+    const nodeEls = graphElements.filter(isNode);
 
     // On new node, set handle suggestion ids
     for (const node of nodeEls) {
       if (!(node.id in handleSuggestionIds.current)) {
         handleSuggestionIds.current[node.id] = {};
-        for (const handle of Object.keys(GraphNodes[node.type].inputs)) {
+        for (const handle of Object.keys(GraphNodes[node.type].inputs ?? {})) {
           handleSuggestionIds.current[node.id][handle] =
             nextHandleSuggestionId.current;
           nextHandleSuggestionId.current += 1;
         }
-        for (const handle of Object.keys(GraphNodes[node.type].outputs)) {
+        for (const handle of Object.keys(GraphNodes[node.type].outputs ?? {})) {
           handleSuggestionIds.current[node.id][handle] =
             nextHandleSuggestionId.current;
           nextHandleSuggestionId.current += 1;
