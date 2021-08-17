@@ -140,42 +140,6 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
         onCancel={cellSetter(rowIndex, columnIndex, "CANCEL")}
         onConfirm={cellSetter(rowIndex, columnIndex, "CONFIRM")}
         onKeyDown={async (e) => {
-          // stop propagation from triggering omnibar
-          if (e.key === "n") e.stopPropagation();
-
-          if (e.metaKey && e.key === "v") {
-            e.preventDefault();
-            const clipboardData = await navigator.clipboard.readText();
-            const matrixData = clipboardData
-              .split("\n")
-              .map((line) => line.split("\t"));
-            doc.transact(() => {
-              const newColsNeeded =
-                columnIndex + matrixData[0].length - yColumnsRef.current.length;
-              if (newColsNeeded > 0) {
-                yColumnsRef.current.insert(
-                  yColumnsRef.current.length,
-                  Array(newColsNeeded)
-                    .fill(0)
-                    .map(() => newColumn()),
-                );
-              }
-
-              matrixData.forEach((clipboardRow, i) => {
-                clipboardRow.forEach((cellValue, j) => {
-                  const { accessor: columnId, Type: columnType } =
-                    yColumnsRef.current.get(columnIndex + j);
-                  const row = yRowsRef.current.get(rowIndex + i);
-                  if (rowIndex + i < yRowsRef.current.length)
-                    yRowsRef.current.delete(rowIndex + i, 1);
-                  yRowsRef.current.insert(rowIndex + i, [
-                    { ...row, [columnId]: parseRow(cellValue, columnType) },
-                  ]);
-                });
-              });
-            }, yOriginRef.current);
-          }
-
           if (
             (e.key === "ArrowRight" || e.key === "Tab") &&
             columnIndex === columnData.length - 1
@@ -188,17 +152,6 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
             rowIndex === rowData.length - 1
           ) {
             insertRow(rowIndex + 1);
-          }
-
-          if (e.key === "z" && e.metaKey) {
-            if (!isEditing) {
-              console.log(undoManager.current, yOriginRef.current);
-              if (e.shiftKey) {
-                undoManager.current.redo();
-              } else {
-                undoManager.current.undo();
-              }
-            }
           }
         }}
       />
@@ -415,6 +368,70 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
                     }
                   }
                 }, yOriginRef.current);
+              },
+            },
+            {
+              key: "paste-hotkey",
+              label: "Paste data to table",
+              combo: "cmd+v",
+              onKeyDown: async (e, props, state) => {
+                e.preventDefault();
+                const clipboardData = await navigator.clipboard.readText();
+                const matrixData = clipboardData
+                  .split("\n")
+                  .map((line) => line.split("\t"));
+
+                const { col: columnIndex, row: rowIndex } = state.focusedCell;
+
+                doc.transact(() => {
+                  const newColsNeeded =
+                    columnIndex +
+                    matrixData[0].length -
+                    yColumnsRef.current.length;
+                  if (newColsNeeded > 0) {
+                    yColumnsRef.current.insert(
+                      yColumnsRef.current.length,
+                      Array(newColsNeeded)
+                        .fill(0)
+                        .map(() => newColumn()),
+                    );
+                  }
+
+                  matrixData.forEach((clipboardRow, i) => {
+                    clipboardRow.forEach((cellValue, j) => {
+                      const { accessor: columnId, Type: columnType } =
+                        yColumnsRef.current.get(columnIndex + j);
+                      const row = yRowsRef.current.get(rowIndex + i);
+                      if (rowIndex + i < yRowsRef.current.length)
+                        yRowsRef.current.delete(rowIndex + i, 1);
+                      yRowsRef.current.insert(rowIndex + i, [
+                        { ...row, [columnId]: parseRow(cellValue, columnType) },
+                      ]);
+                    });
+                  });
+                }, yOriginRef.current);
+              },
+            },
+            {
+              key: "undo-hotkey",
+              label: "Undo change to table",
+              combo: "cmd+z",
+              onKeyDown: (e) => {
+                // if edit coordinates are set we are editing a cell
+                if (!editCoordinates) {
+                  undoManager.current.undo();
+                }
+              },
+            },
+            {
+              key: "redo-hotkey",
+              label: "Redo change to table",
+              combo: "cmd+shift+z",
+              onKeyDown: (e) => {
+                // if edit coordinates are set we are editing a cell
+                if (!editCoordinates) {
+                  undoManager.current.redo();
+                }
               },
             },
           ]}

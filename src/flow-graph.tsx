@@ -1391,7 +1391,15 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         title="Inspector"
         icon="path-search"
       >
-        {spreadsheetElement}
+        <div
+          style={{ height: "100%" }}
+          onKeyDown={(e) => {
+            // stop propagation from triggering omnibar
+            if (e.key === "n") e.stopPropagation();
+          }}
+        >
+          {spreadsheetElement}
+        </div>
       </Drawer>
     </div>
   );
