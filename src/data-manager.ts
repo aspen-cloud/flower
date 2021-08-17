@@ -134,22 +134,31 @@ class DataManager {
   }
 
   async newTable(data: Table, label?: string) {
-    const id = nanoid();
-    const newTableDoc = new Y.Doc({ autoLoad: true, guid: id });
+    const tableId = nanoid();
+    const newTableDoc = new Y.Doc({ autoLoad: true, guid: tableId });
 
-    const columns = newTableDoc.getArray<Column>("columns");
+    const tableDataId = nanoid();
+    const tableDataDoc = new Y.Doc({ guid: tableDataId });
+    newTableDoc.getMap().set("tableData", tableDataDoc);
+
+    const columns = tableDataDoc.getArray<Column>("columns");
     columns.insert(0, data.columns);
 
-    const rows = newTableDoc.getArray<Record<string, RowValue>>("rows");
+    const rows = tableDataDoc.getArray<Record<string, RowValue>>("rows");
     rows.insert(0, data.rows);
+
+    new IndexeddbPersistence(`tableData-${tableDataDoc.guid}`, tableDataDoc);
 
     const metadata = newTableDoc.getMap("metadata");
     metadata.set("label", label || "Untitled"); // TODO: unique labels
 
-    this._tables.set(id, newTableDoc);
-    const dbProvider = new IndexeddbPersistence(`table-${id}`, newTableDoc);
+    this._tables.set(tableId, newTableDoc);
+    const dbProvider = new IndexeddbPersistence(
+      `table-${tableId}`,
+      newTableDoc,
+    );
     await dbProvider.whenSynced;
-    return id;
+    return tableId;
   }
 
   async getTable(id: string) {
@@ -167,8 +176,22 @@ class DataManager {
     return Object.fromEntries(tableEntries);
   }
 
+  private handleTableSubdocChange({ added, removed, loaded }) {
+    loaded.forEach((subdoc) => {
+      const db = new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
+    });
+  }
+
   private async loadTable(id: string) {
     const tableDoc = this._tables.get(id);
+
+    tableDoc.on("subdocs", this.handleTableSubdocChange);
+
+    // For some reason this._tables.observe (or observeDeep) isnt firing on updates to metadata, so handling here
+    // works if you run set again for that id, but that is tedious to rememebr to do
+    tableDoc.on("update", () =>
+      this.getAllTables().then((tables) => this.tables$.next(tables)),
+    );
     const dbProvider = new IndexeddbPersistence(`table-${id}`, tableDoc);
     await dbProvider.whenSynced;
     return tableDoc;
@@ -183,13 +206,9 @@ class DataManager {
     entry.destroy();
     this._tables.delete(id);
   }
-
-  // TODO: Figure out better update propagation to tables document and rxjs listener
-  updateTable(id: string, updateFunc: (doc: Y.Doc) => void) {
-    const doc = this._tables.get(id);
-    updateFunc(doc);
-    this._tables.set(id, doc);
-  }
 }
 
-export default new DataManager(GraphNodes);
+const dataManager = new DataManager(GraphNodes);
+//@ts-ignore
+window.dataManager = dataManager;
+export default dataManager;

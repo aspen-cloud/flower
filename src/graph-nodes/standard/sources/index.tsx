@@ -98,17 +98,26 @@ const DataTable = registerNode({
             columns: [],
             rows: [],
           });
+          sources.docId.set(docId);
         }
         const doc = await dataManager.getTable(docId);
-        const update = () => {
-          sources.table.set({
-            columns: doc.getArray("columns").toArray(),
-            rows: doc.getArray("rows").toArray(),
-          });
+        const updateTable = () => {
           sources.sourceLabel.set(doc.getMap("metadata").get("label"));
         };
-        doc.on("update", () => update());
-        update();
+        doc.on("update", () => updateTable());
+
+        const tableDataDoc = doc.getMap().get("tableData");
+        tableDataDoc.load();
+        const updateTableData = () => {
+          sources.table.set({
+            columns: tableDataDoc.getArray("columns").toArray(),
+            rows: tableDataDoc.getArray("rows").toArray(),
+          });
+        };
+        tableDataDoc.on("update", () => updateTableData());
+
+        updateTable();
+        updateTableData();
       })();
     }, []);
 

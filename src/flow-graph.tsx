@@ -490,6 +490,15 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     if (type === "table") {
       const tableData = jsonToTable(data);
       const newId = await dataManager.newTable(tableData);
+      // const newTable = dataManager.getTable(newId);
+      // // console.log(newTable);
+      // const newTableData = newTable.getMap().get("tableData");
+      // console.log(newTableData);
+      // console.log(newTableData.getArray("columns").toArray());
+      // newTableData.load();
+      // console.log(newTableData);
+      // console.log(newTableData.getArray("columns").toArray());
+
       addNode(prograph, {
         type: "DataTable",
         data: {
@@ -926,9 +935,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           const doc = await dataManager.getTable(
             tableNode.data.sources.docId.value,
           );
+          const tableDataDoc = doc.getMap().get("tableData");
           setSpreadsheetTableData({
             nodeId: tableNode.id,
-            doc,
+            doc: tableDataDoc,
           });
         }
       }
@@ -1009,9 +1019,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                   const doc = await dataManager.getTable(
                     graphNode.sources.docId,
                   );
+                  const tableDataDoc = doc.getMap().get("tableData");
                   setSpreadsheetTableData({
                     nodeId,
-                    doc,
+                    doc: tableDataDoc,
                   });
                   setBottomMenuOpen(true);
                 } else {

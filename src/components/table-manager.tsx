@@ -39,7 +39,9 @@ function TableEntry({
 
   const updateLabel = useCallback(
     (value: string) => {
-      onUpdate((doc) => doc.getMap("metadata").set("label", value));
+      onUpdate((doc) => {
+        doc.getMap("metadata").set("label", value);
+      });
     },
     [onUpdate],
   );
@@ -182,9 +184,7 @@ export default function TableManager() {
                 sources: { docId },
               });
             }}
-            onUpdate={(updateFunc) =>
-              dataManager.updateTable(table.id, (doc) => updateFunc(doc))
-            }
+            onUpdate={(updateFunc) => updateFunc(table.doc)}
             onDuplicate={async () => {
               await dataManager.newTable(
                 {
