@@ -1093,6 +1093,12 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 const menu = (
                   <Menu>
                     <MenuItem
+                      onClick={() => {
+                        setShowNodeOmniBar(true);
+                      }}
+                      text="Add Node"
+                    ></MenuItem>
+                    <MenuItem
                       onClick={() => reactflowInstance?.fitView()}
                       text="Zoom to fit"
                     />
