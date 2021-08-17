@@ -149,17 +149,9 @@ export default class ProGraph {
     });
 
     graphIndexeddbProvider.whenSynced.then(() => {
-      // Running initialization for some nodes on graph load / updates
-      // TODO: Should find a better place for this to run
-      Promise.all(
-        Array.from(this.nodes.values()).map((node) =>
-          this.initializeNode(node.id),
-        ),
-      ).then(() => {
-        this.loadedGraph$.next(id);
-        this.evaluate();
-        this.name = this.rootDoc.getMap().get("name");
-      });
+      this.loadedGraph$.next(id);
+      this.evaluate();
+      this.name = this.rootDoc.getMap().get("name");
     });
   }
 
@@ -219,14 +211,10 @@ export default class ProGraph {
     const id = nanoid(5);
     const fullNode = { ...node, id };
     this._nodes.set(id, fullNode);
-    // TODO: Should find a better place for this to run
-    this.initializeNode(id).then(() => {
-      if (fullNode.sources) {
-        this.updateNodeSources(id, fullNode.sources);
-      }
-      this.evaluate([id]);
-    });
-
+    if (fullNode.sources) {
+      this.updateNodeSources(id, fullNode.sources);
+    }
+    this.evaluate([id]);
     return id;
   }
 
@@ -585,43 +573,6 @@ export default class ProGraph {
           ];
         }
       }
-    }
-  }
-
-  // Hack: some nodes need to have their sources initialized outside the component
-  private async initializeNode(nodeId: string) {
-    if (!initializedNodes.has(nodeId)) {
-      const node = this._nodes.get(nodeId);
-      if (node.type === "DataTable") {
-        let docId = node.sources ? node.sources["docId"] : undefined;
-        if (!docId) {
-          docId = await dataManager.newTable({
-            columns: [],
-            rows: [],
-          });
-        }
-        const doc = await dataManager.getTable(docId);
-
-        doc.on("update", () => {
-          this.updateNodeSources(nodeId, {
-            table: {
-              columns: doc.getArray("columns").toArray(),
-              rows: doc.getArray("rows").toArray(),
-            },
-            sourceLabel: doc.getMap("metadata").get("label"),
-          });
-        });
-        node.sources = {
-          ...(node.sources ?? {}),
-          docId,
-          table: {
-            columns: doc.getArray("columns").toArray(),
-            rows: doc.getArray("rows").toArray(),
-          },
-          sourceLabel: doc.getMap("metadata").get("label"),
-        };
-      }
-      initializedNodes.add(nodeId);
     }
   }
 }

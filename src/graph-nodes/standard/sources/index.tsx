@@ -1,10 +1,11 @@
 import { EditableText, Icon } from "@blueprintjs/core";
 import { css } from "@emotion/css";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
 import dataManager from "../../../data-manager";
+import useDataManager from "../../../hooks/use-data-manager";
 
 const Text = registerNode({
   inputs: {},
@@ -87,6 +88,30 @@ const DataTable = registerNode({
   },
   Component: ({ data: { sources, outputs } }) => {
     const [draftLabel, setDraftLabel] = useState(sources.label.value);
+    const dataManager = useDataManager();
+
+    useEffect(() => {
+      (async () => {
+        let docId = sources.docId.value;
+        if (!docId) {
+          docId = await dataManager.newTable({
+            columns: [],
+            rows: [],
+          });
+        }
+        const doc = await dataManager.getTable(docId);
+        const update = () => {
+          sources.table.set({
+            columns: doc.getArray("columns").toArray(),
+            rows: doc.getArray("rows").toArray(),
+          });
+          sources.sourceLabel.set(doc.getMap("metadata").get("label"));
+        };
+        doc.on("update", () => update());
+        update();
+      })();
+    }, []);
+
     return (
       <BaseNode label="Data Table" sources={{}} sinks={outputs}>
         <div>
