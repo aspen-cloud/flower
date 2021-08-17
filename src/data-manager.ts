@@ -47,8 +47,12 @@ class DataManager {
       });
     });
 
-    this.graphs$ = new BehaviorSubject(this._graphs.toJSON());
-    this.tables$ = new BehaviorSubject(this._tables.toJSON());
+    this.graphs$ = new BehaviorSubject(
+      this._graphs.toJSON() as Record<string, Y.Doc>,
+    );
+    this.tables$ = new BehaviorSubject(
+      this._tables.toJSON() as Record<string, Y.Doc>,
+    );
 
     this._graphs.observe(async () => {
       this.graphs$.next(await this.getAllGraphs());
