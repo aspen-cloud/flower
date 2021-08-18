@@ -1012,6 +1012,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 }
               }}
               onNodeDoubleClick={async (e, node) => {
+                // Styling this similar to other react flow constructs (nowheel, nodrag)
+                // @ts-ignore
+                if (e.target.closest(".nodoubleclick")) return;
+
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
                   const graphNode = prograph._nodes.get(nodeId);

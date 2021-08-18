@@ -148,7 +148,7 @@ const DataTable = registerNode({
                 `}
               />
               <EditableText
-                className={"nodrag"}
+                className={"nodrag nodoubleclick"}
                 value={draftLabel}
                 onChange={(val) => setDraftLabel(val)}
                 onConfirm={(newName) => {
