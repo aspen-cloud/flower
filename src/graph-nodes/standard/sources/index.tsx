@@ -1,4 +1,4 @@
-import { EditableText, Icon } from "@blueprintjs/core";
+import { EditableText, Icon, Spinner } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
@@ -89,6 +89,7 @@ const DataTable = registerNode({
   Component: ({ data: { sources, outputs } }) => {
     const [draftLabel, setDraftLabel] = useState(sources.label.value);
     const dataManager = useDataManager();
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
       (async () => {
@@ -107,65 +108,76 @@ const DataTable = registerNode({
         doc.on("update", () => updateTable());
 
         const tableDataDoc = doc.getMap().get("tableData");
-        tableDataDoc.load();
         const updateTableData = () => {
           sources.table.set({
             columns: tableDataDoc.getArray("columns").toArray(),
             rows: tableDataDoc.getArray("rows").toArray(),
           });
         };
-        tableDataDoc.on("update", () => updateTableData());
+        tableDataDoc.on("update", () => {
+          updateTableData();
+          setLoading(false);
+        });
 
-        updateTable();
-        updateTableData();
+        // Using share.size as proxy for if any data has loaded
+        if (tableDataDoc.share.size) {
+          updateTable();
+          updateTableData();
+          setLoading(false);
+        }
+        tableDataDoc.load();
       })();
     }, []);
 
     return (
       <BaseNode label="Data Table" sources={{}} sinks={outputs}>
-        <div>
-          <div
-            className={css`
-              margin: 5px 0;
-            `}
-          >
-            <Icon
-              icon="th"
+        {loading ? (
+          <Spinner intent="primary" />
+        ) : (
+          <div>
+            <div
               className={css`
-                margin-right: 5px;
-                color: #5c7080;
+                margin: 5px 0;
               `}
-            />
-            <EditableText
-              className={"nodrag"}
-              value={draftLabel}
-              onChange={(val) => setDraftLabel(val)}
-              onConfirm={(newName) => {
-                sources.label.set(newName);
-              }}
-            />
-          </div>
-          <div
-            className={css`
-              font-size: 0.6em;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              color: #5c7080;
+            >
+              <Icon
+                icon="th"
+                className={css`
+                  margin-right: 5px;
+                  color: #5c7080;
+                `}
+              />
+              <EditableText
+                className={"nodrag"}
+                value={draftLabel}
+                onChange={(val) => setDraftLabel(val)}
+                onConfirm={(newName) => {
+                  sources.label.set(newName);
+                }}
+              />
+            </div>
+            <div
+              className={css`
+                font-size: 0.6em;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                color: #5c7080;
 
-              span {
-                margin-right: 5px;
-              }
-            `}
-          >
-            <div>Data source: {sources.sourceLabel.value}</div>
-            <div>
-              {/* TODO Fails on paste */}
-              <span>{outputs.table?.rows.length} rows</span>
-              <span>{outputs.table?.columns.length} columns</span>
+                span {
+                  margin-right: 5px;
+                }
+              `}
+            >
+              <div>Data source: {sources.sourceLabel.value}</div>
+              <div>
+                {/* TODO Fails on paste */}
+                <span>{outputs.table?.rows.length} rows</span>
+                <span>{outputs.table?.columns.length} columns</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </BaseNode>
     );
   },

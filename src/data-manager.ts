@@ -201,8 +201,14 @@ class DataManager {
   // Should make sure any related nodes are deleted
   deleteTable(id: string) {
     const entry = this._tables.get(id);
-    const dbProvider = new IndexeddbPersistence(`table-${id}`, entry);
-    dbProvider.clearData();
+    const tableData = entry.getMap().get("tableData");
+    const tableDataDbProvider = new IndexeddbPersistence(
+      `tableData-${tableData.guid}`,
+      entry,
+    );
+    tableDataDbProvider.clearData();
+    const tableDbProvider = new IndexeddbPersistence(`table-${id}`, entry);
+    tableDbProvider.clearData();
     entry.destroy();
     this._tables.delete(id);
   }
