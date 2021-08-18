@@ -373,7 +373,7 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
             {
               key: "paste-hotkey",
               label: "Paste data to table",
-              combo: "cmd+v",
+              combo: "mod+v",
               onKeyDown: async (e, props, state) => {
                 e.preventDefault();
                 const clipboardData = await navigator.clipboard.readText();
@@ -415,7 +415,7 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
             {
               key: "undo-hotkey",
               label: "Undo change to table",
-              combo: "cmd+z",
+              combo: "mod+z",
               onKeyDown: (e) => {
                 // if edit coordinates are set we are editing a cell
                 if (!editCoordinates) {
@@ -426,7 +426,7 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
             {
               key: "redo-hotkey",
               label: "Redo change to table",
-              combo: "cmd+shift+z",
+              combo: "mod+shift+z",
               onKeyDown: (e) => {
                 // if edit coordinates are set we are editing a cell
                 if (!editCoordinates) {
