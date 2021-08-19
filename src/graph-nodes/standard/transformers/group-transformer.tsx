@@ -80,15 +80,19 @@ const Group = registerNode({
   },
   outputs: {
     table: {
-      func: ({
-        table,
-        columnSelections,
-        groupColumns,
-      }: {
+      func: (args: {
         table: Table;
         columnSelections: GroupSelection[];
         groupColumns: string[];
       }) => {
+        /**
+         * NOTE: This default value coalescing typically happens at
+         * at the schema level.
+         */
+        const { table } = args;
+        const groupColumns = args.groupColumns ?? [];
+        const columnSelections = args.columnSelections ?? [];
+
         const columnMap = Object.fromEntries(
           table.columns.map((c) => [c.accessor, c]),
         );
@@ -149,7 +153,7 @@ const Group = registerNode({
   },
   Component: ({ data }) => {
     const columnSelections: GroupSelection[] = useMemo(
-      () => data.sources.columnSelections.value,
+      () => data.sources.columnSelections?.value ?? [],
       [data.sources.columnSelections],
     );
     const setColumnSelections = useCallback(
@@ -160,7 +164,7 @@ const Group = registerNode({
     );
 
     const groupColumns: string[] = useMemo(
-      () => data.sources.groupColumns.value,
+      () => data.sources.groupColumns?.value || [],
       [data.sources.groupColumns],
     );
     const setGroupColumns = useCallback(
