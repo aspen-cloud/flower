@@ -1425,6 +1425,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         title="Inspector"
         icon="path-search"
         enforceFocus={false}
+        canEscapeKeyClose={false}
       >
         <div
           style={{ height: "100%" }}
