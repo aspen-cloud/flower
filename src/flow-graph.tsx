@@ -953,6 +953,24 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         },
         preventDefault: true,
       },
+      {
+        combo: "mod+z",
+        group: "Graph",
+        label: "Undo graph operation",
+        onKeyDown: (e) => {
+          e.preventDefault();
+          prograph.undo();
+        },
+      },
+      {
+        combo: "mod+shift+z",
+        group: "Graph",
+        label: "Redp graph operation",
+        onKeyDown: (e) => {
+          e.preventDefault();
+          prograph.redo();
+        },
+      },
     ];
   }, [
     mode,
@@ -960,6 +978,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     exitSuggestionMode,
     graphElements,
     setSelectedElements,
+    prograph,
   ]);
   const { handleKeyDown: graphKeyDown, handleKeyUp: graphKeyUp } =
     useHotkeys(hotkeys);
@@ -1105,7 +1124,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 if (node.type === "DataTable") {
                   const nodeId = node.id;
                   const graphNode = prograph._nodes.get(nodeId);
-                  console.log(graphNode);
                   const doc = await dataManager.getTable(
                     graphNode.sources.docId,
                   );

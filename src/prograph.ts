@@ -66,6 +66,7 @@ export default class ProGraph {
 
   _nodes: Y.Map<GraphNode>;
   _edges: Y.Map<GraphEdge>;
+  private _undoManager: Y.UndoManager;
 
   _outputs: Record<string, Record<string, NodeOutput>>;
   nodeTypes: Record<string, NodeClass>;
@@ -108,6 +109,12 @@ export default class ProGraph {
     }
 
     const graphIndexeddbProvider = new IndexeddbPersistence(id, this.graph);
+    graphIndexeddbProvider.whenSynced.then(() => {
+      // initialize undo manager once initialized
+      if (!this._undoManager) {
+        this._undoManager = new Y.UndoManager([this._nodes, this._edges]);
+      }
+    });
 
     // @ts-ignore
     new WebrtcProvider(id + "_graph", this.graph);
@@ -207,14 +214,31 @@ export default class ProGraph {
     this._edges.clear();
   }
 
+  undo() {
+    if (this._undoManager) {
+      this._undoManager.undo();
+      // This is not exaclty what I expected...I thought this._broadcastChanges() should work, but it seems outputs arent reverted, so re-running
+      this.evaluate();
+    }
+  }
+
+  redo() {
+    if (this._undoManager) {
+      this._undoManager.redo();
+      this.evaluate();
+    }
+  }
+
   addNode(node: Omit<GraphNode, "id" | "outputs">) {
     const id = nanoid(5);
-    const fullNode = { ...node, id };
-    this._nodes.set(id, fullNode);
-    if (fullNode.sources) {
-      this.updateNodeSources(id, fullNode.sources);
-    }
-    this.evaluate([id]);
+    this.graph.transact(() => {
+      const fullNode = { ...node, id };
+      this._nodes.set(id, fullNode);
+      if (fullNode.sources) {
+        this.updateNodeSources(id, fullNode.sources, false);
+      }
+      this.evaluate([id]);
+    });
     return id;
   }
 
@@ -224,27 +248,28 @@ export default class ProGraph {
 
   addEdge(edge: Omit<GraphEdge, "id">) {
     const id = nanoid(5);
-    const newEdge = this._edges.set(id, { ...edge, id });
-    this.evaluate([newEdge.from.nodeId]);
+    this.graph.transact(() => {
+      const newEdge = this._edges.set(id, { ...edge, id });
+      this.evaluate([newEdge.from.nodeId]);
+    });
     return id;
   }
 
   moveNode(nodeId: string, position: { x: number; y: number }) {
-    const currNode = this._nodes.get(nodeId);
-    // Might need to copy to new node to trigger observer
-    currNode.position = position;
-    this._nodes.set(nodeId, currNode);
+    const newNode = { ...this._nodes.get(nodeId) };
+    newNode.position = position;
+    this._nodes.set(nodeId, newNode);
   }
 
   resizeNode(nodeId: string, size: { width: number; height: number }) {
-    const currNode = this._nodes.get(nodeId);
+    const newNode = { ...this._nodes.get(nodeId) };
     // Might need to copy to new node to trigger observer
-    currNode.size = size;
-    this._nodes.set(nodeId, currNode);
+    newNode.size = size;
+    this._nodes.set(nodeId, newNode);
   }
 
   deleteNode(nodeId: string) {
-    this.rootDoc.transact(() => {
+    this.graph.transact(() => {
       this._nodes.delete(nodeId);
       const connectedEdges = Array.from(this._edges.values()).filter(
         (edge: GraphEdge) =>
@@ -253,14 +278,16 @@ export default class ProGraph {
       for (const edge of connectedEdges) {
         this._edges.delete(edge.id);
       }
+      delete this._outputs[nodeId];
+      this.evaluate(); // TODO pass in affected nodes based on edges
     });
-    delete this._outputs[nodeId];
-    this.evaluate(); // TODO pass in affected nodes based on edges
   }
 
   deleteEdge(edgeId: string) {
-    this._edges.delete(edgeId);
-    this.evaluate();
+    this.graph.transact(() => {
+      this._edges.delete(edgeId);
+      this.evaluate();
+    });
   }
 
   getTopologicallySortedNodes(seedNodeIds?: string[]) {
@@ -355,11 +382,25 @@ export default class ProGraph {
     return sources;
   }
 
-  updateNodeSources(nodeId: string, sources: Record<string, any>) {
-    const node = this._nodes.get(nodeId);
-    node.sources = { ...node.sources, ...sources };
-    this._nodes.set(node.id, { ...node });
-    this.evaluate([nodeId]);
+  updateNodeSources(
+    nodeId: string,
+    sources: Record<string, any>,
+    evaluate = true,
+  ) {
+    const update = () => {
+      const updatedNode = { ...this._nodes.get(nodeId) };
+      updatedNode.sources = { ...updatedNode.sources, ...sources };
+      this._nodes.set(updatedNode.id, updatedNode);
+    };
+    // If we don't evaluate, assume transaction is happening elsewhere (TODO: not the greatest/most obvious assumption)
+    if (evaluate) {
+      this.graph.transact(() => {
+        update();
+        this.evaluate([nodeId]);
+      });
+    } else {
+      update();
+    }
   }
 
   updateNodeOutput(
@@ -367,10 +408,18 @@ export default class ProGraph {
     outputs: Record<string, NodeOutput>,
     evaluate = true,
   ) {
-    const currentNodeOutputs = this._outputs[nodeId] || {};
-    this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs };
+    const update = () => {
+      const currentNodeOutputs = this._outputs[nodeId] || {};
+      this._outputs[nodeId] = { ...currentNodeOutputs, ...outputs };
+    };
+    // If we don't evaluate, assume transaction is happening elsewhere (TODO: not the greatest/most obvious assumption)
     if (evaluate) {
-      this.evaluate([nodeId]);
+      this.graph.transact(() => {
+        update();
+        this.evaluate([nodeId]);
+      });
+    } else {
+      update();
     }
   }
 
