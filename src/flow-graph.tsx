@@ -1430,8 +1430,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         <div
           style={{ height: "100%" }}
           onKeyDown={(e) => {
-            // stop propagation from triggering omnibar
+            // stop propagation from triggering hotkeys
             if (e.key === "n") e.stopPropagation();
+            if (e.key === "s") e.stopPropagation();
           }}
         >
           {spreadsheetElement}
