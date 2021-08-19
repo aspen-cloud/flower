@@ -898,7 +898,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     return [
       {
         combo: "esc",
-        global: true,
+        group: "Graph",
         allowInInput: true, // Want to trigger on suggestion input
         disabled: mode === "GRAPH",
         label: "Escape non default mode",
@@ -908,37 +908,61 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         },
       },
       {
-        combo: "Enter",
-        global: true,
-        disabled: mode !== "SUGGESTION",
-        label: "Focus suggestion input",
+        combo: "S",
+        group: "Graph",
+        disabled: mode !== "GRAPH",
+        label: "Enter suggestion mode",
         onKeyDown: (e) => {
           e.preventDefault();
           edgeSuggestionInputRef.current.focus();
         },
       },
       {
-        combo: "shift+o",
-        global: true,
-        label: "Open graph",
-        allowInInput: false,
-        onKeyDown: () => {
-          setShowSelectDialog(true);
-        },
-      },
-      {
-        combo: "mod+a",
-        global: true,
-        label: "Select all nodes",
-        allowInInput: false,
+        combo: "Enter",
+        group: "Graph",
+        disabled: mode !== "SUGGESTION",
+        label: "Focus suggestion input",
         onKeyDown: (e) => {
           e.preventDefault();
           setSelectedElements(graphElements);
         },
       },
+      {
+        combo: "shift+o",
+        group: "Graph",
+        label: "Open graph",
+        onKeyDown: () => {
+          setShowSelectDialog(true);
+        },
+      },
+      {
+        combo: "cmd+a",
+        group: "Graph",
+        label: "Select all nodes",
+        onKeyDown: (e) => {
+          e.preventDefault();
+          setSelectedElements(graphElements);
+        },
+      },
+      {
+        combo: "n",
+        group: "Graph",
+        label: "Show Omnibar",
+        onKeyDown: () => {
+          setShowNodeOmniBar(true);
+        },
+        preventDefault: true,
+      },
     ];
-  }, [mode, enterSuggestionMode, exitSuggestionMode]);
-  const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
+  }, [
+    mode,
+    enterSuggestionMode,
+    exitSuggestionMode,
+    graphElements,
+    setSelectedElements,
+  ]);
+  const { handleKeyDown: graphKeyDown, handleKeyUp: graphKeyUp } =
+    useHotkeys(hotkeys);
 
   useEffect(() => {
     (async () => {
@@ -970,8 +994,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         flex: 1,
         height: "100vh",
       }}
-      onKeyDown={handleKeyDown}
-      onKeyUp={handleKeyUp}
     >
       <div
         style={{ position: "absolute", top: "10px", left: "50%", zIndex: 10 }}
@@ -1038,6 +1060,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
             value={{ proGraph: prograph, reactFlowInstance: reactflowInstance }}
           >
             <ReactFlow
+              tabIndex={0}
+              onKeyDown={graphKeyDown}
+              onKeyUp={graphKeyUp}
               elements={elements}
               panOnScroll={true}
               panOnScrollMode={PanOnScrollMode.Free}
@@ -1436,16 +1461,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         enforceFocus={false}
         canEscapeKeyClose={false}
       >
-        <div
-          style={{ height: "100%" }}
-          onKeyDown={(e) => {
-            // stop propagation from triggering hotkeys
-            if (e.key === "n") e.stopPropagation();
-            if (e.key === "s") e.stopPropagation();
-          }}
-        >
-          {spreadsheetElement}
-        </div>
+        <div style={{ height: "100%" }}>{spreadsheetElement}</div>
       </Drawer>
     </div>
   );
