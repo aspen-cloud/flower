@@ -1,4 +1,12 @@
-import { Button, Collapse, Icon, InputGroup, Intent } from "@blueprintjs/core";
+import {
+  Button,
+  Collapse,
+  H5,
+  Icon,
+  InputGroup,
+  Intent,
+} from "@blueprintjs/core";
+import { css } from "@emotion/css";
 import { useMemo, useState } from "react";
 import {
   useTable,
@@ -188,7 +196,11 @@ export default function DataTable({ table }: DataTableProps) {
     () =>
       filters.flatMap((columnFilters, i) => {
         return columnFilters.value.map((filter) => (
-          <div style={{ margin: "2px 0" }}>
+          <div
+            className={css`
+              margin-top: 10px;
+            `}
+          >
             <FilterInput
               key={i}
               columns={table.columns}
@@ -270,53 +282,65 @@ export default function DataTable({ table }: DataTableProps) {
           </Button>
         </div>
       </div>
-      <div>
-        <h3
+      <div
+        className={css`
+          margin-top: 10px;
+        `}
+      >
+        <Button
           style={{
             color: "#5c7080",
           }}
+          icon="filter-list"
+          outlined
+          active={filterCollapseOpen}
           onClick={() => setFilterCollapseOpen((prev) => !prev)}
         >
-          [{filterCollapseOpen ? "-" : "+"}] Filters{" "}
-          {filters.count ? `(${filters.count})` : ""}
-        </h3>
+          {`Filters${filters.length ? ` (${filters.length})` : ""}`}
+        </Button>
         <Collapse isOpen={filterCollapseOpen}>
-          {filterInputs}
           {/* <FormGroup inline={true}> */}
-          <h5>New Filter</h5>
-          <FilterInput
-            columns={table.columns}
-            value={{
-              accessor: filterAccessorInput,
-              filterId: filterOperationInput,
-              compareValue: filterCompareValueInput,
-            }}
-            onChange={(newVal) => {
-              setFilterAccessorInput(newVal.accessor);
-              setFilterOperationInput(newVal.filterId);
-              setFilterCompareValueInput(newVal.compareValue);
-            }}
-          />
-          <Button
-            style={{ marginLeft: "2px", display: "inline" }}
-            intent={Intent.PRIMARY}
-            onClick={() => {
-              const prevFilterValue =
-                filters.find((f) => f.id === filterAccessorInput) || [];
-              setFilter(filterAccessorInput, [
-                ...prevFilterValue,
-                {
-                  compareValue: filterCompareValueInput,
-                  filterId: filterOperationInput,
-                },
-              ]);
-              setFilterAccessorInput("");
-              setFilterOperationInput("");
-              setFilterCompareValueInput("");
-            }}
+          <div
+            className={css`
+              margin-bottom: 10px;
+            `}
           >
-            Add
-          </Button>
+            <h5>New Filter</h5>
+            <FilterInput
+              columns={table.columns}
+              value={{
+                accessor: filterAccessorInput,
+                filterId: filterOperationInput,
+                compareValue: filterCompareValueInput,
+              }}
+              onChange={(newVal) => {
+                setFilterAccessorInput(newVal.accessor);
+                setFilterOperationInput(newVal.filterId);
+                setFilterCompareValueInput(newVal.compareValue);
+              }}
+            />
+            <Button
+              style={{ marginLeft: "2px", display: "inline" }}
+              intent={Intent.PRIMARY}
+              onClick={() => {
+                const prevFilterValue =
+                  filters.find((f) => f.id === filterAccessorInput) || [];
+                setFilter(filterAccessorInput, [
+                  ...prevFilterValue,
+                  {
+                    compareValue: filterCompareValueInput,
+                    filterId: filterOperationInput,
+                  },
+                ]);
+                setFilterAccessorInput("");
+                setFilterOperationInput("");
+                setFilterCompareValueInput("");
+              }}
+            >
+              Add
+            </Button>
+          </div>
+          {filterInputs}
         </Collapse>
       </div>
       <div style={{ flexGrow: 1, overflow: "auto" }}>
