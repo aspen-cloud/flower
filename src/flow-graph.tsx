@@ -1386,74 +1386,59 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         <div></div>
       </HotkeysTarget2>
 
-      <HotkeysTarget2
-        hotkeys={[
-          {
-            combo: "n",
-            global: true,
-            label: "Show Omnibar",
-            allowInInput: false,
-            onKeyDown: () => {
-              setShowNodeOmniBar(true);
-            },
-            preventDefault: true,
-          },
-        ]}
-      >
-        <GraphOmnibar
-          noResults={<MenuItem disabled={true} text="No results." />}
-          items={nodeTypeList}
-          query={omnibarQuery}
-          onQueryChange={(q, event) => {
-            // TODO: why is event empty sometimes and not empty when setting tags?
-            if (event) return;
-            if (q.startsWith("[") && q.endsWith("]")) {
-              const [tagKey, tagValue] = q.slice(1, q.length - 1).split(":");
-              if (tagKey && tagValue && ["input", "output"].includes(tagKey)) {
-                setOmnibarTags((prevTags) => [
-                  ...prevTags,
-                  `${tagKey}:${tagValue}`,
-                ]);
-              }
-              setOmnibarQuery("");
-            } else {
-              setOmnibarQuery(q);
+      <GraphOmnibar
+        noResults={<MenuItem disabled={true} text="No results." />}
+        items={nodeTypeList}
+        query={omnibarQuery}
+        onQueryChange={(q, event) => {
+          // TODO: why is event empty sometimes and not empty when setting tags?
+          if (event) return;
+          if (q.startsWith("[") && q.endsWith("]")) {
+            const [tagKey, tagValue] = q.slice(1, q.length - 1).split(":");
+            if (tagKey && tagValue && ["input", "output"].includes(tagKey)) {
+              setOmnibarTags((prevTags) => [
+                ...prevTags,
+                `${tagKey}:${tagValue}`,
+              ]);
             }
-          }}
-          filters={omnibarTags}
-          onFiltersChange={(filters) => setOmnibarTags(filters)}
-          itemRenderer={renderNodeType}
-          itemPredicateWithFilters={filterNodeTypes}
-          onItemSelect={(item) => {
-            const { type, data } = item;
-            if (nodeOmnibarContext?.type === "insert") {
-              nodeInsertHandler(
-                null,
-                nodeOmnibarContext?.metadata.edgeId,
-                type,
-                nodeOmnibarContext?.metadata.position,
-              );
-            } else {
-              addNode(prograph, {
-                type,
-                data,
-                position: getCanvasPosition(mousePosition.current),
-              });
-            }
+            setOmnibarQuery("");
+          } else {
+            setOmnibarQuery(q);
+          }
+        }}
+        filters={omnibarTags}
+        onFiltersChange={(filters) => setOmnibarTags(filters)}
+        itemRenderer={renderNodeType}
+        itemPredicateWithFilters={filterNodeTypes}
+        onItemSelect={(item) => {
+          const { type, data } = item;
+          if (nodeOmnibarContext?.type === "insert") {
+            nodeInsertHandler(
+              null,
+              nodeOmnibarContext?.metadata.edgeId,
+              type,
+              nodeOmnibarContext?.metadata.position,
+            );
+          } else {
+            addNode(prograph, {
+              type,
+              data,
+              position: getCanvasPosition(mousePosition.current),
+            });
+          }
 
-            setShowNodeOmniBar(false);
-            setNodeOmnibarContext(undefined);
-            setOmnibarTags([]);
-          }}
-          onClose={() => {
-            setShowNodeOmniBar(false);
-            setNodeOmnibarContext(undefined);
-            setOmnibarTags([]);
-          }}
-          isOpen={showNodeOmniBar}
-          resetOnSelect={true}
-        />
-      </HotkeysTarget2>
+          setShowNodeOmniBar(false);
+          setNodeOmnibarContext(undefined);
+          setOmnibarTags([]);
+        }}
+        onClose={() => {
+          setShowNodeOmniBar(false);
+          setNodeOmnibarContext(undefined);
+          setOmnibarTags([]);
+        }}
+        isOpen={showNodeOmniBar}
+        resetOnSelect={true}
+      />
       <Drawer
         position={Position.BOTTOM}
         isOpen={bottomMenuOpen}
