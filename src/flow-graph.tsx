@@ -32,7 +32,6 @@ import ReactFlow, {
 
 import { ItemRenderer } from "@blueprintjs/select";
 import {
-  HotkeysTarget2,
   MenuItem,
   ContextMenu,
   Menu,
@@ -918,6 +917,25 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           edgeSuggestionInputRef.current.focus();
         },
       },
+      {
+        combo: "shift+o",
+        global: true,
+        label: "Open graph",
+        allowInInput: false,
+        onKeyDown: () => {
+          setShowSelectDialog(true);
+        },
+      },
+      {
+        combo: "mod+a",
+        global: true,
+        label: "Select all nodes",
+        allowInInput: false,
+        onKeyDown: (e) => {
+          e.preventDefault();
+          setSelectedElements(graphElements);
+        },
+      },
     ];
   }, [mode, enterSuggestionMode, exitSuggestionMode]);
   const { handleKeyDown, handleKeyUp } = useHotkeys(hotkeys);
@@ -1353,38 +1371,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           </GraphInternals.Provider>
         )}
       </div>
-
-      <HotkeysTarget2
-        hotkeys={[
-          {
-            combo: "shift+o",
-            global: true,
-            label: "Open graph",
-            allowInInput: false,
-            onKeyDown: () => {
-              setShowSelectDialog(true);
-            },
-          },
-        ]}
-      >
-        <div></div>
-      </HotkeysTarget2>
-      <HotkeysTarget2
-        hotkeys={[
-          {
-            combo: "mod+a",
-            global: true,
-            label: "Select all nodes",
-            allowInInput: false,
-            onKeyDown: (e) => {
-              e.preventDefault();
-              setSelectedElements(graphElements);
-            },
-          },
-        ]}
-      >
-        <div></div>
-      </HotkeysTarget2>
 
       <GraphOmnibar
         noResults={<MenuItem disabled={true} text="No results." />}
