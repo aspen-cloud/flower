@@ -4,15 +4,11 @@ import {
   HotkeyConfig,
   Icon,
   IconName,
-  useHotkeys,
 } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 
-interface Action {
+export interface Action extends HotkeyConfig {
   icon: IconName;
-  onTrigger: () => void;
-  shortcutKey: string;
-  label: string;
 }
 
 export default function ActionButtons({
@@ -22,21 +18,8 @@ export default function ActionButtons({
   actions: Action[];
   className: string;
 }) {
-  const hotKeys: HotkeyConfig[] = actions.map((action) => ({
-    combo: action.shortcutKey,
-    label: action.label,
-    onKeyUp: action.onTrigger,
-    global: true,
-  }));
-
-  const { handleKeyDown, handleKeyUp } = useHotkeys(hotKeys);
-
   return (
-    <ButtonGroup
-      className={className}
-      onKeyDown={handleKeyDown}
-      onKeyUp={handleKeyUp}
-    >
+    <ButtonGroup className={className}>
       {actions.map((action) => (
         <ActionButton action={action} />
       ))}
@@ -64,9 +47,12 @@ const shortcutKeyStyles = css`
 
 function ActionButton({ action }: { action: Action }) {
   return (
-    <Button onClick={action.onTrigger} className={actionButtonStyles}>
+    <Button
+      onClick={() => action.onKeyDown(null)}
+      className={actionButtonStyles}
+    >
       <Icon className={actionIconStyles} icon={action.icon} />
-      <span className={shortcutKeyStyles}>{action.shortcutKey}</span>
+      <span className={shortcutKeyStyles}>{action.combo}</span>
     </Button>
   );
 }

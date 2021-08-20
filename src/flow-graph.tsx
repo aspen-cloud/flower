@@ -78,7 +78,7 @@ import TableManager from "./components/table-manager";
 import SelectedElementsManager from "./components/selected-elements-manager";
 
 import * as Y from "yjs";
-import ActionButtons from "./components/action-buttons";
+import ActionButtons, { Action } from "./components/action-buttons";
 import { css } from "@emotion/css";
 
 const initBgColor = "#343434";
@@ -893,6 +893,51 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [spreadsheetTableData],
   );
 
+  const actionButtonHotkeys: Action[] = useMemo(
+    () => [
+      {
+        icon: "graph",
+        combo: "n",
+        group: "Graph",
+        label: "Add new node",
+        onKeyDown: () => {
+          setShowNodeOmniBar(true);
+        },
+        preventDefault: true,
+      },
+      {
+        icon: "flow-end",
+        group: "Graph",
+        label: "Connect nodes",
+        combo: "c",
+        onKeyDown: () => {
+          enterSuggestionMode();
+        },
+        preventDefault: true,
+      },
+      {
+        icon: "th",
+        group: "Graph",
+        label: "Add data table",
+        combo: "d",
+        onKeyDown: () => {
+          prograph.addNode({
+            type: "DataTable",
+            position: reactflowInstance.project({
+              x: window.innerWidth / 2,
+              y: window.innerHeight / 2,
+            }),
+            sources: {
+              docId: undefined,
+            },
+          });
+        },
+        preventDefault: true,
+      },
+    ],
+    [enterSuggestionMode, prograph, reactflowInstance],
+  );
+
   // TODO move and scope to seperate component
   const hotkeys = useMemo(() => {
     return [
@@ -908,24 +953,14 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         },
       },
       {
-        combo: "S",
-        group: "Graph",
-        disabled: mode !== "GRAPH",
-        label: "Enter suggestion mode",
-        onKeyDown: (e) => {
-          e.preventDefault();
-          edgeSuggestionInputRef.current.focus();
-        },
-      },
-      {
         combo: "Enter",
         group: "Graph",
         disabled: mode !== "SUGGESTION",
         label: "Focus suggestion input",
-        onKeyDown: (e) => {
-          e.preventDefault();
-          setSelectedElements(graphElements);
+        onKeyDown: () => {
+          edgeSuggestionInputRef.current.focus();
         },
+        preventDefault: true,
       },
       {
         combo: "shift+o",
@@ -939,17 +974,8 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         combo: "cmd+a",
         group: "Graph",
         label: "Select all nodes",
-        onKeyDown: (e) => {
-          e.preventDefault();
-          setSelectedElements(graphElements);
-        },
-      },
-      {
-        combo: "n",
-        group: "Graph",
-        label: "Show Omnibar",
         onKeyDown: () => {
-          setShowNodeOmniBar(true);
+          setSelectedElements(graphElements);
         },
         preventDefault: true,
       },
@@ -957,28 +983,29 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         combo: "mod+z",
         group: "Graph",
         label: "Undo graph operation",
-        onKeyDown: (e) => {
-          e.preventDefault();
+        onKeyDown: () => {
           prograph.undo();
         },
+        preventDefault: true,
       },
       {
         combo: "mod+shift+z",
         group: "Graph",
         label: "Redp graph operation",
-        onKeyDown: (e) => {
-          e.preventDefault();
+        onKeyDown: () => {
           prograph.redo();
         },
+        preventDefault: true,
       },
+      ...actionButtonHotkeys,
     ];
   }, [
     mode,
-    enterSuggestionMode,
     exitSuggestionMode,
     graphElements,
     setSelectedElements,
     prograph,
+    actionButtonHotkeys,
   ]);
   const { handleKeyDown: graphKeyDown, handleKeyUp: graphKeyUp } =
     useHotkeys(hotkeys);
@@ -1018,41 +1045,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         style={{ position: "absolute", top: "10px", left: "50%", zIndex: 10 }}
       >
         <ActionButtons
-          actions={[
-            {
-              icon: "graph",
-              label: "Add new node",
-              shortcutKey: "n",
-              onTrigger: () => {
-                setShowNodeOmniBar(true);
-              },
-            },
-            {
-              icon: "flow-end",
-              label: "Connect nodes",
-              shortcutKey: "c",
-              onTrigger: () => {
-                enterSuggestionMode();
-              },
-            },
-            {
-              icon: "th",
-              label: "Add data table",
-              shortcutKey: "d",
-              onTrigger: () => {
-                prograph.addNode({
-                  type: "DataTable",
-                  position: reactflowInstance.project({
-                    x: window.innerWidth / 2,
-                    y: window.innerHeight / 2,
-                  }),
-                  sources: {
-                    docId: undefined,
-                  },
-                });
-              },
-            },
-          ]}
+          actions={actionButtonHotkeys}
           className={css`
             position: relative;
             left: -50%;
