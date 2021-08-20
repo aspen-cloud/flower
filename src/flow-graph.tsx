@@ -1066,15 +1066,15 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         style={{
           flexGrow: 1,
         }}
+        tabIndex={0}
+        onKeyDown={graphKeyDown}
+        onKeyUp={graphKeyUp}
       >
         {graphElements && ( // Don't load react flow until elements are ready
           <GraphInternals.Provider
             value={{ proGraph: prograph, reactFlowInstance: reactflowInstance }}
           >
             <ReactFlow
-              tabIndex={0}
-              onKeyDown={graphKeyDown}
-              onKeyUp={graphKeyUp}
               elements={elements}
               panOnScroll={true}
               panOnScrollMode={PanOnScrollMode.Free}
@@ -1297,6 +1297,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 canEscapeKeyClose={false}
                 enforceFocus={false}
                 portalClassName="info-sidebar"
+                onClosed={() => reactFlowWrapper.current.focus()}
               >
                 <div className={Classes.DRAWER_BODY}>
                   <div className={Classes.DIALOG_BODY}>
@@ -1460,6 +1461,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         }}
         isOpen={showNodeOmniBar}
         resetOnSelect={true}
+        overlayProps={{
+          onClosed: () => reactFlowWrapper.current.focus(),
+        }}
       />
       <Drawer
         position={Position.BOTTOM}
@@ -1471,6 +1475,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         icon="path-search"
         enforceFocus={false}
         canEscapeKeyClose={false}
+        onClosed={() => reactFlowWrapper.current.focus()}
       >
         <div style={{ height: "100%" }}>{spreadsheetElement}</div>
       </Drawer>
