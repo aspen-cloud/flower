@@ -79,6 +79,8 @@ import TableManager from "./components/table-manager";
 import SelectedElementsManager from "./components/selected-elements-manager";
 
 import * as Y from "yjs";
+import ActionButtons from "./components/action-buttons";
+import { css } from "@emotion/css";
 
 const initBgColor = "#343434";
 
@@ -962,6 +964,51 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
     >
+      <div
+        style={{ position: "absolute", top: "10px", left: "50%", zIndex: 10 }}
+      >
+        <ActionButtons
+          actions={[
+            {
+              icon: "graph",
+              label: "Add new node",
+              shortcutKey: "n",
+              onTrigger: () => {
+                setShowNodeOmniBar(true);
+              },
+            },
+            {
+              icon: "flow-end",
+              label: "Connect nodes",
+              shortcutKey: "c",
+              onTrigger: () => {
+                enterSuggestionMode();
+              },
+            },
+            {
+              icon: "th",
+              label: "Add data table",
+              shortcutKey: "d",
+              onTrigger: () => {
+                prograph.addNode({
+                  type: "DataTable",
+                  position: reactflowInstance.project({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                  }),
+                  sources: {
+                    docId: undefined,
+                  },
+                });
+              },
+            },
+          ]}
+          className={css`
+            position: relative;
+            left: -50%;
+          `}
+        />
+      </div>
       <SelectGraphDialog
         isOpen={showSelectDialog}
         onClose={() => {
