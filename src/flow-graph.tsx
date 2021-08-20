@@ -1381,7 +1381,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
       <HotkeysTarget2
         hotkeys={[
           {
-            combo: "cmd+a",
+            combo: "mod+a",
             global: true,
             label: "Select all nodes",
             allowInInput: false,
