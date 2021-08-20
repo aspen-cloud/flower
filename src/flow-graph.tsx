@@ -894,6 +894,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     [spreadsheetTableData],
   );
 
+  // TODO move and scope to seperate component
   const hotkeys = useMemo(() => {
     return [
       {
@@ -905,16 +906,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
         onKeyDown: () => {
           if (mode === "SUGGESTION") exitSuggestionMode();
           setMode("GRAPH");
-        },
-      },
-      {
-        combo: "S",
-        global: true,
-        disabled: mode !== "GRAPH",
-        label: "Enter suggestion mode",
-        onKeyDown: (e) => {
-          e.preventDefault();
-          enterSuggestionMode();
         },
       },
       {
