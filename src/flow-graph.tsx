@@ -39,15 +39,13 @@ import {
   Drawer,
   DrawerSize,
   Classes,
-  Collapse,
-  Card,
   InputGroup,
   FormGroup,
   Position,
   useHotkeys,
   Divider,
 } from "@blueprintjs/core";
-import { Column, OmnibarItem, RowValue } from "./types";
+import { OmnibarItem } from "./types";
 import { jsonToTable } from "./utils/tables";
 import { csvToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
@@ -59,7 +57,6 @@ import {
 } from "./utils/clipboard";
 import type ProGraph from "./prograph";
 import Spreadsheet from "./components/blueprint-spreadsheet";
-import { Table } from "./types";
 
 import DefaultEdge from "./graph-nodes/edges/default-edge";
 import SuggestedEdge, {
