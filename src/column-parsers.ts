@@ -21,7 +21,7 @@ const typeDefinitions: ColumnTypeDefinition[] = [
       writeValue: value ?? "",
       underlyingValue: value,
     }),
-    icon: "font",
+    icon: "paragraph",
   },
   {
     name: "Number",
