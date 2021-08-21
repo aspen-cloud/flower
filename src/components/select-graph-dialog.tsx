@@ -2,6 +2,7 @@ import { Button, Card, Dialog, Divider, H4, Spinner } from "@blueprintjs/core";
 import { css } from "@emotion/css";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import useCurrentGraphId from "../hooks/use-current-graph-id";
 import useDataManager from "../hooks/use-data-manager";
 
 export default function SelectGraphDialog({
@@ -14,13 +15,33 @@ export default function SelectGraphDialog({
   onNew: (graphId: string) => void;
 }) {
   const dataManager = useDataManager();
-  const [allGraphs, setAllGraphs] = useState([]);
+  const currentGraphId = useCurrentGraphId();
+  const [allGraphs, setAllGraphs] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+  const [currentGraph, setCurrentGraph] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const sub = dataManager.graphs$.subscribe((graphObj) => {
+      const graphList = Object.entries(graphObj);
+      if (currentGraphId != null) {
+        const currentGraphInfo = graphList.find(
+          ([id]) => id === currentGraphId,
+        );
+        if (currentGraphInfo) {
+          const [id, doc] = currentGraphInfo;
+          setCurrentGraph({
+            id,
+            name: doc.getMap().get("name"),
+          });
+        }
+      }
       setAllGraphs(
-        Object.entries(graphObj).map(([id, graph]) => {
+        graphList.map(([id, graph]) => {
           return {
             id,
             name: graph.getMap().get("name") || "",
@@ -39,6 +60,16 @@ export default function SelectGraphDialog({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title="Open a workspace">
+      {currentGraph ? (
+        <Card>
+          <div>
+            Currently viewing{" "}
+            <b>
+              {currentGraph.name} ({currentGraph.id})
+            </b>
+          </div>
+        </Card>
+      ) : null}
       <Card style={{ overflow: "scroll", maxHeight: "80vh" }}>
         <div
           style={{
@@ -64,7 +95,7 @@ export default function SelectGraphDialog({
           </div>
         ) : (
           <GraphList
-            graphs={allGraphs}
+            graphs={allGraphs.filter((graph) => graph.id !== currentGraphId)}
             onDelete={(id) => {
               dataManager.deleteGraph(id);
             }}
