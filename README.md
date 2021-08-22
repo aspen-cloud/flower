@@ -1,10 +1,6 @@
-# Github Readme
-
-Current Status: **DRAFT**
-
 # Overview
 
-Aspen is a no-code data analysis platform designed to be as easy and familiar as Excel and as powerful as a Python/Jupyter notebook.
+Flower is a no-code data analysis platform designed to be as easy and familiar as Excel and as powerful as a Python/Jupyter notebook.
 
 ![Sample Screenshot](images/example-workspace.png)
 
@@ -19,9 +15,9 @@ Aspen is a no-code data analysis platform designed to be as easy and familiar as
 - ✈️ Offline support
 - 🗃️ Import existing data as CSV, TSV, Excel (.xls and xlsx), or from clipboard
 
-## How Aspen works
+# Getting started
 
-## Demo
+Visit https://flower.aspen.cloud to create your own workspace. Simply paste a table copied from Google Sheets, Excel, etc. or drag and drop a CSV to import your existing data.
 
 # FAQ
 
@@ -59,7 +55,3 @@ We don't follow a strict versioned release process and release frequently. So if
 ### Submitting new Node Types
 
 We plan to support hundreds if not thousands of types of Nodes; however, our currently architecture would not handle that well. Don't let that discourage you if you have an idea for a Node — we just might not be able to include right away until we iron out our dynamic node inclusion system.
-
-Please see [Node Classes](https://www.notion.so/Node-Classes-bc9b490f0601488dae0fa5a377f0802d) for more information.
-
-[Node Classes](https://www.notion.so/Node-Classes-bc9b490f0601488dae0fa5a377f0802d)
