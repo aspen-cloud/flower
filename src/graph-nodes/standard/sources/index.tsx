@@ -91,6 +91,11 @@ const DataTable = registerNode({
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+      let tableDoc = null;
+      let onTableDocUpdate = null;
+      let tableDataDoc = null;
+      let onTableDataDocUpdate = null;
+
       (async () => {
         let docId = sources.docId.value;
         if (!docId) {
@@ -100,23 +105,25 @@ const DataTable = registerNode({
           });
           sources.docId.set(docId);
         }
-        const doc = await dataManager.getTable(docId);
+        tableDoc = await dataManager.getTable(docId);
         const updateTable = () => {
-          sources.sourceLabel.set(doc.getMap("metadata").get("label"));
+          sources.sourceLabel.set(tableDoc.getMap("metadata").get("label"));
         };
-        doc.on("update", () => updateTable());
+        onTableDocUpdate = () => updateTable();
+        tableDoc.on("update", onTableDocUpdate);
 
-        const tableDataDoc = doc.getMap().get("tableData");
+        tableDataDoc = tableDoc.getMap().get("tableData");
         const updateTableData = () => {
           sources.table.set({
             columns: tableDataDoc.getArray("columns").toArray(),
             rows: tableDataDoc.getArray("rows").toArray(),
           });
         };
-        tableDataDoc.on("update", () => {
+        onTableDataDocUpdate = () => {
           updateTableData();
           setLoading(false);
-        });
+        };
+        tableDataDoc.on("update", onTableDataDocUpdate);
 
         // Using share.size as proxy for if any data has loaded
         if (tableDataDoc.share.size) {
@@ -126,6 +133,13 @@ const DataTable = registerNode({
         }
         tableDataDoc.load();
       })();
+
+      return () => {
+        if (tableDoc && onTableDocUpdate)
+          tableDoc.off("update", onTableDocUpdate);
+        if (tableDataDoc && onTableDataDocUpdate)
+          tableDataDoc.off("update", onTableDataDocUpdate);
+      };
     }, []);
 
     return (
