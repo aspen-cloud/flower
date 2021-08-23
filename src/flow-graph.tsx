@@ -77,6 +77,7 @@ import * as Y from "yjs";
 import ActionButtons, { Action } from "./components/action-buttons";
 import { css } from "@emotion/css";
 import useCurrentGraphId from "./hooks/use-current-graph-id";
+import { ValueTypes } from "./node-type-manager";
 
 const initBgColor = "#343434";
 
@@ -644,7 +645,10 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
             GraphNodes[prograph.getNode(edge.to.nodeId).type].inputs[
               edge.to.busKey
             ];
-          setOmnibarTags([`input:${inputType}`, `output:${outputType}`]);
+          setOmnibarTags([
+            `input:${ValueTypes[inputType]}`,
+            `output:${ValueTypes[outputType]}`,
+          ]);
           setShowNodeOmniBar(true);
         },
       });
@@ -670,7 +674,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
     const normalizedTitle = item.label.toLowerCase();
     const normalizedQuery = query.toLowerCase();
-    const normalizedFilters = Object.fromEntries(
+    const normalizedFilters: Record<string, string> = Object.fromEntries(
       filters.map((filter) => filter.split(":")),
     );
     const itemType = GraphNodes[item.type];
@@ -682,13 +686,14 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     const inputFilter =
       !normalizedFilters.input ||
       Object.values(itemType?.inputs || {}).some(
-        (struct) => struct === normalizedFilters.input,
+        (struct) => struct === ValueTypes[normalizedFilters.input],
       );
 
     const outputFilter =
       !normalizedFilters.output ||
       Object.values(itemType?.outputs || {}).some(
-        (outputObj) => outputObj.returns === normalizedFilters.output,
+        (outputObj) =>
+          outputObj.returns === ValueTypes[normalizedFilters.output],
       );
 
     return queryFilter && inputFilter && outputFilter;
