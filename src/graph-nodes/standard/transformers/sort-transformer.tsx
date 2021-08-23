@@ -22,7 +22,7 @@ const Sort = registerNode({
     table: ValueTypes.TABLE,
   },
   sources: {
-    sortDefinitions: ValueTypes.ANY,
+    sortDefinitions: ValueTypes.ARRAY,
   },
   outputs: {
     table: {

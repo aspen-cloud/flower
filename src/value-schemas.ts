@@ -34,6 +34,8 @@ export const ANY = z.any();
 
 export const BOOLEAN = z.boolean().default(false);
 
+export const ARRAY = z.array(z.any()).default([]);
+
 export type AnyValueSchemas =
   | typeof STRING
   | typeof NUMBER

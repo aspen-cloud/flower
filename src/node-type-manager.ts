@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { FUNCTION, NUMBER, STRING, TABLE, ANY, BOOLEAN } from "./value-schemas";
+import {
+  FUNCTION,
+  NUMBER,
+  STRING,
+  TABLE,
+  ANY,
+  BOOLEAN,
+  ARRAY,
+} from "./value-schemas";
 import { FunctionComponent } from "react";
 import { NodeComponentProps } from "react-flow-renderer";
 
@@ -10,6 +18,7 @@ export enum ValueTypes {
   FUNCTION,
   ANY,
   BOOLEAN,
+  ARRAY,
 }
 
 export const ValueSchemas: Record<ValueTypes, z.ZodTypeAny> = {
@@ -19,6 +28,7 @@ export const ValueSchemas: Record<ValueTypes, z.ZodTypeAny> = {
   [ValueTypes.FUNCTION]: FUNCTION,
   [ValueTypes.ANY]: ANY,
   [ValueTypes.BOOLEAN]: BOOLEAN,
+  [ValueTypes.ARRAY]: ARRAY,
 };
 
 export function registerNode<
