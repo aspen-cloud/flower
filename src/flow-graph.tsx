@@ -77,6 +77,7 @@ import SelectedElementsManager from "./components/selected-elements-manager";
 import * as Y from "yjs";
 import ActionButtons, { Action } from "./components/action-buttons";
 import { css } from "@emotion/css";
+import useCurrentGraphId from "./hooks/use-current-graph-id";
 
 const initBgColor = "#343434";
 
@@ -164,13 +165,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
 
   const [showSelectDialog, setShowSelectDialog] = useState(false);
 
-  const { graphPath } = useParams<{ graphPath?: string }>();
   const history = useHistory();
 
-  const graphId: string | null = useMemo(
-    () => (graphPath ? graphPath.slice(-21) : null),
-    [graphPath],
-  );
+  const graphId = useCurrentGraphId();
 
   useEffect(() => {
     if (!newGraphLoaded || graphElements.length === 0 || !reactflowInstance)
