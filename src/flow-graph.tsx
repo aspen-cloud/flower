@@ -8,13 +8,11 @@ import React, {
 } from "react";
 
 import ReactFlow, {
-  getConnectedEdges,
   Controls,
   Background,
   isEdge,
   Elements,
   FlowElement,
-  OnEdgeUpdateFunc,
   Connection,
   Node,
   Edge,
@@ -78,6 +76,7 @@ import ActionButtons, { Action } from "./components/action-buttons";
 import { css } from "@emotion/css";
 import useCurrentGraphId from "./hooks/use-current-graph-id";
 import { ValueTypes } from "./node-type-manager";
+import { GraphEdge } from "./prograph";
 
 const initBgColor = "#343434";
 
@@ -259,42 +258,17 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     }
   }, [omnibarQuery]);
 
-  // TODO: not validating connections
-  const validateConnection = (
-    connection: Connection | Edge<any>,
-    els: Elements,
-  ) => {
-    /**
-     * There are hooks on initial connection to a handle to check if the connection is valid
-     * - https://reactflow.dev/docs/api/handle/
-     * Unfortunately, this is not available on an edge update
-     * - https://github.com/wbkd/react-flow/issues/1034
-     *
-     * Manually enforcing that on connections/updates that no other incoming edges exist for that handle
-     * That may not always be the case, but for now that seems correct
-     */
-
-    const target = els.find(({ id }) => id === connection.target) as Node<any>;
-    if (!target) return false;
-    const edges = els.filter((el) => isEdge(el)) as Edge<any>[];
-    const handleEdges = getConnectedEdges([target], edges).filter(
-      (edge) =>
-        edge.target === target.id &&
-        edge.targetHandle === connection.targetHandle,
-    );
-
-    if (
-      handleEdges.length >= 1 &&
-      handleEdges.some((edge) => edge.type !== "suggested")
-    ) {
-      console.log("INVALID: ALREADY AN EDGE ON THIS HANDLE");
-      return false;
-    }
-
-    return true;
-  };
-
   const onConnect = (connection: Connection | Edge<any>) => {
+    // Check for existing incoming edge at handle
+    if (
+      Array.from<GraphEdge>(prograph._edges.values()).some(
+        (edge) =>
+          edge.to.nodeId === connection.target &&
+          edge.to.busKey === connection.targetHandle,
+      )
+    )
+      return;
+
     prograph.addEdge({
       from: {
         nodeId: connection.source,
@@ -317,16 +291,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
           setSpreadsheetTableData(undefined);
       }
     }
-  };
-
-  const onEdgeUpdate: OnEdgeUpdateFunc<any> = (oldEdge, newConnection) => {
-    // TODO fix to work with Prograph
-    // setGraphElements((els) => {
-    //   if (!validateConnection(newConnection, els)) return els;
-    //   onEdgeDisconnect(oldEdge, els);
-    //   onEdgeConnect(newConnection, els);
-    //   return updateEdge(oldEdge, newConnection, els);
-    // });
   };
 
   const onLoad: OnLoadFunc<any> = useCallback(
@@ -1107,7 +1071,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               }}
               onSelectionDragStart={(event, _nodes) => handleDragStart(event)}
               onDragOver={onDragOver}
-              onEdgeUpdate={onEdgeUpdate}
               onNodeContextMenu={(event, node) => {
                 // @ts-ignore
                 if (event.target.closest(".base-node-content")) return;
