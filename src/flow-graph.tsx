@@ -1304,7 +1304,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
                 <div
                   style={{
                     position: "absolute",
-                    top: "20px",
+                    top: "70px",
                     left: "calc(50% - 200px)",
                     zIndex: 5,
                     display: "flex",
