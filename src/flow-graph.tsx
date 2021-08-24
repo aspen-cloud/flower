@@ -1062,7 +1062,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               onConnect={onConnect}
               style={{ background: bgColor }}
               onDoubleClick={() => {
-                console.log("double clicked...");
+                setShowNodeOmniBar(true);
               }}
               onLoad={onLoad}
               nodeTypes={nodeTypes}

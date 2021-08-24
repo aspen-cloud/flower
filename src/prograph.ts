@@ -123,8 +123,6 @@ export default class ProGraph {
 
     this.description = this.rootDoc.getText("description");
 
-    console.log("LOADING GRAPH", this._nodes, this._edges);
-
     if (this.nodes$) {
       this.nodes$.complete();
     }

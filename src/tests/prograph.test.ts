@@ -508,10 +508,8 @@ describe("Basic calculations", () => {
     // D = A  B - C
     // 10 + 5 - 50 => -35
     graph.evaluate();
-    console.log(graph._outputs, Array.from(graph.nodes.entries()));
 
-    const result = graph.nodes.get(nodeDKey);
-    console.log(result);
+    graph.nodes.get(nodeDKey);
 
     expect(graph._outputs[nodeDKey].value).toBe(-35);
   });

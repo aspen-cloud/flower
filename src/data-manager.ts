@@ -63,7 +63,6 @@ class DataManager {
     });
 
     this.rootDoc.on("subdocs", async () => {
-      console.log("subdoc loaded");
       this.graphs$.next(await this.getAllGraphs());
     });
 
