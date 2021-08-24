@@ -6,10 +6,11 @@ import "@blueprintjs/popover2/lib/css/blueprint-popover2.css";
 import "@blueprintjs/table/lib/css/table.css";
 
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import FlowGraphWrapper from "./flow-graph-wrapper";
+import Workspace from "./pages/workspace";
 import { DataManagerProvider } from "./hooks/use-data-manager";
-import Home from "./components/home";
+import Home from "./pages/home";
 import { ReactFlowProvider } from "react-flow-renderer";
+import DemoPage from "./pages/demo";
 
 export default function App() {
   return (
@@ -19,9 +20,12 @@ export default function App() {
           <Route exact path="/">
             <Home />
           </Route>
+          <Route exact path="/demo/:demoName">
+            <DemoPage />
+          </Route>
           <Route exact path="/:graphPath">
             <ReactFlowProvider>
-              <FlowGraphWrapper />
+              <Workspace />
             </ReactFlowProvider>
           </Route>
         </Switch>

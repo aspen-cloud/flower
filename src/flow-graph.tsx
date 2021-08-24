@@ -47,7 +47,7 @@ import {
 } from "@blueprintjs/core";
 import { OmnibarItem } from "./types";
 import { jsonToTable } from "./utils/tables";
-import { csvToJson } from "./utils/files";
+import { csvFileToJson } from "./utils/files";
 import { isWritableElement } from "./utils/elements";
 import {
   addElementsToClipboard,
@@ -367,7 +367,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     position: XYPosition,
   ) {
     const file = await entry.getFile();
-    const jsonData = await csvToJson(file);
+    const jsonData = await csvFileToJson(file);
     const tableData = jsonToTable(jsonData);
     const newId = await dataManager.newTable(tableData, file.name);
     addNode(prograph, {

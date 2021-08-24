@@ -1,5 +1,5 @@
 import { useHistory } from "react-router-dom";
-import SelectGraphDialog from "./select-graph-dialog";
+import SelectGraphDialog from "../components/select-graph-dialog";
 
 export default function Home() {
   const history = useHistory();

@@ -1,9 +1,9 @@
 import { Spinner } from "@blueprintjs/core";
-import FlowGraph from "./flow-graph";
-import useCurrentGraphId from "./hooks/use-current-graph-id";
-import useGraph from "./hooks/use-graph";
+import FlowGraph from "../flow-graph";
+import useCurrentGraphId from "../hooks/use-current-graph-id";
+import useGraph from "../hooks/use-graph";
 
-export default function FlowGraphWrapper() {
+export default function Workspace() {
   const currentGraphId = useCurrentGraphId();
 
   const prograph = useGraph(currentGraphId);

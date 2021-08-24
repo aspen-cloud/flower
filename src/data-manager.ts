@@ -214,6 +214,8 @@ class DataManager {
   }
 }
 
+export type { DataManager };
+
 const dataManager = new DataManager(GraphNodes);
 //@ts-ignore
 window.dataManager = dataManager;

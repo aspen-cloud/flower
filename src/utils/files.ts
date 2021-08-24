@@ -1,8 +1,9 @@
 import XLSX from "xlsx";
 import { Column, Table } from "../types";
 import { saveAs } from "file-saver";
+import { jsonToTable } from "./tables";
 
-export async function csvToJson(file: File) {
+export async function csvFileToJson(file: File) {
   const data = await new Response(file).arrayBuffer();
   const workbook = XLSX.read(data, { type: "array" });
   const json_data = XLSX.utils.sheet_to_json(
@@ -11,6 +12,16 @@ export async function csvToJson(file: File) {
   ) as any[];
 
   return json_data;
+}
+
+export function csvToTable(csv: string): Table {
+  const workbook = XLSX.read(csv, { type: "string" });
+  const json_data = XLSX.utils.sheet_to_json(
+    workbook.Sheets[Object.keys(workbook.Sheets)[0]], // todo: Possibly load all "Sheets" as separate data sources?
+    { raw: false },
+  ) as any[];
+
+  return jsonToTable(json_data);
 }
 
 export function tableToCsv(table: Table) {
