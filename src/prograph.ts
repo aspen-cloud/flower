@@ -5,7 +5,6 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
 import { NodeClass, parseType, ValueTypes } from "./node-type-manager";
-import dataManager from "./data-manager";
 
 if (process.env.NODE_ENV === "development") {
   if (process.argv.includes("log")) {
@@ -35,9 +34,6 @@ export interface GraphNode {
   position: { x: number; y: number };
   size?: { width: number; height: number };
 }
-
-// Keep track locally of what nodes have had their source initialized (see hack in updateNodeSources)
-const initializedNodes = new Set();
 
 export interface GraphEdge {
   id: string;
@@ -88,7 +84,7 @@ export default class ProGraph {
 
     this._outputs = {};
 
-    const rootIndexeddbProvider = new IndexeddbPersistence(id, this.rootDoc);
+    new IndexeddbPersistence(id, this.rootDoc);
 
     this.presence = new awarenessProtocol.Awareness(this.rootDoc);
 

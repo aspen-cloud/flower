@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
-import dataManager from "../../../data-manager";
 import useDataManager from "../../../hooks/use-data-manager";
 
 const Text = registerNode({

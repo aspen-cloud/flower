@@ -6,7 +6,6 @@ import React, {
   DragEventHandler,
   useMemo,
 } from "react";
-import XLSX from "xlsx";
 
 import ReactFlow, {
   getConnectedEdges,
@@ -64,7 +63,7 @@ import SuggestedEdge, {
 } from "./graph-nodes/edges/suggested-edge";
 import toaster from "./components/app-toaster";
 import SelectGraphDialog from "./components/select-graph-dialog";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import MouseNode from "./graph-nodes/utils/mouse-node";
 import GraphOmnibar from "./graph-omnibar";
 import DragPanZone from "./drag-pan-zone";
@@ -145,7 +144,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
   const [mouseElements, setMouseElements] = useState<Elements>([]);
   const [suggestedEdges, setSuggestedEdges] = useState<Edge[]>([]);
 
-  const [bgColor, setBgColor] = useState(initBgColor);
+  const [bgColor] = useState(initBgColor);
   const [sideMenuOpen, setSideMenuOpen] = useState(false);
   const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
   const selectedElements = useStoreState((state) => state.selectedElements);
@@ -294,15 +293,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     return true;
   };
 
-  const getEdgeStreams = (edge: Connection | Edge<any>, els: Elements) => {
-    const sourceNode = els.find(({ id }) => id === edge.source);
-    const targetNode = els.find(({ id }) => id === edge.target);
-    const sourceOutput = sourceNode!.data.sinks[edge.sourceHandle!];
-    const targetInput = targetNode!.data.sources[edge.targetHandle!];
-
-    return [sourceOutput, targetInput];
-  };
-
   const onConnect = (connection: Connection | Edge<any>) => {
     prograph.addEdge({
       from: {
@@ -346,20 +336,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     },
     [reactflowInstance],
   );
-
-  function parseFileData(file: File, callback: (data: any) => void) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const data = new Uint8Array(e.target!.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: "array" });
-      const json_data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[Object.keys(workbook.Sheets)[0]], // todo: Possibly load all "Sheets" as separate data sources?
-        { raw: false },
-      );
-      callback(json_data);
-    };
-    reader.readAsArrayBuffer(file);
-  }
 
   async function addFileNode(
     entry: FileSystemFileHandle,

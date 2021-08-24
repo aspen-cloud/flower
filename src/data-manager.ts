@@ -69,7 +69,7 @@ class DataManager {
 
     this.ready.then(() => {
       for (const entry of this._graphs) {
-        const [id, graph] = entry as unknown as [string, Y.Doc];
+        const [, graph] = entry as unknown as [string, Y.Doc];
         try {
           graph.load();
         } catch (e) {
@@ -178,7 +178,7 @@ class DataManager {
 
   private handleTableSubdocChange({ added, removed, loaded }) {
     loaded.forEach((subdoc) => {
-      const db = new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
+      new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
     });
   }
 
