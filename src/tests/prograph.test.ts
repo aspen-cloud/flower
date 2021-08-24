@@ -3,7 +3,9 @@ import crypto from "crypto";
 
 Object.defineProperty(global.self, "crypto", {
   value: {
+    //@ts-ignore
     subtle: crypto.webcrypto.subtle,
+    getRandomValues: (arr) => crypto.randomBytes(arr.length),
   },
 });
 
@@ -12,22 +14,30 @@ global.IDBKeyRange = require("fake-indexeddb/lib/FDBKeyRange");
 import ProGraph from "../prograph";
 import { nanoid } from "nanoid";
 import * as Y from "yjs";
+import { NodeClass, ValueTypes } from "../node-type-manager";
+import React from "react";
 
 describe("basic CRUD", () => {
-  const graph = new ProGraph("test", new Y.Doc(), {
-    TEST_NODE: {
-      inputs: {
-        input: any(),
+  let graph: ProGraph;
+  beforeEach(() => {
+    graph = new ProGraph("test", new Y.Doc(), {
+      TEST_NODE: {
+        inputs: {
+          input: ValueTypes.ANY,
+        },
+        sources: {},
+        outputs: {
+          output: { func: ({ input }) => input, returns: ValueTypes.FUNCTION },
+        },
+        Component: () => React.createElement(React.Fragment),
       },
-      outputs: {
-        output: { func: ({ input }) => input, returns: func() },
-      },
-    },
+    });
+    graph.loadGraph(nanoid());
   });
 
-  beforeEach(() => {
-    graph.loadGraph(nanoid());
+  afterEach(() => {
     graph.wipeAll();
+    graph.unmount();
   });
 
   test("can add and read nodes", () => {
@@ -98,22 +108,26 @@ describe("basic CRUD", () => {
 });
 
 describe("topological sorting", () => {
-  const graph = new ProGraph("test", new Y.Doc(), {
-    TEST_NODE: {
-      inputs: {
-        input: any(),
+  let graph: ProGraph;
+  beforeEach(() => {
+    graph = new ProGraph("test", new Y.Doc(), {
+      TEST_NODE: {
+        inputs: {
+          input: ValueTypes.ANY,
+        },
+        sources: {},
+        outputs: {
+          output: { func: ({ input }) => input, returns: ValueTypes.ANY },
+        },
+        Component: () => React.createElement(React.Fragment),
       },
-      outputs: {
-        output: { func: ({ input }) => input, returns: any() },
-      },
-    },
+    });
+    graph.loadGraph(nanoid());
   });
 
-  graph.loadGraph(nanoid());
-  graph.wipeAll();
-
-  beforeEach(() => {
+  afterEach(() => {
     graph.wipeAll();
+    graph.unmount();
   });
 
   it("correctly sorts simple graph", () => {
@@ -357,44 +371,57 @@ describe("topological sorting", () => {
 describe("Basic calculations", () => {
   let graph: ProGraph;
   let nodeAKey, nodeBKey, nodeCKey, nodeDKey;
-  beforeAll(() => {
+  beforeEach(() => {
     const NodeTypes = {
       Add: {
         inputs: {
-          left: { type: ValueTypes.NUMBER },
-          right: { type: ValueTypes.NUMBER },
+          left: ValueTypes.NUMBER,
+          right: ValueTypes.NUMBER,
         },
+        sources: {},
         outputs: {
           sum: {
             func: ({ left, right }) => left + right,
             returns: ValueTypes.NUMBER,
           },
         },
+        Component: () => React.createElement(React.Fragment),
       },
       Subtract: {
         inputs: {
-          left: { type: ValueTypes.NUMBER },
-          right: { type: ValueTypes.NUMBER },
+          left: ValueTypes.NUMBER,
+          right: ValueTypes.NUMBER,
         },
+        sources: {},
+
         outputs: {
           difference: {
             func: ({ left, right }) => left - right,
             returns: ValueTypes.NUMBER,
           },
         },
+        Component: () => React.createElement(React.Fragment),
       },
       Number: {
+        inputs: {},
         sources: {
-          number: { type: ValueTypes.NUMBER },
+          number: ValueTypes.NUMBER,
         },
+        outputs: {
+          number: { func: ({ number }) => number, returns: ValueTypes.NUMBER },
+        },
+        Component: () => React.createElement(React.Fragment),
       },
       Output: {
         inputs: {
-          value: { type: any() },
+          value: ValueTypes.ANY,
         },
+        sources: {},
+
         outputs: {
-          value: { func: ({ value }) => value, returns: any() },
+          value: { func: ({ value }) => value, returns: ValueTypes.ANY },
         },
+        Component: () => React.createElement(React.Fragment),
       },
     };
 
@@ -413,19 +440,19 @@ describe("Basic calculations", () => {
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: "10" },
+      sources: { number: 10 },
     });
     nodeBKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: "5" },
+      sources: { number: 5 },
     });
     nodeCKey = graph.addNode({
       type: "Number",
       position: { x: 0, y: 0 },
 
-      sources: { number: "50" },
+      sources: { number: 50 },
     });
 
     const addNodeKey = graph.addNode({
@@ -504,6 +531,11 @@ describe("Basic calculations", () => {
     });
   });
 
+  afterEach(() => {
+    graph.wipeAll();
+    graph.unmount();
+  });
+
   it("can produce the correct output", () => {
     // D = A  B - C
     // 10 + 5 - 50 => -35
@@ -511,7 +543,7 @@ describe("Basic calculations", () => {
 
     graph.nodes.get(nodeDKey);
 
-    expect(graph._outputs[nodeDKey].value).toBe(-35);
+    expect(graph._outputs[nodeDKey].value.value).toBe(-35);
   });
 
   it("will react to changes", () => {
@@ -523,7 +555,7 @@ describe("Basic calculations", () => {
     graph.evaluate();
     const result = graph._nodes.get(nodeDKey);
 
-    expect(graph._outputs[nodeDKey].value).toBe(-25);
+    expect(graph._outputs[nodeDKey].value.value).toBe(-25);
   });
 
   it("will support granular changes", () => {
@@ -535,6 +567,6 @@ describe("Basic calculations", () => {
     graph.evaluate([nodeBKey]);
     const result = graph._nodes.get(nodeDKey);
 
-    expect(graph._outputs[nodeDKey].value).toBe(-140);
+    expect(graph._outputs[nodeDKey].value.value).toBe(-140);
   });
 });
