@@ -1030,9 +1030,6 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               onElementsRemove={onElementsRemove}
               onConnect={onConnect}
               style={{ background: bgColor }}
-              onDoubleClick={() => {
-                setShowNodeOmniBar(true);
-              }}
               onLoad={onLoad}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
