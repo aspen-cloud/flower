@@ -17,17 +17,19 @@ Flower is a no-code data analysis platform designed to be as easy and familiar a
 
 # Getting started
 
-Visit https://flower.aspen.cloud to create your own workspace. Simply paste a table copied from Google Sheets, Excel, etc. or drag and drop a CSV to import your existing data.
+1. Try starting with a demo workspace at https://flower.aspen.cloud/demo/basic-intro (no account required)
+2. Try editing the Employee's table and watch the output update automatically.
+3. Share your workspace with a friend and collaborate in real time!
 
 # FAQ
 
 ## Is Flower right for me?
 
-If you find yourself frequently using Vlookup, Xlookup, Index, Match, etc in Excel, Flower can make joining tables much easier.
+- If you find yourself frequently using **Vlookup, Xlookup, Index, Match, etc in Excel, Flower can make joining tables much easier**.
 
-If you are considering writing a script in Python, Node, Bash, etc to transform some data that will be reused by others on your team then Flower can make it much easier for your non-programming colleagues to use and understand your program.
+- If you are considering writing a script in Python, Node, Bash, etc to transform some data that will be reused by others on your team then **Flower can make it much easier for your non-programming colleagues to use and understand** your program.
 
-If you want to quickly and collaboratively explore a set of data to answer questions like "What is the average salary in our London office?" or "Who from our survey indicated they used MacOS _and_ used Microsoft Edge", then Flower is probably the fastest and easiest way to figure that out.
+- If you want to **quickly and collaboratively explore a set of data to answer questions** like "What is the average salary in our London office?" or "Who from our survey indicated they used MacOS _and_ used Microsoft Edge", then Flower is probably the fastest and easiest way to figure that out.
 
 ## How does Flower compare to Excel, SQL, etc?
 
