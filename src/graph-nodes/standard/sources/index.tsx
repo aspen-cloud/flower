@@ -5,6 +5,7 @@ import BaseNode from "../../../components/base-node";
 import ResizableNode from "../../../components/resizable-node";
 import { registerNode, ValueTypes } from "../../../node-type-manager";
 import useDataManager from "../../../hooks/use-data-manager";
+import { Doc } from "yjs";
 
 const Text = registerNode({
   inputs: {},
@@ -91,13 +92,16 @@ const DataTable = registerNode({
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-      let tableDoc = null;
-      let onTableDocUpdate = null;
-      let tableDataDoc = null;
-      let onTableDataDocUpdate = null;
+      let tableDoc: Doc;
+      let onTableDocUpdate: Function;
+      let onTableSubdocs: Function;
+      let tableDataDoc: Doc;
+      let onTableDataDocUpdate: Function;
 
+      // This is all a bit hacky to say the least
       (async () => {
         let docId = sources.docId.value;
+        // Creating an empty table may not have a doc assigned
         if (!docId) {
           docId = await dataManager.newTable({
             columns: [],
@@ -105,7 +109,10 @@ const DataTable = registerNode({
           });
           sources.docId.set(docId);
         }
+
         tableDoc = await dataManager.getTable(docId);
+
+        // Handle relevant UI updates for table metadata
         const updateTable = () => {
           sources.sourceLabel.set(tableDoc.getMap("metadata").get("label"));
         };
@@ -113,30 +120,59 @@ const DataTable = registerNode({
         tableDoc.on("update", onTableDocUpdate);
 
         tableDataDoc = tableDoc.getMap().get("tableData");
-        const updateTableData = () => {
-          sources.table.set({
-            columns: tableDataDoc.getArray("columns").toArray(),
-            rows: tableDataDoc.getArray("rows").toArray(),
-          });
-        };
-        onTableDataDocUpdate = () => {
-          updateTableData();
-          setLoading(false);
-        };
-        tableDataDoc.on("update", onTableDataDocUpdate);
 
-        // Using share.size as proxy for if any data has loaded
-        if (tableDataDoc.share.size) {
-          updateTable();
-          updateTableData();
-          setLoading(false);
+        // Run once we know we have data
+        const onTableDataDoc = () => {
+          // Update table data on docuent updates
+          const updateTableData = () => {
+            sources.table.set({
+              columns: tableDataDoc.getArray("columns").toArray(),
+              rows: tableDataDoc.getArray("rows").toArray(),
+            });
+          };
+          onTableDataDocUpdate = () => {
+            updateTableData();
+            setLoading(false);
+          };
+          tableDataDoc.on("update", onTableDataDocUpdate);
+
+          // Using share.size as proxy for if any data has loaded
+          if (tableDataDoc?.share?.size) {
+            updateTable();
+            updateTableData();
+            setLoading(false);
+          }
+          tableDataDoc.load();
+        };
+
+        // If table data is already available
+        if (tableDataDoc) {
+          onTableDataDoc();
         }
-        tableDataDoc.load();
+
+        // If data is not already available (ie hasnt synced, wait for subdoc to load)
+        onTableSubdocs = ({
+          loaded,
+          added,
+          removed,
+        }: {
+          loaded: Set<Doc>;
+          added: Set<Doc>;
+          removed: Set<Doc>;
+        }) => {
+          if (!tableDataDoc && Array.from(added).length) {
+            tableDataDoc = Array.from(added)[0];
+            onTableDataDoc();
+          }
+        };
+
+        tableDoc.on("subdocs", onTableSubdocs);
       })();
 
       return () => {
         if (tableDoc && onTableDocUpdate)
           tableDoc.off("update", onTableDocUpdate);
+        if (tableDoc && onTableSubdocs) tableDoc.off("subdocs", onTableSubdocs);
         if (tableDataDoc && onTableDataDocUpdate)
           tableDataDoc.off("update", onTableDataDocUpdate);
       };

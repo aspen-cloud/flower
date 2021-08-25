@@ -6,6 +6,9 @@ import { BehaviorSubject } from "rxjs";
 import { NodeClass } from "./node-type-manager";
 import { Column, RowValue, Table } from "./types";
 import GraphNodes from "./graph-nodes";
+import { WebrtcProvider } from "y-webrtc";
+
+const loadedTables = new Set<string>();
 
 /**
  * This manages graphs and tables. It's able to load "all" graphs into memory
@@ -21,7 +24,7 @@ class DataManager {
 
   graphs$: BehaviorSubject<Record<string, Y.Doc>>;
 
-  private _tables: Y.Map<Y.Doc>; // Each table has a string that identifies a doc, doc has columns, rows, etc
+  private _tables: Y.Map<Y.Doc>;
 
   tables$: BehaviorSubject<Record<string, Y.Doc>>;
 
@@ -40,6 +43,7 @@ class DataManager {
       "flow-data",
       this.rootDoc,
     );
+    new WebrtcProvider("flow-data-rtc", this.rootDoc);
 
     this.ready = new Promise((resolve) => {
       indexeddbProvider.whenSynced.then(() => {
@@ -58,7 +62,20 @@ class DataManager {
       this.graphs$.next(await this.getAllGraphs());
     });
 
-    this._tables.observe(async () => {
+    this._tables.observe(async (mapEvent, transaction) => {
+      const additions = Array.from(mapEvent.changes.keys.entries()).filter(
+        ([key, val]) => val.action === "add" && !loadedTables.has(key),
+      );
+
+      additions.forEach(([docId, val]) => {
+        const doc = this._tables.get(docId);
+        new WebrtcProvider(docId + "_table", doc);
+        doc.on("destroy", () => {
+          this._tables.delete(docId);
+        });
+        loadedTables.add(docId);
+      });
+
       this.tables$.next(await this.getAllTables());
     });
 
@@ -146,12 +163,11 @@ class DataManager {
     const rows = tableDataDoc.getArray<Record<string, RowValue>>("rows");
     rows.insert(0, data.rows);
 
-    new IndexeddbPersistence(`tableData-${tableDataDoc.guid}`, tableDataDoc);
-
     const metadata = newTableDoc.getMap("metadata");
     metadata.set("label", label || "Untitled"); // TODO: unique labels
 
     this._tables.set(tableId, newTableDoc);
+
     const dbProvider = new IndexeddbPersistence(
       `table-${tableId}`,
       newTableDoc,
@@ -161,7 +177,6 @@ class DataManager {
   }
 
   async getTable(id: string) {
-    // TODO: handle table does not exist
     return await this.loadTable(id);
   }
 
@@ -175,24 +190,38 @@ class DataManager {
     return Object.fromEntries(tableEntries);
   }
 
-  private handleTableSubdocChange({ added, removed, loaded }) {
-    loaded.forEach((subdoc) => {
-      new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
-    });
-  }
-
   private async loadTable(id: string) {
-    const tableDoc = this._tables.get(id);
+    let tableDoc = this._tables.get(id);
 
-    tableDoc.on("subdocs", this.handleTableSubdocChange);
+    if (!tableDoc) {
+      tableDoc = new Y.Doc({ guid: id });
+      this._tables.set(id, tableDoc);
+    }
 
-    // For some reason this._tables.observe (or observeDeep) isnt firing on updates to metadata, so handling here
+    tableDoc.on("subdocs", ({ added, removed, loaded }) => {
+      loaded.forEach((subdoc) => {
+        new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
+        new WebrtcProvider(subdoc.guid + "_tableData", subdoc);
+      });
+
+      removed.forEach((subdoc) => {
+        const tableDataDbProvider = new IndexeddbPersistence(
+          `tableData-${subdoc.guid}`,
+          subdoc,
+        );
+        tableDataDbProvider.clearData();
+      });
+    });
+
+    // It seems this._tables.observe (or observeDeep) isnt firing on updates to metadata, so handling here
     // works if you run set again for that id, but that is tedious to rememebr to do
     tableDoc.on("update", () =>
       this.getAllTables().then((tables) => this.tables$.next(tables)),
     );
+
     const dbProvider = new IndexeddbPersistence(`table-${id}`, tableDoc);
     await dbProvider.whenSynced;
+
     return tableDoc;
   }
 
@@ -201,21 +230,21 @@ class DataManager {
   deleteTable(id: string) {
     const entry = this._tables.get(id);
     const tableData = entry.getMap().get("tableData");
+    // TODO: handle idb clean up based on document event (similar to tableData)
     const tableDataDbProvider = new IndexeddbPersistence(
       `tableData-${tableData.guid}`,
       entry,
     );
     tableDataDbProvider.clearData();
+    tableData.destroy();
     const tableDbProvider = new IndexeddbPersistence(`table-${id}`, entry);
     tableDbProvider.clearData();
     entry.destroy();
-    this._tables.delete(id);
   }
 }
 
 export type { DataManager };
 
 const dataManager = new DataManager(GraphNodes);
-//@ts-ignore
-window.dataManager = dataManager;
+
 export default dataManager;

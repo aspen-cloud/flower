@@ -6,14 +6,6 @@ import { nanoid } from "nanoid";
 import { BehaviorSubject, Subject } from "rxjs";
 import { NodeClass, parseType, ValueTypes } from "./node-type-manager";
 
-if (process.env.NODE_ENV === "development") {
-  if (process.argv.includes("log")) {
-    localStorage.setItem("log", "true");
-  }
-} else {
-  localStorage.removeItem("log");
-}
-
 // Value or error produced by output function
 interface NodeOutput {
   value: any;

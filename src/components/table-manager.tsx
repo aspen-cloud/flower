@@ -46,6 +46,12 @@ function TableEntry({
     [onUpdate],
   );
 
+  useEffect(() => {
+    if (!isEditing) {
+      setEntryInput(table.label);
+    }
+  }, [table.label, isEditing]);
+
   function closeDeleteDialog() {
     setIsDeleteDialogOpen(false);
   }
