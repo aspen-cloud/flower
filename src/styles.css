@@ -123,3 +123,8 @@ body {
 .suggestion-mode-toast {
   top: 50px;
 }
+
+/* Meant for displaying new lines properly in read cells ... if setting style here starts to conflict with other places we can patch pacakge */
+.bp3-table-editable-text {
+  white-space: pre-line !important;
+}

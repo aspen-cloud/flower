@@ -154,6 +154,10 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
             insertRow(rowIndex + 1);
           }
         }}
+        editableTextProps={{
+          confirmOnEnterKey: true,
+          multiline: true,
+        }}
       />
     );
   };
@@ -432,6 +436,14 @@ export default React.memo(function Spreadsheet({ doc }: SpreadsheetProps) {
                 if (!editCoordinates) {
                   undoManager.current.redo();
                 }
+              },
+            },
+            {
+              key: "cell-new-line",
+              label: "Add new line in cell",
+              combo: "mod+enter",
+              onKeyDown: (e, props, state) => {
+                console.log(e, props, state);
               },
             },
           ]}
