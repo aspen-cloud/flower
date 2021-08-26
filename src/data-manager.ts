@@ -189,6 +189,21 @@ class DataManager {
     return Object.fromEntries(tableEntries);
   }
 
+  private _handleTableSubdocs({ added, removed, loaded }) {
+    loaded.forEach((subdoc) => {
+      new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
+      new WebrtcProvider(subdoc.guid + "_tableData", subdoc);
+    });
+
+    removed.forEach((subdoc) => {
+      const tableDataDbProvider = new IndexeddbPersistence(
+        `tableData-${subdoc.guid}`,
+        subdoc,
+      );
+      tableDataDbProvider.clearData();
+    });
+  }
+
   private async loadTable(id: string) {
     let tableDoc = this._tables.get(id);
 
@@ -197,20 +212,7 @@ class DataManager {
       this._tables.set(id, tableDoc);
     }
 
-    tableDoc.on("subdocs", ({ added, removed, loaded }) => {
-      loaded.forEach((subdoc) => {
-        new IndexeddbPersistence(`tableData-${subdoc.guid}`, subdoc);
-        new WebrtcProvider(subdoc.guid + "_tableData", subdoc);
-      });
-
-      removed.forEach((subdoc) => {
-        const tableDataDbProvider = new IndexeddbPersistence(
-          `tableData-${subdoc.guid}`,
-          subdoc,
-        );
-        tableDataDbProvider.clearData();
-      });
-    });
+    tableDoc.on("subdocs", this._handleTableSubdocs);
 
     // It seems this._tables.observe (or observeDeep) isnt firing on updates to metadata, so handling here
     // works if you run set again for that id, but that is tedious to rememebr to do
