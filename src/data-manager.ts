@@ -43,7 +43,6 @@ class DataManager {
       "flow-data",
       this.rootDoc,
     );
-    new WebrtcProvider("flow-data-rtc", this.rootDoc);
 
     this.ready = new Promise((resolve) => {
       indexeddbProvider.whenSynced.then(() => {
