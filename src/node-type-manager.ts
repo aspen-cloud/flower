@@ -8,7 +8,7 @@ import {
   BOOLEAN,
   ARRAY,
 } from "./value-schemas";
-import { FunctionComponent } from "react";
+import React, { FunctionComponent } from "react";
 import { NodeComponentProps } from "react-flow-renderer";
 
 export enum ValueTypes {
@@ -67,7 +67,7 @@ export function registerNode<
     inputs,
     outputs,
     sources,
-    Component,
+    Component: React.memo(Component),
   };
 }
 

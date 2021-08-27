@@ -90,7 +90,7 @@ const nodeTypes = Object.fromEntries(
   }),
 );
 
-nodeTypes.mouse = MouseNode;
+nodeTypes.mouse = React.memo(MouseNode);
 
 const defaultOmnibarOptions = Object.keys(nodeTypes).map((t) => ({
   type: t,
