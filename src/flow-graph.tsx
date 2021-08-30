@@ -1037,6 +1037,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
               snapToGrid={true}
               snapGrid={snapGrid}
               defaultZoom={1}
+              minZoom={0.01}
               onDrop={onDrop}
               onNodeDrag={(event) => {
                 if (!isDragging) {
