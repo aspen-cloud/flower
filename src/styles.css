@@ -128,3 +128,7 @@ body {
 .bp3-table-editable-text {
   white-space: pre-line !important;
 }
+
+.resizable-base {
+  overflow: scroll;
+}

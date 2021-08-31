@@ -5,7 +5,11 @@ import { GraphInternals } from "../flow-graph";
 
 export interface ResizableNodeProps extends BaseNodeProps {
   width: number;
+  minWidth?: number | string;
+  maxWidth?: number | string;
   height: number;
+  minHeight?: number | string;
+  maxHeight?: number | string;
   nodeId: string; // required for updating graph
 }
 
@@ -16,7 +20,11 @@ function ResizableNodeComponent({
   children,
   className,
   width,
+  minWidth,
+  maxWidth,
   height,
+  minHeight,
+  maxHeight,
   nodeId,
   label,
 }: ResizableNodeProps) {
@@ -35,7 +43,7 @@ function ResizableNodeComponent({
       label={label}
       sources={sources}
       sinks={sinks}
-      className={className}
+      className={`${className ?? ""} resizable-base`}
     >
       <Resizable
         size={{ width: `${width}px`, height: `${height}px` }}
@@ -51,6 +59,10 @@ function ResizableNodeComponent({
           topLeft: "nodrag",
         }}
         scale={rfiSnapshot?.zoom}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        minHeight={minHeight}
+        maxHeight={maxHeight}
       >
         {children}
       </Resizable>
