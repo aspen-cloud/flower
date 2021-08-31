@@ -35,13 +35,39 @@ export const addElementsToClipboard = async (
   await navigator.clipboard.writeText(str || "");
 };
 
-export const tryParseSpreadsheet = (text: string) => {
+const tryParseSpreadsheet = (text: string) => {
   const workbook = XLSX.read(text, { type: "string" });
-  const json_data = XLSX.utils.sheet_to_json(
+
+  // If only once cell worth of parsed content, assume text and fail
+  if (
+    workbook.SheetNames.length === 1 &&
+    workbook.Sheets[workbook.SheetNames[0]]["!ref"] === "A1"
+  ) {
+    return undefined;
+  }
+  const json_data = XLSX.utils.sheet_to_json<any>(
     workbook.Sheets[Object.keys(workbook.Sheets)[0]],
     { raw: false },
-  ) as any[];
+  );
   return json_data;
+};
+
+const tryParseJsonUrl = async (urlString: string) => {
+  try {
+    const url = new URL(urlString);
+    const result = await fetch(url.href);
+    return await result.json();
+  } catch {
+    return undefined;
+  }
+};
+
+const tryParseJsonElements = (elementsJsonString: string) => {
+  try {
+    return JSON.parse(elementsJsonString) as ElementClipboardContext[];
+  } catch {
+    return undefined;
+  }
 };
 
 export async function parseClipboard(
@@ -51,15 +77,21 @@ export async function parseClipboard(
     event?.clipboardData?.getData("text/plain") ??
     (await navigator.clipboard.readText());
 
-  try {
-    const jsonData = JSON.parse(textData) as ElementClipboardContext[];
-    if (jsonData) {
-      return {
-        type: "nodes",
-        data: jsonData,
-      };
-    }
-  } catch {}
+  const parsedJsonUrl = await tryParseJsonUrl(textData);
+  if (parsedJsonUrl) {
+    return {
+      type: "table",
+      data: parsedJsonUrl,
+    };
+  }
+
+  const parsedJsonElements = tryParseJsonElements(textData);
+  if (parsedJsonElements) {
+    return {
+      type: "nodes",
+      data: parsedJsonElements,
+    };
+  }
 
   const parsedSpreadsheet = tryParseSpreadsheet(textData);
   if (parsedSpreadsheet) {

@@ -420,9 +420,9 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     const { type, data } = clipboardResult;
     if (type === "text") {
       addNode(prograph, {
-        type: "Constant",
+        type: "Text",
         data: {
-          value: data,
+          text: data,
         },
         position,
       });
