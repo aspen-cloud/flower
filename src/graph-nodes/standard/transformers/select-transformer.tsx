@@ -70,8 +70,8 @@ const Select = registerNode({
     },
   },
   Component: ({ data, id, selected }) => {
-    const [showSelectedTags, setShowSelectedTags] = useState(false);
-    const [showUnselectedTags, setShowUnselectedTags] = useState(false);
+    const [showSelectedTags, setShowSelectedTags] = useState(true);
+    const [showUnselectedTags, setShowUnselectedTags] = useState(true);
 
     const setSelectedTags = useCallback(
       (newSet: Set<string>) => {
