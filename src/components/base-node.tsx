@@ -108,6 +108,8 @@ function BaseNodeClass({
           .selected & {
             box-shadow: 0 0 0px 4px #eacf42;
           }
+          height: 100%;
+          width: 100%;
         `,
         className,
       )}

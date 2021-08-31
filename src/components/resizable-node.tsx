@@ -39,34 +39,34 @@ function ResizableNodeComponent({
   };
 
   return (
-    <BaseNode
-      label={label}
-      sources={sources}
-      sinks={sinks}
-      className={`${className ?? ""} resizable-base`}
+    <Resizable
+      size={{ width: `${width}px`, height: `${height}px` }}
+      onResizeStop={onResizeStop}
+      handleClasses={{
+        top: "nodrag",
+        right: "nodrag",
+        bottom: "nodrag",
+        left: "nodrag",
+        topRight: "nodrag",
+        bottomRight: "nodrag",
+        bottomLeft: "nodrag",
+        topLeft: "nodrag",
+      }}
+      scale={rfiSnapshot?.zoom}
+      minWidth={minWidth}
+      maxWidth={maxWidth}
+      minHeight={minHeight}
+      maxHeight={maxHeight}
     >
-      <Resizable
-        size={{ width: `${width}px`, height: `${height}px` }}
-        onResizeStop={onResizeStop}
-        handleClasses={{
-          top: "nodrag",
-          right: "nodrag",
-          bottom: "nodrag",
-          left: "nodrag",
-          topRight: "nodrag",
-          bottomRight: "nodrag",
-          bottomLeft: "nodrag",
-          topLeft: "nodrag",
-        }}
-        scale={rfiSnapshot?.zoom}
-        minWidth={minWidth}
-        maxWidth={maxWidth}
-        minHeight={minHeight}
-        maxHeight={maxHeight}
+      <BaseNode
+        label={label}
+        sources={sources}
+        sinks={sinks}
+        className={`${className ?? ""} resizable-base`}
       >
         {children}
-      </Resizable>
-    </BaseNode>
+      </BaseNode>
+    </Resizable>
   );
 }
 
