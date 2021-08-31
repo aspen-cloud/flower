@@ -110,13 +110,17 @@ function BaseNodeClass({
           }
           height: 100%;
           width: 100%;
+          display: flex;
+          flex-direction: column;
         `,
         className,
       )}
     >
       <Label>{label}</Label>
       {targetHandles}
-      <div className="base-node-content">{children}</div>
+      <div className="base-node-content" style={{ flexGrow: 1 }}>
+        {children}
+      </div>
       {sourceHandles}
     </div>
   );
