@@ -1,6 +1,7 @@
 import XLSX from "xlsx";
 
 import { GraphEdge, GraphNode } from "../graph-store";
+import { jsonToTable } from "./tables";
 
 export interface ClipboardParseResult {
   type: "text" | "table" | "nodes";
@@ -49,17 +50,21 @@ const tryParseSpreadsheet = (text: string) => {
     workbook.Sheets[Object.keys(workbook.Sheets)[0]],
     { raw: false },
   );
-  return json_data;
+  return jsonToTable(json_data);
 };
 
 const tryParseJsonUrl = async (urlString: string) => {
   try {
     const url = new URL(urlString);
     const result = await fetch(url.href);
-    return await result.json();
-  } catch {
-    return undefined;
+    const json = await result.json();
+    if (json.columns && json.rows) {
+      return { columns: json.columns, rows: json.rows };
+    }
+  } catch (e) {
+    console.log(e);
   }
+  return undefined;
 };
 
 const tryParseJsonElements = (elementsJsonString: string) => {

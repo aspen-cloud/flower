@@ -429,8 +429,7 @@ export default function FlowGraph({ prograph }: { prograph: ProGraph }) {
     }
 
     if (type === "table") {
-      const tableData = jsonToTable(data);
-      const newId = await dataManager.newTable(tableData);
+      const newId = await dataManager.newTable(data);
 
       addNode(prograph, {
         type: "DataTable",
